@@ -774,10 +774,9 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             z-index: -2;
             background: var(--code-bg);
         }
-        #editor .cm-md-codeblock-first {
+        #editor .cm-content > .cm-line.cm-md-codeblock-first {
             padding-top: 10px;
             position: relative;
-            padding-inline-end: 9em;
         }
         #editor .cm-md-codeblock-first::before {
             border-radius: 15px 15px 0 0;
@@ -788,27 +787,37 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         #editor .cm-md-codeblock-last::before {
             border-radius: 0 0 15px 15px;
         }
+        /* A single content line owns both ends of the card. */
+        #editor .cm-md-codeblock-first.cm-md-codeblock-last::before {
+            border-radius: 15px;
+        }
+        /* Reserve a header row so the language never competes with code,
+           including wrapped lines and blocks at the start of a document. */
+        #editor .cm-content > .cm-line.cm-md-codeblock-first:has(.cm-md-code-language) {
+            padding-top: 36px;
+        }
         #editor .cm-md-code-fence-source-hidden {
             visibility: hidden;
         }
         #editor .cm-md-code-language {
             position: absolute;
-            inset-inline-end: 14px;
-            top: 7px;
+            inset-inline-start: 7px;
+            max-width: calc(100% - 21px);
+            top: 9px;
             z-index: 1;
             line-height: 1;
             white-space: nowrap;
         }
         #editor .cm-md-code-language-input {
-            width: 8em;
-            max-width: 28vw;
+            width: 14em;
+            max-width: 100%;
             min-width: 4.5em;
             box-sizing: border-box;
             padding: 2px 6px;
-            border: 1px solid var(--grid);
+            border: 1px solid transparent;
             border-radius: 5px;
-            background: var(--code-bg);
-            color: var(--text);
+            background: transparent;
+            color: var(--secondary);
             font-family: system-ui, -apple-system, sans-serif;
             font-size: 0.8em;
             line-height: 1.35;
@@ -818,9 +827,15 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             color: var(--secondary);
             opacity: 0.8;
         }
+        #editor .cm-md-code-language-input:hover {
+            color: var(--text);
+        }
         #editor .cm-md-code-language-input:focus {
-            border-color: var(--link);
-            box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 22%, transparent);
+            background: color-mix(in srgb, var(--text) 4%, var(--code-bg));
+            color: var(--text);
+            border-color: var(--grid);
+            caret-color: var(--link);
+            box-shadow: none;
         }
         /* Frontmatter — a quiet metadata card above the document, echoing
            the preview's properties panel. YAML stays editable; only the

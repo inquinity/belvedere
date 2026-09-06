@@ -1,24 +1,24 @@
 import XCTest
 @testable import QuickLookHelpers
 
-/// Guards the copy-button clearance splice.
+/// Guards where the copy-button clearance CSS is spliced into the preview.
 ///
-/// **What a failure here means:** the clearance CSS is being inserted at the
-/// wrong place in the document. The dangerous form is insertion *inside an
-/// inlined vendor script*, which corrupts that script's JavaScript. When it
-/// happened to Mermaid the whole 3 MB bundle died with
-/// `SyntaxError: Unexpected EOF` and no diagram rendered in Quick Look — with
-/// no console error, because the preview page's opaque origin mutes script
-/// errors to a bare "Script error.".
+/// **What a failure here means:** the CSS is being inserted at the wrong
+/// place. The dangerous form is insertion *inside an inlined vendor script*,
+/// which corrupts that script's JavaScript. When it happened to Mermaid the
+/// whole bundle died with `SyntaxError: Unexpected EOF` and no diagram
+/// rendered in Quick Look — with no visible console error, because the
+/// preview page's opaque origin mutes script errors to a bare
+/// "Script error.".
 ///
-/// So `testVendorScriptContentIsNeverModified` is the important one: if it
+/// `testVendorScriptContentIsNeverModified` is the important one: if it
 /// fails, expect diagrams to silently stop rendering in Quick Look.
 final class CopyButtonClearanceTests: XCTestCase {
 
     // A page shaped like the real Quick Look output: a vendor bundle inlined
     // in <head> carrying `</head>` as data (DOMPurify), and another inlined
-    // in <body> doing the same (Mermaid). Both strings are single-quoted and
-    // must survive byte-for-byte.
+    // in <body> doing the same (Mermaid). Both are single-quoted JavaScript
+    // strings and must survive byte-for-byte.
     private let purifyLiteral =
         #"Ie='<html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>'+Ie+"</body></html>";"#
 
@@ -39,8 +39,7 @@ final class CopyButtonClearanceTests: XCTestCase {
         """
     }
 
-    /// Extracts every `<script>…</script>` body, so a test can assert that
-    /// none of them were touched.
+    /// Every `<script>…</script>` body, so a test can assert none were touched.
     private func scriptBodies(_ html: String) -> [String] {
         var bodies: [String] = []
         var rest = Substring(html)
@@ -56,7 +55,7 @@ final class CopyButtonClearanceTests: XCTestCase {
 
     func testVendorScriptContentIsNeverModified() {
         let input = page()
-        let output = CopyButtonClearance.applying(to: input, horizontal: 90, vertical: 44)
+        let output = CopyButtonClearance.applying(to: input, vertical: 44)
 
         XCTAssertEqual(
             scriptBodies(output),
@@ -70,24 +69,18 @@ final class CopyButtonClearanceTests: XCTestCase {
         )
     }
 
-    /// The specific literal that broke: it must come through intact, and the
-    /// vendor `</head>` must not have gained a `<style>` in front of it.
     func testDOMPurifyLiteralSurvivesIntact() {
-        let output = CopyButtonClearance.applying(to: page(), horizontal: 90, vertical: 44)
+        let output = CopyButtonClearance.applying(to: page(), vertical: 44)
         XCTAssertEqual(
             output.components(separatedBy: purifyLiteral).count - 1, 2,
             "Both inlined copies of the DOMPurify literal should be byte-identical after the splice."
-        )
-        XCTAssertFalse(
-            output.contains("<style>\n</head>") || output.contains("<head><style>\nhtml body {\n    padding-right: calc(90px + env(safe-area-inset-right));\n    padding-bottom: calc(44px + env(safe-area-inset-bottom));\n}\n</style>\n</head><body>'"),
-            "Clearance CSS landed inside the vendor literal's <head></head> rather than the document's."
         )
     }
 
     // MARK: - Correct placement
 
     func testStyleIsInsertedIntoTheDocumentHead() {
-        let output = CopyButtonClearance.applying(to: page(), horizontal: 90, vertical: 44)
+        let output = CopyButtonClearance.applying(to: page(), vertical: 44)
         let headOpen = output.range(of: "<head>")!
         let headClose = output.range(of: "</head>", range: headOpen.upperBound..<output.endIndex)!
         let styleRange = output.range(of: "html body {")
@@ -100,15 +93,15 @@ final class CopyButtonClearanceTests: XCTestCase {
     }
 
     func testClearanceValuesAreCarriedThrough() {
-        let output = CopyButtonClearance.applying(to: page(), horizontal: 90, vertical: 44)
-        XCTAssertTrue(output.contains("padding-right: calc(90px + env(safe-area-inset-right));"))
+        let output = CopyButtonClearance.applying(to: page(), vertical: 44)
+        XCTAssertFalse(output.contains("padding-right:"), "The floating button must not narrow the entire page.")
         XCTAssertTrue(output.contains("padding-bottom: calc(44px + env(safe-area-inset-bottom));"))
     }
 
     /// `html body` outranks the stylesheet's own `body` rules, which matters
     /// because this rule is now emitted *before* that stylesheet.
     func testSelectorOutranksPlainBodyRules() {
-        let output = CopyButtonClearance.applying(to: page(), horizontal: 90, vertical: 44)
+        let output = CopyButtonClearance.applying(to: page(), vertical: 44)
         XCTAssertTrue(
             output.contains("html body {"),
             """
@@ -124,9 +117,9 @@ final class CopyButtonClearanceTests: XCTestCase {
     func testDocumentWithoutHeadIsReturnedUnchanged() {
         let html = "<html><body><p>no head here</p></body></html>"
         XCTAssertEqual(
-            CopyButtonClearance.applying(to: html, horizontal: 90, vertical: 44),
+            CopyButtonClearance.applying(to: html, vertical: 44),
             html,
-            "With nowhere safe to insert, the document must be handed back untouched rather than guessed at."
+            "With nowhere safe to insert, the document must be returned untouched rather than guessed at."
         )
     }
 }

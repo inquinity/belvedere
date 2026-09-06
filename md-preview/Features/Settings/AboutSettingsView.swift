@@ -34,6 +34,10 @@ struct AboutSettingsView: View {
                 .padding(.vertical, 8)
 
             }
+
+            Section {
+                Link(L("GitHub Project"), destination: URL(string: "https://github.com/pluk-inc/markdown-preview")!)
+            }
         }
         .formStyle(.grouped)
         .onAppear {

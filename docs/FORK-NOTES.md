@@ -147,7 +147,7 @@ merged it stops being our diff to carry:
 | Preview document has no Content-Security-Policy | Issue → PR | **filed** — [#339](https://github.com/pluk-inc/markdown-preview/issues/339), with both working policies and an offer to PR |
 | `ALLOWED_URI_REGEXP` permits `http`/`https` | Issue → PR, after the CSP lands | pending |
 | App icon too similar to macOS Preview (upstream's own issue) | Artwork offer | **posted** — concept board added to [#276](https://github.com/pluk-inc/markdown-preview/issues/276) on 2026-09-04. Their issue, opened by a user and endorsed by the maintainer, who said he is considering a rename and a distinct identity. Awaiting a pick |
-| Mermaid diagrams do not render in Quick Look, though `README.md` says they do | Issue → PR | **submitted** — [#338](https://github.com/pluk-inc/markdown-preview/issues/338) filed against cask 0.0.51, root cause found later (see B1); fix submitted as [PR #343](https://github.com/pluk-inc/markdown-preview/pull/343), open and awaiting review. Marked `Fixes #338`, so merging closes the issue |
+| Mermaid diagrams do not render in Quick Look, though `README.md` says they do | Issue → PR | ✅ **merged** — [PR #343](https://github.com/pluk-inc/markdown-preview/pull/343) landed as `eddc0d0` and shipped in upstream 0.0.53; [#338](https://github.com/pluk-inc/markdown-preview/issues/338) closed. Their version replaced ours on the next sync |
 
 The `md-asset:` finding goes through GitHub's private vulnerability reporting (enabled
 on upstream), **not** a public issue: it describes an unfixed weakness in a shipping app
@@ -498,6 +498,24 @@ That file was written to fail the day the gap closed, and it did exactly that. T
 tests are now inverted into containment assertions, the skip is gone, and a positive case
 (an asset genuinely inside the folder still resolves) and the sibling-prefix case were
 added. Mutation-checked: disabling `isContained` fails all three rejection tests.
+
+**B1 is now upstream's, and their version differs from ours.** PR #343 merged as
+`eddc0d0` and shipped in 0.0.53, so the first `git merge upstream/main` brought their copy
+back as an add/add conflict on `CopyButtonClearance.swift`, its tests, and the call site.
+Resolved by taking theirs wholesale, per the rule that the end state must be upstream's
+version rather than ours.
+
+They did not merge it unchanged. Alongside prose edits they **dropped the horizontal
+clearance entirely** — `applying(to:vertical:)` where ours took `horizontal:` too — because
+of their own [#346](https://github.com/pluk-inc/markdown-preview/pull/346), "Remove
+page-wide Quick Look copy-button gutter": padding the whole page narrowed every document to
+make room for one floating button. Their test now asserts `padding-right` is *absent*,
+which is the exact inverse of what ours asserted. Both were right about their own design;
+theirs is the one that ships here now.
+
+This is the first time the fork has taken a behaviour change back from upstream rather than
+sending one, and it is the cheap outcome the contribution track exists to produce: the
+Mermaid fix is no longer a diff this fork carries.
 
 **F3 — the `/` read-only entitlement.** Both targets carry
 `com.apple.security.temporary-exception.files.absolute-path.read-only` = `/`. There is no

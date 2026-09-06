@@ -8,113 +8,87 @@
 > this repository differs from the document below.
 >
 > - **Releases go through `scripts/build.sh --release`.** It builds, signs, notarizes
->   and packages a DMG into `dist/`, with no `CHANGELOG.md` requirement. It reuses
->   `Version.xcconfig` and composes with `--update` to bump the version first.
->   `scripts/build-release.sh` also works and produces the same kind of artifact via a
->   different (archive/export) path, gated on a `CHANGELOG.md` entry, but it is not the
->   one actually in use — don't default to it. Upstream's `release.sh` and
->   `rollback-release.sh` drove the Amore CLI against their account and have been removed.
-> - The **Project facts** table below is upstream's and is now partly wrong: this fork
->   builds as `com.altmansoftwaredesign.markdown-preview` under team `45GJWJVQN2`.
->   See the Signing configuration section.
+>   and packages a DMG into `dist/`, with no `CHANGELOG.md` requirement, and composes
+>   with `--update` to bump the version first. Upstream's `release.sh`,
+>   `rollback-release.sh` and the whole Amore pipeline drove *their* account and have
+>   been removed. **Ignore the `release-process` skill and the Releasing section below** —
+>   both describe upstream's pipeline, which does not exist here.
+> - **`DEVELOPMENT_TEAM` is different here, on purpose.** The Signing section below says
+>   never to change `5P3TSMNV42`. That is upstream's team and correct advice *in their
+>   repo*. This fork builds as `com.altmansoftwaredesign.markdown-preview` under team
+>   `45GJWJVQN2` — that change is deliberate, and reverting it to match the text below
+>   would break signing here. The surrounding warning still applies: never let Xcode
+>   silently rewrite it to some *other* team.
+> - **`Version.xcconfig` is bumped by `scripts/build.sh --update`**, not by
+>   `scripts/release.sh`, which no longer exists. The fork versions on its own `1.0.x`
+>   line, independent of upstream's `0.0.x`.
+> - **Sparkle is excised**, so the EdDSA key, the notary-profile pairing, `SUPublicEDKey`
+>   and the `SUFeedURL` "Known issue" below are all moot here. The Sparkle
+>   `mach-lookup` entitlements are gone too. The read-only filesystem exception is not
+>   moot — see F3 in the fork notes.
 > - The fork carries **deliberately dead code** — an orphaned CLI installer and stubbed
 >   telemetry reporters. This is load-bearing for cheap upstream merges. Do not remove it.
+> - **The "No git remote yet" known issue below is stale here.** This fork has `origin`
+>   (inquinity) and `upstream` (pluk-inc).
 > - Sync with `git merge upstream/main`. **Never rebase `main`** — it is published.
 >
 > Everything after this block is upstream's documentation, preserved as-is.
 
-A macOS app for previewing Markdown files. AppKit, sandboxed, ships with a Quick Look extension. This fork has no auto-updater and is distributed by hand.
+A macOS app for previewing Markdown files. AppKit, sandboxed, ships with a Quick Look extension. Updates via Sparkle, distributed via Amore.
 
 ## Project facts
 
 | Thing             | Value                                                       |
 | ----------------- | ----------------------------------------------------------- |
 | Bundle id         | `doc.md-preview`                                            |
-| Product name      | `MDView` (renamed in this fork)                             |
+| Product name      | `Markdown Preview`                                          |
 | Scheme            | `md-preview`                                                |
 | Quick Look target | `quick-look` (embedded extension)                           |
 | Min macOS         | 15.0                                                        |
-| Sandboxed         | yes                                                         |
-| Auto-updater      | none — Sparkle removed in this fork                         |
-| Distribution      | By hand — see `docs/INTERNAL-INSTALL.md`                    |
+| Sandboxed         | yes — uses Sparkle XPC services for updates                 |
+| Auto-updater      | Sparkle 2.x (Swift package)                                 |
+| Distribution      | Amore (managed) with custom domain `storage.md-preview.app` |
 
 Version is managed centrally in `Version.xcconfig` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`). Both the app and the quick-look extension inherit from it.
 
-## Release pipeline
+## Signing & secrets — do not touch without asking
 
-This fork builds and hands out the DMG directly. There is no hosted appcast, no
-Sparkle feed and no GitHub release — see `docs/INTERNAL-INSTALL.md` for how
-recipients install it.
+- `DEVELOPMENT_TEAM = 5P3TSMNV42` (`project.pbxproj`, both targets) is the
+  maintainer's Apple Developer Team ID, hardcoded in the shared Xcode project.
+  Never change it, regenerate signing, or let Xcode "fix" it automatically —
+  building locally without the team's certificates can make Xcode silently
+  rewrite `DEVELOPMENT_TEAM` to your own personal team on save. Check
+  `git diff` on `project.pbxproj` before committing anything and revert that
+  hunk if it shows up.
+- `CODE_SIGN_IDENTITY` / `CODE_SIGN_STYLE = Automatic` — same story, leave as-is.
+- Secrets (currently `POSTHOG_PROJECT_TOKEN`) live in `Secrets.xcconfig`,
+  gitignored — copy `Secrets.xcconfig.example` to `Secrets.xcconfig` locally.
+  Never hardcode a real token into a tracked file, Info.plist, or a commit.
+- The Sparkle/Amore signing material (EdDSA key, notary keychain profile) is
+  documented in the `release-process` skill. Don't touch `SUPublicEDKey` in
+  `Info.plist` or the entitlements' `mach-lookup` names without reading that
+  skill first — they're paired with private material outside the repo (login
+  Keychain / Amore), so an unmatched change breaks Sparkle updates silently.
+- `md-preview.entitlements` / `quick-look.entitlements` — the sandbox
+  `temporary-exception` entries (Sparkle XPC mach-lookup names, the read-only
+  filesystem exception) are narrowly scoped, notarization-review-sensitive
+  capabilities. Don't broaden or "clean up" them without understanding why
+  they're there (see the inline comments in each file).
+- `Version.xcconfig` (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`) is
+  bumped only by `scripts/release.sh` — don't hand-edit it.
 
-**The release script in actual use is `scripts/build.sh --release`**, not
-`scripts/build-release.sh`. No `CHANGELOG.md` entry is required — that gate exists
-only on the other script, which is not part of this workflow. Don't reach for it, and
-don't hold a release back to write a changelog entry that nothing here checks for.
+## Releasing
 
-```bash
-./scripts/build.sh                            # local .app only, in ./build
-./scripts/build.sh --release                  # + a signed, notarized DMG in ./dist
-./scripts/build.sh --update revision --release   # bump the version first, then release
-./scripts/build.sh --update minor --release
-```
+See the `release-process` skill for branch/PR naming, exactly what `scripts/release.sh` and `scripts/rollback-release.sh` do, and the Amore config already wired for this project.
 
-`--release` fails immediately, before compiling, if the Developer ID identity or the
-notary profile aren't in the keychain — it never falls back to an ad-hoc signature the
-way a plain build does, since a "release" DMG nobody else's Mac can open isn't worth
-producing quietly. It reuses the compile it already did for the plain build rather than
-re-archiving, then packages, signs, notarizes and staples the DMG, finishing with an
-`spctl` Gatekeeper check. Two notarization submissions happen along the way — the app,
-then the disk image — because Gatekeeper assesses what the reader downloaded, not only
-the app inside it, and `hdiutil` leaves the image itself unsigned.
-
-`scripts/build-release.sh` still exists and still works — archive/export instead of a
-plain build, gated on a `## [X.Y.Z]` entry in `CHANGELOG.md`. If that gate is ever
-wanted again, invoke the `changelog-maintenance` skill for the entry rather than
-drafting one freeform; until then, treat the script as unused.
-
-Version numbers live once, in `Version.xcconfig`. `scripts/build.sh --update
-{major,minor,revision}` bumps them and the build number together.
-
-Two more local-only helpers, both operating on `./build/MDView.app` (a plain build's
-output, not `--release`'s DMG): `scripts/bundle.sh` zips it for sneaker-net transfer,
-`scripts/install.sh` copies it into `/Applications` and launches it once — required for
-Quick Look to register, see `docs/INTERNAL-INSTALL.md`.
-
-## Rolling back a release
-
-Nothing is published, so there is nothing to unpublish. Withdraw a bad build by
-deleting the DMG from wherever it was shared and handing out the previous one.
-Tell anyone who already installed it — without Sparkle, no update reaches them
-on its own.
-
-## Signing configuration
-
-| Thing | Value |
-|---|---|
-| Team ID | `45GJWJVQN2` (Altman Software Design, LLC) |
-| Signing identity | `Developer ID Application: Altman Software Design, LLC (45GJWJVQN2)` |
-| Notary keychain profile | `altman-notary` |
-| Certificate expires | 2031-05-27 |
-
-The notary profile is not per-project — it stores an Apple ID, team ID and
-app-specific password, so one profile covers everything shipped under this team.
-Recreate it with:
-
-```bash
-xcrun notarytool store-credentials "altman-notary" --team-id 45GJWJVQN2
-```
-
-If `codesign` fails with `errSecInternalComponent`, the private key's ACL is
-refusing non-interactive use. Fix it once with:
-
-```bash
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s ~/Library/Keychains/login.keychain-db
-```
+## Known issues
+- **`SUFeedURL` mismatch**. Info.plist points to `https://storage.md-preview.app/appcast.xml` but Amore actually publishes to `https://storage.md-preview.app/v1/apps/doc.md-preview/appcast.xml`. This matters for **any release run that isn't `--draft`** — the default run, `--beta`, and `--skip-github` all publish to Amore's live appcast, which — due to the mismatch above — is not yet the URL already-installed copies poll; `--draft` is the only mode that doesn't publish. Fix Info.plist before any of those ship to real users — already-installed copies will check the wrong URL forever. Either change `SUFeedURL` to the `/v1/apps/...` path, or configure a CDN rewrite at `storage.md-preview.app` to map `/appcast.xml` → the real path.
+- **No git remote yet**. `git remote -v` is empty. Run `gh repo create` before relying on the GitHub release portion of `scripts/release.sh` (it auto-skips when no remote exists).
 
 ## Common Xcode tasks
-
 ```bash
 xcodebuild -project md-preview.xcodeproj -scheme md-preview -configuration Debug build
 xcodebuild -resolvePackageDependencies -project md-preview.xcodeproj
 ```
-
+Sparkle helper tools (sign_update / generate_keys / generate_appcast) live at:
+`~/Library/Developer/Xcode/DerivedData/md-preview-*/SourcePackages/artifacts/sparkle/Sparkle/bin/`
