@@ -277,10 +277,13 @@ nonisolated extension MarkdownHTML {
                 if (button) button.remove();
                 const label = entry.box.querySelector('.mdp-deferred-label');
                 if (label) {
-                    label.textContent = label.textContent + ' — ' + (
+                    // Say that the load was attempted and failed, and why.
+                    // "not an image" alone reads as a property of the file
+                    // rather than the outcome of the action just taken.
+                    label.textContent = label.textContent + ' — load failed: ' + (
                         entry.refused === 'notAnImage' ? 'not an image'
                         : entry.refused === 'tooLarge' ? 'too large'
-                        : 'unavailable'
+                        : 'could not be read'
                     );
                 }
             }

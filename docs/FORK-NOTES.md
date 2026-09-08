@@ -319,6 +319,17 @@ the bytes really are a raster image before answering with a `data:` URL. Verifie
 end in the running app: a real PNG loads on click, and a text file renamed `.png` comes
 back "not an image" with the dead action removed.
 
+**Why a non-image still gets a Load button.** The obvious refinement — check eligibility
+when drawing the placeholder, and omit the button for something that is not an image — is
+the wrong trade. Eligibility is decided by magic bytes, which means reading the file, so
+pre-checking every reference at render time would read every path a document names.
+Reading `/etc/passwd` to decide whether to draw a button still reads `/etc/passwd`, which
+is the automatic access containment exists to prevent. The button is therefore offered for
+any blocked local reference, nothing touches disk until the reader asks, and a refusal is
+reported afterwards as `load failed: not an image`. Phrasing it as the outcome of the
+action matters: "not an image" alone reads as a property of the file rather than as the
+result of the click just made.
+
 **Remote images are labelled but not loadable.** They get a placeholder saying so and no
 button, because fetching one would send the reader's IP to whoever authored the document —
 the disclosure the CSP exists to prevent. Offering a button that always fails would be
