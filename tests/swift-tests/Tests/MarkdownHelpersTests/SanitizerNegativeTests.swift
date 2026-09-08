@@ -125,12 +125,24 @@ final class SanitizerNegativeTests: XCTestCase {
         let survivors = try await survivors(in: webView)
         XCTAssertGreaterThan(survivors.headings, 0, "fixture did not render \(survivors.raw)")
         XCTAssertGreaterThan(
-            survivors.remoteImages, 0,
+            survivors.remoteImages + survivors.deferredRemote, 0,
             """
-            Remote images no longer survive sanitization. That is an improvement, \
-            not a failure — it means ALLOWED_URI_REGEXP was tightened, so this \
-            assertion should be inverted and the CSP left as defence in depth. \
-            \(survivors.raw)
+            Remote references no longer survive sanitization. That is an \
+            improvement, not a failure — it means ALLOWED_URI_REGEXP was \
+            tightened, so this assertion should be inverted and the CSP left \
+            as defence in depth. Note the count includes deferred placeholders: \
+            F4 replaces a remote image that failed to load with one naming it, \
+            so the raw <img> count alone stopped being a proxy for what the \
+            sanitizer kept. \(survivors.raw)
+            """
+        )
+        XCTAssertEqual(
+            survivors.deferredLoadButtons, 0,
+            """
+            A remote placeholder offered a Load button. Fetching remote content \
+            would send the reader's IP to the document's author, which is the \
+            disclosure the CSP exists to prevent, and the host refuses it — so \
+            the button could only ever fail. \(survivors.raw)
             """
         )
         // Whatever else changes, a remote stylesheet must never survive.
@@ -211,9 +223,15 @@ final class SanitizerNegativeTests: XCTestCase {
                 objects: a.querySelectorAll('object').length,
                 embeds: a.querySelectorAll('embed').length,
                 forms: a.querySelectorAll('form').length,
-                formControls: a.querySelectorAll(
+                // Our own affordances are excluded by class. That is not a
+                // loophole: `button` is in FORBID_TAGS, so document content
+                // cannot produce one at all, and any button present is markup
+                // this app injected after sanitising (F4's deferred-image
+                // placeholder).
+                formControls: [...a.querySelectorAll(
                     'button, select, textarea, label, fieldset, legend, output, datalist, option'
-                ).length + [...a.querySelectorAll('input')].filter(
+                )].filter((el) => !el.closest('.mdp-deferred, .mdp-deferred-banner')).length
+                + [...a.querySelectorAll('input')].filter(
                     (el) => (el.getAttribute('type') || '').toLowerCase() !== 'checkbox'
                 ).length,
                 taskCheckboxes: a.querySelectorAll('input[type=checkbox]').length,
@@ -225,6 +243,8 @@ final class SanitizerNegativeTests: XCTestCase {
                 eventHandlerAttributes: withHandler,
                 scriptedHrefs: scripted,
                 remoteImages: remoteImages,
+                deferredRemote: a.querySelectorAll('[data-mdp-remote]').length,
+                deferredLoadButtons: a.querySelectorAll('.mdp-deferred-remote .mdp-deferred-load').length,
                 scriptExecuted: window.__pwned === true
             });
         })()
@@ -252,6 +272,8 @@ final class SanitizerNegativeTests: XCTestCase {
         var eventHandlerAttributes = 0
         var scriptedHrefs = 0
         var remoteImages = 0
+        var deferredRemote = 0
+        var deferredLoadButtons = 0
         var scriptExecuted = false
         var raw = ""
 
@@ -259,7 +281,7 @@ final class SanitizerNegativeTests: XCTestCase {
             case headings, scripts, iframes, objects, embeds, forms, bases, metas, links
             case formControls, taskCheckboxes
             case styleTags, styleAttributes, eventHandlerAttributes, scriptedHrefs
-            case remoteImages, scriptExecuted
+            case remoteImages, scriptExecuted, deferredRemote, deferredLoadButtons
         }
     }
 }

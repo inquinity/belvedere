@@ -621,6 +621,60 @@ nonisolated extension MarkdownHTML {
         text-decoration: line-through;
     }
     li.task-list-item > p:first-of-type { display: inline; margin-top: 0; }
+    /* Deferred images (F4). The placeholder has to read as "withheld,
+       here is the file, here is the action" rather than as a broken image,
+       because a broken image is what the reader is trying to distinguish it
+       from. */
+    .mdp-deferred {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5em;
+        max-width: 100%;
+        padding: 0.35em 0.6em;
+        border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+        border-radius: 6px;
+        font-size: 0.85em;
+        vertical-align: middle;
+    }
+    .mdp-deferred-label {
+        opacity: 0.75;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 32em;
+    }
+    .mdp-deferred-load {
+        font: inherit;
+        padding: 0.15em 0.7em;
+        border-radius: 5px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: color-mix(in srgb, currentColor 8%, transparent);
+        color: inherit;
+        cursor: pointer;
+    }
+    .mdp-deferred-load:disabled { cursor: default; opacity: 0.6; }
+    .mdp-deferred-refused { border-style: solid; opacity: 0.7; }
+    .mdp-deferred-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1em;
+        margin: 0 0 1em;
+        padding: 0.5em 0.8em;
+        border-radius: 6px;
+        font-size: 0.9em;
+        background: color-mix(in srgb, currentColor 6%, transparent);
+        border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    }
+    .mdp-deferred-banner button {
+        font: inherit;
+        padding: 0.2em 0.9em;
+        border-radius: 5px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
     .task-list-item-checkbox {
         -webkit-appearance: none;
         appearance: none;
@@ -808,6 +862,8 @@ nonisolated extension MarkdownHTML {
 
         /* Interaction affordances are screen-only. */
         .md-code-copy,
+        .mdp-deferred-load,
+        .mdp-deferred-banner,
         .md-search-burst,
         .mermaid-hud { display: none !important; }
         mark.md-search-highlight,

@@ -178,7 +178,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F1** | Private Homebrew tap (`inquinity/homebrew-tap`) | Explicitly *not* part of M5 — M5 ships by corporate share / Dropbox. A tap is a separate, later distribution channel. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
 | **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
-| **F4** | Click-to-load for deferred content | One mechanism for two cases — remote images and out-of-boundary local files. Stands alone: no trust, no persistence, no configuration. See below. |
+| **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. |
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal (concept 2). See below. |
@@ -312,6 +312,28 @@ bytes), shows what it is about to grant before granting it, and never persists. 
 reference that is not an image is surfaced rather than hidden — a document pointing an
 `<img>` at `/etc/passwd` is not a broken layout, it is probing, and no other viewer tells
 you that.
+
+**Shipped, with one half deliberately unfinished.** A local file outside the boundary now
+renders as a placeholder naming it, with a Load button that asks the host, which verifies
+the bytes really are a raster image before answering with a `data:` URL. Verified end to
+end in the running app: a real PNG loads on click, and a text file renamed `.png` comes
+back "not an image" with the dead action removed.
+
+**Remote images are labelled but not loadable.** They get a placeholder saying so and no
+button, because fetching one would send the reader's IP to whoever authored the document —
+the disclosure the CSP exists to prevent. Offering a button that always fails would be
+worse than offering none. Remote click-to-load needs its own decision about what a fetch
+may carry, and has not been made.
+
+**Three bugs shipped past a green test suite before this worked**, all of the same kind:
+every test asserted that dangerous things were *absent*, so zero placeholders satisfied all
+of them. `start()` was never hooked, so the feature did nothing on the path that opens a
+document; the morph path ran on morphdom's detached tree, where images never load and no
+error fires; and the page sent `img.getAttribute('src')`, a relative reference the host
+cannot resolve, so every click answered "unavailable". `DeferredImageRenderingTests` now
+asserts the feature is *present* — placeholders appear, only local ones offer Load, they
+survive a morph update, a click asks the host exactly once with a non-relative URL, and a
+refusal is shown in place.
 
 **This item stands alone.** No trust, no persistence, no configuration, nothing to manage.
 A user who never touches F3 still gets working documents from this. That independence is
