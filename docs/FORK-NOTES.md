@@ -166,7 +166,7 @@ Those are product decisions, not defects, and filing them would be noise.
 | **M3** | Deprivileging | Stub Sentry + PostHog; excise Sparkle; orphan CLI installer; collapse Privacy pane; drop `network.client` and test Quick Look | ✅ done |
 | **M3b** | *Conditional* | Quick Look CSP — the extension does need `network.client`, so the page blocks remote content instead | ✅ done |
 | **M4** | Containment | `md-asset:` confinement — submitted upstream as [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) and **carried on this fork ahead of that merge** (cherry-pick of `cb6ae07`) | ✅ shipping here; still open upstream — see below |
-| **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal, regenerate with `swift scripts/make-icon.swift --install-mdview` |
+| **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal / Geometric B, regenerate with `swift scripts/make-icon.swift --install-mdview` |
 | **M5** | Distribution | Notarize (✅ `dist/Belvedere 1.0.0.dmg`), verify on a second Mac (✅ passed), ship via corporate share or Dropbox (pending — the user's own action, not tool-driven) | **in progress** — one step left |
 
 ## Backlog
@@ -181,7 +181,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. |
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
-| **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal (concept 2). See below. |
+| **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 ### What is fork-only, and what is not
@@ -261,20 +261,22 @@ Diagrams were not part of that check — Mermaid was separately found not to ren
 Quick Look at all (B1, an upstream bug), and its status in the app window under this CSP
 has not been explicitly confirmed either way.
 
-**M2b — the app icon. Done, with Split Signal.** The fork shipped upstream's icon, so two
+**M2b — the app icon. Done, with Split Signal / Geometric B.** The fork shipped upstream's icon, so two
 identically named and identically iconed apps sat in the Dock — and upstream has an open
 issue that their icon is too close to macOS Preview's.
 
 `md-preview/AppIcon.icon` is an Icon Composer document: an `icon.json` manifest plus one
-PNG layer in `Assets/`. The selected Split Signal layer is drawn on transparency so
-Icon Composer supplies the forest-green background gradient and native treatment. Its
-grooved source pane and clean rendered pane express the source-to-preview transition
-without reusing the crowded eye, lens, or Markdown down-arrow motifs.
+PNG layer in `Assets/`. The selected Split Signal / Geometric B layer contains the approved
+full composition—shaded forest-green body, raised ivory panes, their soft shadows, and the
+yellow backlight—with transparent outer corners for native treatment. Its left pane retains
+the three source grooves, while the custom disconnected B identifies Belvedere in the lower
+two-thirds of the rendered pane. The same light shows through the central split, the right
+ends of the grooves, and the B; it is not a flat gold seam painted between them.
 
 `swift scripts/make-icon.swift --install-mdview` regenerates the installed layer. The
-same deterministic AppKit-path generator also produces the public Rendered Fold set,
-conventional 16–1024 px iconsets, compiled ICNS files, and flattened previews under
-`artwork/app-icons/`.
+script resamples Belvedere from its approved checked-in master and draws the public
+Rendered Fold set with deterministic AppKit paths. It produces conventional 16–1024 px
+iconsets, compiled ICNS files, and flattened previews under `artwork/app-icons/`.
 
 `docs/app-icon.png` and the README screenshots are upstream marketing assets and are left
 alone.
