@@ -178,11 +178,11 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F1** | Private Homebrew tap (`inquinity/homebrew-tap`) | Explicitly *not* part of M5 — M5 ships by corporate share / Dropbox. A tap is a separate, later distribution channel. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
 | **F3** | Security-scoped bookmarks; drop the `/` read-only entitlement | |
-| **F4** | Click-to-load control for remote images in the app window, the way mail clients defer them | |
+| **F4** | Deferred content: click-to-load, plus trusted folders and a pane to manage them | One mechanism for two cases — remote images and out-of-boundary local files. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337) and blocked on their answer. See below. |
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | Icon selected: Split Signal (concept 2), now generated reproducibly and wired into `AppIcon.icon`. `MDView` remains the current private-variant name; any future rename still needs to land in `Localizable.strings` and `MainMenu.strings` (see F7). |
-| **F9** | Trusted folders, and a pane to manage them | Proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337) as the middle of three access layers. Blocked on their answer — see below. |
+| ~~F9~~ | Trusted folders | Folded into F4 — the placeholder affordance is the same either way, and building it twice is the waste. |
 
 ### What is fork-only, and what is not
 
@@ -289,38 +289,73 @@ only, since the keys are the identifiers `L()` looks up.
 group, discarded preferences and another LaunchServices re-registration, all for a string
 no user sees. The mismatch is intentional; do not "tidy" it.
 
-**F4 — click-to-load remote images in the app window.** Quick Look blocks remote images
-outright (M3b), and that is the right default for a surface reached by pressing space on
-a file you may not have chosen. The app window is a deliberate act, so the eventual
-answer there is the one mail clients settled on: don't load remote content, show a bar
-offering to. Deferred because it needs UI, a per-document decision, and somewhere to
-remember it — it is a feature, not a security prerequisite. F2 (a blanket CSP for that
-page) is the cruder version that could land first.
+**F4 — deferred content: click-to-load, trusted folders, and a pane to manage them.**
+Two backlog items that turned out to be one. Quick Look blocks remote images outright
+(M3b), which is right for a surface reached by pressing space on a file you did not
+choose. The app window is a deliberate act, so the answer there is the one mail clients
+settled on: do not load, show the reader what was withheld and offer it. Containment
+creates the same situation for a *local* file outside the boundary. The affordance is
+identical in both cases, and building it twice is the waste.
 
-**M4 — `md-asset:` containment: written, submitted upstream, deliberately not carried here
-yet.** The fix exists as [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337)
-against upstream, not on this fork's `main`. So the shipped MDView build still resolves
-`md-asset:` paths without a containment check, and a document could name any file the
-user can read.
+**The two actions are framed around the document, not the folder**, because that is how a
+reader thinks: *Load this image*, and *Load all images in this document*. The batch action
+is the one needing care, and not for the obvious reason. Point an `<img>` at
+`../../etc/passwd` and the file is read, fails to decode and renders broken; document
+content cannot observe that, since handlers are stripped and no script runs, so nothing
+leaves the machine. The case that matters is a file that really *is* an image: a document
+referencing `~/Pictures/passport-scan.png` gets it rendered inline, and this app has PDF
+export and print — so the reader can export, share the PDF, and carry a private image out
+without knowing. A blanket grant also lets document content choose which arbitrary files
+reach the system image decoder.
 
-**This is a considered decision, not an oversight.** The maintainer accepted the advisory
-and asked us to write the fix; the tidiest outcome is inheriting it through a normal
-`git merge upstream/main` with zero fork-local diff, rather than carrying a patch that
-later has to be reconciled with whatever shape upstream merges. The risk of waiting was
-judged acceptable because this build is used to read documents its own user authored —
-the exposure needs untrusted Markdown, and there isn't any.
+So the batch action admits only things that are actually images (extension and magic
+bytes), shows what it is about to grant before granting it, and never persists. A
+reference that is not an image is surfaced rather than hidden — a document pointing an
+`<img>` at `/etc/passwd` is not a broken layout, it is probing, and no other viewer tells
+you that.
 
-Two things that would change the calculus, and should prompt cherry-picking the commit
-onto `main` instead of waiting:
+**Trusted folders are the durable half.** Per-image clicking is fine for a document that
+arrived from elsewhere and the wrong tax on your own work, where the shared `../images/`
+layout is normal. Marking a folder trusted bounds asset resolution by the trust root
+instead of the document folder. It also supplies something the app lacks: the maintainer's
+review asked to treat an "authorized folder" as the boundary, but there is no
+authorization in the tree — no `startAccessingSecurityScopedResource`, no `bookmarkData` —
+so the navigator root is a UI value, not a capability. Trust is a deliberate act, and it
+tracks provenance rather than directory distance, which is the distinction that matters:
+`~/dev/projects` is content the user wrote, `~/Downloads` is where a file someone sent
+them lands.
 
-- The build gets handed to people who will open Markdown they did not write — the
-  original M5 "ship to colleagues" case, or anything wider.
-- Upstream goes quiet for long enough that "waiting" stops being a plan.
+**Guards, because tree trust is coarse by design.** Refuse `~`, `/`, `/Users` and volume
+roots outright rather than warning. Resolve symlinks when recording and when checking, and
+store the resolved path, so a trusted folder cannot become a redirect. Warn when a
+candidate covers an unusually large tree. Never auto-trust, and never offer "trust the
+parent". Prompt lazily — when a document actually reaches outside its folder, not when a
+folder is opened — because a prompt on open becomes a toll gate people dismiss without
+reading. **Quick Look does not honour trust at all:** it is the drive-by surface, with no
+window to show scope in and nowhere sane to prompt, so it stays document-folder-only.
 
-Note that the exfiltration half is already closed here regardless: `PreviewContentPolicy`
-and `QuickLookContentPolicy` stop a document sending anything anywhere, so a read cannot
-be turned into a leak by the document that caused it. What remains unfixed on this fork
-is the read itself.
+**The management pane.** Claude Code stores this shape in `~/.claude.json` — a map keyed by
+absolute path, one boolean per entry (`hasTrustDialogAccepted`), plain text and
+inspectable. Worth copying. Its management story is not: the only control is `claude
+project purge`, which revokes trust by also deleting transcripts, tasks and file history,
+so there is no proportionate way to withdraw one folder. An app with a Settings window can
+do better cheaply — Settings → Security, one list showing **resolved paths** rather than
+nicknames (the path is the boundary, so the path is what you show), the date each was
+added, per-row Remove and a Remove All behind a confirmation. Trust nothing by default.
+Flag entries whose folder no longer exists rather than letting them silently match
+nothing. Readable JSON in the app container, not an opaque blob. Revocation can take
+effect on the next render.
+
+**The seam worth remembering:** trust is about folders, and remote images are about hosts.
+The placeholder is shared, but a trusted folder says nothing about `example.com`. Remote
+content stays click-to-load only unless someone deliberately designs a per-host decision,
+which is a different axis and not part of this item.
+
+**Not started, and deliberately so.** Trust is proposed upstream as the middle of three
+layers on #337. If they take it, it arrives through them and the fork carries nothing; if
+they decline, it becomes a fork feature. Either way the long-term pairing is with F3: the
+moment a user trusts a folder is exactly when a security-scoped bookmark should be taken,
+which is the route to dropping the blanket `/` read-only exception.
 
 **F5 — manual-test `.md` files didn't say what "pass" looks like. Done, both ways.**
 Every fixture written for this fork explained the threat to a *developer*; none told a
@@ -517,48 +552,6 @@ theirs is the one that ships here now.
 This is the first time the fork has taken a behaviour change back from upstream rather than
 sending one, and it is the cheap outcome the contribution track exists to produce: the
 Mermaid fix is no longer a diff this fork carries.
-
-**F9 — trusted folders, and somewhere to manage them.** Proposed to upstream on #337 as
-the second of three layers: click-to-load always available, trusted folders for a durable
-opt-out of friction, and an explicitly opened folder as a session-scoped root. Trust is the
-part that needs storage and UI, and it is the part with a management story.
-
-The concept answers something the app currently lacks. The maintainer's review asked to use
-an "authorized folder" as the containment boundary, but there is no authorization anywhere
-in the tree — no `startAccessingSecurityScopedResource`, no `bookmarkData` — so the
-navigator root is a UI value, not a capability. Trust supplies the missing deliberate act,
-and it tracks provenance rather than directory distance, which is the distinction that
-actually matters: `~/dev/projects` is content the user wrote, `~/Downloads` is where a file
-someone sent them lands.
-
-**Guards, because tree trust is coarse by design.** Refuse `~`, `/`, `/Users` and volume
-roots outright rather than warning. Resolve symlinks when recording and when checking, and
-store the resolved path, so a trusted folder cannot become a redirect. Warn when a
-candidate covers an unusually large tree. Never auto-trust and never offer "trust the
-parent". Prompt lazily — when a document actually reaches outside its folder, not when a
-folder is opened — because a prompt on open becomes a toll gate people dismiss without
-reading. **Quick Look does not honour trust at all:** it is the drive-by surface, with no
-window to show scope in and nowhere sane to prompt, so it stays document-folder-only.
-
-**The management pane is the part this entry is really about.** Claude Code stores exactly
-this shape in `~/.claude.json` — a map keyed by absolute path, one boolean per entry
-(`hasTrustDialogAccepted`), plain text and inspectable. Worth copying. What is not worth
-copying is its management story: the only control is `claude project purge`, which revokes
-trust by also deleting transcripts, tasks and file history. There is no proportionate way
-to withdraw trust from one folder.
-
-An app with a Settings window can do better cheaply. Settings → Security, one list showing
-**resolved paths** rather than nicknames (the path is the boundary, so the path is what you
-show), the date each was added, per-row Remove and a Remove All behind a confirmation.
-Trust nothing by default. Flag entries whose folder no longer exists rather than letting
-them silently match nothing. Storage as readable JSON in the app container, not an opaque
-blob. Revocation can take effect on the next render; it does not need to be live.
-
-**Not started, and deliberately so.** If upstream takes the proposal, this arrives through
-them and the fork carries nothing. If they decline, it becomes a fork feature and the entry
-stands on its own. Either way the interesting long-term pairing is with F3: the moment a
-user trusts a folder is exactly when a security-scoped bookmark should be taken, which is
-the route to eventually dropping the blanket `/` read-only exception.
 
 **F3 — the `/` read-only entitlement.** Both targets carry
 `com.apple.security.temporary-exception.files.absolute-path.read-only` = `/`. There is no
