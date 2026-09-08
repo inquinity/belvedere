@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 // Generates both selected app-icon families from deterministic AppKit paths.
-// The production app uses MDView / Split Signal; Rendered Fold remains the
+// The production app uses Belvedere / Split Signal; Rendered Fold remains the
 // public markdown-preview artwork. Run from the repository root:
 //
 //   swift scripts/make-icon.swift

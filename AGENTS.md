@@ -15,7 +15,7 @@
 >   both describe upstream's pipeline, which does not exist here.
 > - **`DEVELOPMENT_TEAM` is different here, on purpose.** The Signing section below says
 >   never to change `5P3TSMNV42`. That is upstream's team and correct advice *in their
->   repo*. This fork builds as `com.altmansoftwaredesign.markdown-preview` under team
+>   repo*. This fork builds as `com.altmansoftwaredesign.belvedere` under team
 >   `45GJWJVQN2` — that change is deliberate, and reverting it to match the text below
 >   would break signing here. The surrounding warning still applies: never let Xcode
 >   silently rewrite it to some *other* team.

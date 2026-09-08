@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install a locally built MDView.app into /Applications and launch it once.
+# Install a locally built Belvedere.app into /Applications and launch it once.
 #
 # Launching matters: macOS only registers a Quick Look extension for an app
 # that lives in a standard location and has been run at least once -- see
@@ -21,20 +21,20 @@ print_colored() {
 }
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="MDView"
+APP_NAME="Belvedere"
 SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build/$APP_NAME.app}"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 
 usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: install.sh [options]${COLOR_RESET}"
     printf '\n'
-    printf '%s\n' 'Copy a locally built MDView.app into /Applications and launch it once.'
+    printf '%s\n' 'Copy a locally built Belvedere.app into /Applications and launch it once.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Options:${COLOR_RESET}"
     printf '%s\n' '  -h, --help    Show this help text.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
-    printf '%s\n' '  SOURCE_APP    The built .app to install. Default: ./build/MDView.app'
+    printf '%s\n' '  SOURCE_APP    The built .app to install. Default: ./build/Belvedere.app'
     printf '%s\n' '  INSTALL_DIR   Where to install it. Default: /Applications'
 }
 

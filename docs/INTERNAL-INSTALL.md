@@ -1,6 +1,6 @@
 # Installing the internal build
 
-This is the internal build of MDView maintained at
+This is the internal build of Belvedere maintained at
 [inquinity/markdown-preview](https://github.com/inquinity/markdown-preview). It makes no
 network connections of any kind — see [FORK-NOTES.md](FORK-NOTES.md) for what was removed
 and why.
@@ -10,10 +10,10 @@ and why.
 ## Install
 
 1. Download the `.dmg` from the corporate share or Dropbox.
-2. Open it and drag **MDView** to your `Applications` folder.
+2. Open it and drag **Belvedere** to your `Applications` folder.
 3. **Launch the app once.** This step is not optional — see below.
 
-That's it. Double-click any `.md` file, or set MDView as your default handler
+That's it. Double-click any `.md` file, or set Belvedere as your default handler
 for Markdown in Finder's *Get Info* panel.
 
 ## Quick Look needs step 3
@@ -55,7 +55,7 @@ There is no automatic updater. Sparkle was removed along with the rest of the ou
 network traffic, so new versions are distributed the same way as the first one: a new
 `.dmg` on the share.
 
-To see which version you have: **MDView → About MDView**.
+To see which version you have: **Belvedere → About Belvedere**.
 
 ## Reporting problems
 

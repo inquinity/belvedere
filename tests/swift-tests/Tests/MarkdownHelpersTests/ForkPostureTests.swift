@@ -107,7 +107,7 @@ final class ForkPostureTests: XCTestCase {
             project.contains("5P3TSMNV42"),
             "Upstream's DEVELOPMENT_TEAM is back; the build would not sign with our certificate."
         )
-        XCTAssertTrue(project.contains("com.altmansoftwaredesign.markdown-preview"))
+        XCTAssertTrue(project.contains("com.altmansoftwaredesign.belvedere"))
         XCTAssertTrue(project.contains("DEVELOPMENT_TEAM = 45GJWJVQN2;"))
     }
 

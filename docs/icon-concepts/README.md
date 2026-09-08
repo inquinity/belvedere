@@ -69,7 +69,7 @@ geometry and concept 7 retains a category-adjacent blue field.
 |---|---|---|---|---|
 | 1 | Rendered Fold | Three source lines fold into one rendered surface | Public | Needs a flatter production redraw |
 | 2 | Split Signal | Grooved source pane beside a clean output pane | Public | Slight resemblance to a book at a glance |
-| 3 | V Aperture | Source and output slabs form a bold V with a narrow aperture | MDView | Strong monogram makes it less neutral |
+| 3 | V Aperture | Source and output slabs form a bold V with a narrow aperture | Belvedere | Strong monogram makes it less neutral |
 | 4 | Hash Window | Markdown hash with a centered preview aperture | Public | Hashtag is familiar and less ownable |
 | 5 | Render Portal | Three lanes pass through a viewport and become one | Lower tier | Can read as a belt or data routing |
 | 6 | Offset Pane | Grooved rear surface revealed by a clean front surface | Lower tier | Reads as layered cards or fast-forward |
@@ -79,7 +79,7 @@ geometry and concept 7 retains a category-adjacent blue field.
 | 10 | Markup Star | Six-spoke Markdown asterisk with a hollow aperture | Reject | Too close to Zapier's orange-asterisk language |
 
 Early recommendation: explore **1 / Rendered Fold** for the public project and
-**3 / V Aperture** for MDView. They have different silhouettes and palettes,
+**3 / V Aperture** for Belvedere. They have different silhouettes and palettes,
 and each keeps a clear conceptual reason for its form. The strongest alternates
 are **8 / Corner Window** for the public project and **7 / Linebreak** for
 either identity. Do not advance concept 10; its first-glance resemblance to

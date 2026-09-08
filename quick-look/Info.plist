@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>MarkdownPreviewAppGroupIdentifier</key>
-	<string>$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.markdown-preview</string>
+	<string>$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
@@ -14,12 +14,12 @@
 				<string>net.daringfireball.markdown</string>
 				<string>net.ia.markdown</string>
 				<string>com.unknown.md</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mdown</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mkd</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mkdn</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mdwn</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mdtxt</string>
-				<string>com.altmansoftwaredesign.markdown-preview.mdtext</string>
+				<string>com.altmansoftwaredesign.belvedere.mdown</string>
+				<string>com.altmansoftwaredesign.belvedere.mkd</string>
+				<string>com.altmansoftwaredesign.belvedere.mkdn</string>
+				<string>com.altmansoftwaredesign.belvedere.mdwn</string>
+				<string>com.altmansoftwaredesign.belvedere.mdtxt</string>
+				<string>com.altmansoftwaredesign.belvedere.mdtext</string>
 			</array>
 			<key>QLSupportsSearchableItems</key>
 			<false/>

@@ -54,7 +54,7 @@ So the entitlement is back on both targets and cannot be removed. What holds:
 Verify empirically rather than by reading entitlements, which is what misled us:
 
 ```bash
-sudo lsof -i -a -p $(pgrep -f "MDView") -r 2
+sudo lsof -i -a -p $(pgrep -f "Belvedere") -r 2
 ```
 
 ## Branch model
@@ -167,7 +167,7 @@ Those are product decisions, not defects, and filing them would be noise.
 | **M3b** | *Conditional* | Quick Look CSP — the extension does need `network.client`, so the page blocks remote content instead | ✅ done |
 | **M4** | Containment | `md-asset:` confinement — submitted upstream as [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) and **carried on this fork ahead of that merge** (cherry-pick of `cb6ae07`) | ✅ shipping here; still open upstream — see below |
 | **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal, regenerate with `swift scripts/make-icon.swift --install-mdview` |
-| **M5** | Distribution | Notarize (✅ `dist/MDView 1.0.0.dmg`), verify on a second Mac (✅ passed), ship via corporate share or Dropbox (pending — the user's own action, not tool-driven) | **in progress** — one step left |
+| **M5** | Distribution | Notarize (✅ `dist/Belvedere 1.0.0.dmg`), verify on a second Mac (✅ passed), ship via corporate share or Dropbox (pending — the user's own action, not tool-driven) | **in progress** — one step left |
 
 ## Backlog
 
@@ -181,12 +181,12 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F4** | Click-to-load for deferred content | One mechanism for two cases — remote images and out-of-boundary local files. Stands alone: no trust, no persistence, no configuration. See below. |
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
-| **F8** | Pick a final product name and icon | Icon selected: Split Signal (concept 2), now generated reproducibly and wired into `AppIcon.icon`. `MDView` remains the current private-variant name; any future rename still needs to land in `Localizable.strings` and `MainMenu.strings` (see F7). |
+| **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal (concept 2). See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 ### What is fork-only, and what is not
 
-The **`MDView` name and the Split Signal icon are fork-only by intent**. They exist
+The **`Belvedere` name and the Split Signal icon are fork-only by intent**. They exist
 precisely to stop the Dock collision with upstream's own build, so contributing them would
 recreate the problem they were chosen to solve. That puts them alongside telemetry,
 Sparkle and the CLI installer on the list of things never offered upstream.
@@ -212,7 +212,7 @@ first.
 **If upstream picks Split Signal, this fork moves to Rendered Fold.** Decided in advance,
 so it needs no deliberation later. The board offered all ten and our vote was for 1 or 2;
 2 is the icon wired in here, so their choosing it would put the same mark on both apps and
-bring back the Dock collision `MDView` exists to prevent. Concept 1 is already built as a
+bring back the Dock collision `Belvedere` exists to prevent. Concept 1 is already built as a
 full production family in `artwork/app-icons/rendered-fold/`, so the switch is:
 
 ```bash
@@ -224,7 +224,7 @@ previously hardcoded Split Signal, so the escape route this decision depends on 
 actually exist. Round-tripped both ways and back to byte-identical. Drawing the art in code rather than exporting it once is much of the
 reason this is a one-command change instead of a design round.
 
-Watch for the same on the name: the maintainer floated renaming the app. `MDView` was
+Watch for the same on the name: the maintainer floated renaming the app. `Belvedere` was
 picked to avoid *their current* name, so a rename upstream could either dissolve the
 problem or create a new collision.
 
@@ -279,13 +279,13 @@ conventional 16–1024 px iconsets, compiled ICNS files, and flattened previews 
 `docs/app-icon.png` and the README screenshots are upstream marketing assets and are left
 alone.
 
-The product is also renamed: **MDView**, so it no longer collides with an upstream
+The product is also renamed: **Belvedere**, so it no longer collides with an upstream
 install in the Dock, in Finder, or in the list of running apps. `PRODUCT_NAME` carries it
-(`MDView (Dev)` for Debug), and the display name in `Localizable.strings` follows — values
+(`Belvedere (Dev)` for Debug), and the display name in `Localizable.strings` follows — values
 only, since the keys are the identifiers `L()` looks up.
 
 **The bundle identifier deliberately still says `markdown-preview`**
-(`com.altmansoftwaredesign.markdown-preview`). Renaming it again would mean a new app
+(`com.altmansoftwaredesign.belvedere`). Renaming it again would mean a new app
 group, discarded preferences and another LaunchServices re-registration, all for a string
 no user sees. The mismatch is intentional; do not "tidy" it.
 
@@ -321,6 +321,38 @@ the reason it is worth building first.
 persist a decision to, and a Load button in a panel that vanishes on the next space press
 would train people to click grants without reading them. See "Quick Look is a different
 surface" below.
+
+**F8 — the name is Belvedere, and the bundle identifier moved with it.** `MDView` was
+always provisional: a quick pick to stop the Dock collision with upstream. Belvedere is a
+lookout built for the view, which is what this is, and it survived a collision check that
+Mirador did not.
+
+**The identifier changed too** — `com.altmansoftwaredesign.markdown-preview` →
+`com.altmansoftwaredesign.belvedere`, across the app, the Quick Look extension, both
+`.dev` variants, the keychain/app group, and the six exported UTIs for Markdown file
+types. That is deliberate and was done now precisely because it is the last free moment:
+1.0.3 was built but never distributed, so the only installs were the author's own two
+machines.
+
+Changing an identifier is not cosmetic, and the consequences are worth remembering rather
+than rediscovering:
+
+- **macOS treats it as a different app.** An existing MDView install does not upgrade to
+  Belvedere; both can sit in `/Applications` at once.
+- **Preferences reset.** The defaults domain is keyed to the identifier, so theme, layout
+  and editor choices return to defaults.
+- **Quick Look re-registers under the new identifier**, and the old extension stays
+  registered until the old app is deleted — the same failure mode as the profile crash
+  that removed the QL entry earlier.
+
+The rename touched 22 files. The parts that are easy to miss, and were all covered:
+`PRODUCT_NAME` for both configurations, four bundle identifiers, the app group in both
+entitlements files, the exported and declared UTIs in both `Info.plist` files, the display
+name in `Localizable.strings` and `MainMenu.strings` for both locales, `MainMenu.xib`
+itself, every `scripts/*.sh` that names the built app, and the identifier assertion in
+`ForkPostureTests`. Both `.strings` files kept their exact line counts, which is the check
+that matters after the earlier incident where a regex joined entries by dropping
+newlines.
 
 **F5 — manual-test `.md` files didn't say what "pass" looks like. Done, both ways.**
 Every fixture written for this fork explained the threat to a *developer*; none told a
@@ -363,11 +395,11 @@ not one: `en.lproj/MainMenu.strings` and `zh-Hans.lproj/MainMenu.strings` (runti
 overrides for each locale) and `Base.lproj/MainMenu.xib` itself (the base text those
 overrides sit on top of, and what a future locale with no override would fall back to).
 All three renamed; 6 occurrences each in the base XIB and the English overrides, 12 in
-the Chinese overrides (title text is compound there, e.g. `退出 MDView`).
+the Chinese overrides (title text is compound there, e.g. `退出 Belvedere`).
 
 `MainMenu.xib` also carries `customModule="Markdown_Preview"` on the AppDelegate and
 document-controller objects — stale, but not a functional risk: confirmed by checking
-what `ibtool` actually compiles the nib with, `--module MDView__Dev_`, sanitized from the
+what `ibtool` actually compiles the nib with, `--module Belvedere__Dev_`, sanitized from the
 live `PRODUCT_NAME` and independent of whatever the XIB's own attribute says. Left
 alone as out of scope for a user-visible-text fix; Interface Builder's own editor would
 show the stale name if anyone opened this file there, which is the only cost.
@@ -385,7 +417,7 @@ is untouched — `SettingsModel` still reads/writes `CrashReporter.isEnabled` at
 sites, per the stub-don't-excise rule, since that state tracking outlived its own menu
 item once already (M3 removed the Privacy pane's crash-reporting toggle and left this
 menu item as the last surviving control). Removing both left exactly one separator
-between "About MDView" and "Services" — the stock macOS application-menu shape before
+between "About Belvedere" and "Services" — the stock macOS application-menu shape before
 either item was ever inserted.
 
 **B1 — Mermaid in Quick Look. Root cause found and fixed in this fork.** Fenced

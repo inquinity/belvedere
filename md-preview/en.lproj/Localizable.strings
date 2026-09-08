@@ -29,14 +29,14 @@
 "Command line tools" = "Command line tools";
 "Install…" = "Install…";
 "Adds mdp, md-preview, and markdown-preview to your PATH. Run it again after updating the app to refresh the commands." = "Adds mdp, md-preview, and markdown-preview to your PATH. Run it again after updating the app to refresh the commands.";
-"Markdown Preview" = "MDView";
+"Markdown Preview" = "Belvedere";
 "Version %@ (%@)" = "Version %@ (%@)";
 "Check for Updates" = "Check for Updates";
 "Automatically check for updates" = "Automatically check for updates";
 "Automatically download updates" = "Automatically download updates";
 "Last checked" = "Last checked";
 "Never" = "Never";
-"Downloaded updates install the next time you quit Markdown Preview." = "Downloaded updates install the next time you quit MDView.";
+"Downloaded updates install the next time you quit Markdown Preview." = "Downloaded updates install the next time you quit Belvedere.";
 "Colors" = "Colors";
 "Window background" = "Window background";
 "Editor background" = "Editor background";
@@ -59,9 +59,9 @@
 "Restores the default Normal theme." = "Restores the default Normal theme.";
 "Current theme: %@" = "Current theme: %@";
 "Send anonymous crash reports" = "Send anonymous crash reports";
-"Crash reports contain diagnostic details such as stack traces and OS and app versions. They may include technical file paths; Markdown Preview does not deliberately attach document contents or personal information." = "Crash reports contain diagnostic details such as stack traces and OS and app versions. They may include technical file paths; MDView does not deliberately attach document contents or personal information.";
+"Crash reports contain diagnostic details such as stack traces and OS and app versions. They may include technical file paths; Markdown Preview does not deliberately attach document contents or personal information." = "Crash reports contain diagnostic details such as stack traces and OS and app versions. They may include technical file paths; Belvedere does not deliberately attach document contents or personal information.";
 "Share anonymous usage analytics" = "Share anonymous usage analytics";
-"When enabled, Markdown Preview sends at most one event per day when the app becomes active, linked to a random installation identifier. It also sends the app version, macOS major version, processor architecture, and locale country or region. This is used only to count daily and monthly active installations and understand basic platform compatibility. It does not send document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers." = "When enabled, MDView sends at most one event per day when the app becomes active, linked to a random installation identifier. It also sends the app version, macOS major version, processor architecture, and locale country or region. This is used only to count daily and monthly active installations and understand basic platform compatibility. It does not send document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers.";
+"When enabled, Markdown Preview sends at most one event per day when the app becomes active, linked to a random installation identifier. It also sends the app version, macOS major version, processor architecture, and locale country or region. This is used only to count daily and monthly active installations and understand basic platform compatibility. It does not send document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers." = "When enabled, Belvedere sends at most one event per day when the app becomes active, linked to a random installation identifier. It also sends the app version, macOS major version, processor architecture, and locale country or region. This is used only to count daily and monthly active installations and understand basic platform compatibility. It does not send document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers.";
 
 /* View menu */
 "Appearance" = "Appearance";
@@ -137,7 +137,7 @@
 "Inspector" = "Inspector";
 "Get Info" = "Get Info";
 "Always on Top" = "Always on Top";
-"Keep Markdown Preview windows in front of other apps" = "Keep MDView windows in front of other apps";
+"Keep Markdown Preview windows in front of other apps" = "Keep Belvedere windows in front of other apps";
 "Show the inspector" = "Show the inspector";
 "Share" = "Share";
 "Share document" = "Share document";
@@ -218,7 +218,7 @@
 "Reload from Disk" = "Reload from Disk";
 "Unable to verify the document on disk" = "Unable to verify the document on disk";
 "%@ Cancel keeps your changes unsaved." = "%@ Cancel keeps your changes unsaved.";
-"Markdown Preview needs your permission to save this file." = "MDView needs your permission to save this file.";
+"Markdown Preview needs your permission to save this file." = "Belvedere needs your permission to save this file.";
 "The clipboard does not contain an image." = "The clipboard does not contain an image.";
 "The pasted image could not be placed next to the Markdown file." = "The pasted image could not be placed next to the Markdown file.";
 "Choose the folder containing this Markdown file to save the pasted image." = "Choose the folder containing this Markdown file to save the pasted image.";
@@ -277,13 +277,13 @@
 
 /* URL scheme errors */
 "Cannot open link" = "Cannot open link";
-"“%@” is not a link Markdown Preview understands. Use md-preview://file/ followed by the absolute path of the file, for example md-preview://file/Users/me/notes/README.md." = "“%@” is not a link MDView understands. Use md-preview://file/ followed by the absolute path of the file, for example md-preview://file/Users/me/notes/README.md.";
+"“%@” is not a link Markdown Preview understands. Use md-preview://file/ followed by the absolute path of the file, for example md-preview://file/Users/me/notes/README.md." = "“%@” is not a link Belvedere understands. Use md-preview://file/ followed by the absolute path of the file, for example md-preview://file/Users/me/notes/README.md.";
 
 /* CLI installer errors */
 "Terminal automation failed: %@" = "Terminal automation failed: %@";
 "Terminal automation failed." = "Terminal automation failed.";
 "Failed to write CLI installer script: %@" = "Failed to write CLI installer script: %@";
-"The bundled Markdown Preview CLI could not be found." = "The bundled MDView CLI could not be found.";
+"The bundled Markdown Preview CLI could not be found." = "The bundled Belvedere CLI could not be found.";
 
 /* Settings — Reading */
 "Reading" = "Reading";
@@ -296,6 +296,6 @@
 
 /* Settings — Windows */
 "Windows" = "Windows";
-"Keeps every Markdown Preview window in front of other apps, including windows you open later. A window in full screen is left alone until it comes back out." = "Keeps every MDView window in front of other apps, including windows you open later. A window in full screen is left alone until it comes back out.";
+"Keeps every Markdown Preview window in front of other apps, including windows you open later. A window in full screen is left alone until it comes back out." = "Keeps every Belvedere window in front of other apps, including windows you open later. A window in full screen is left alone until it comes back out.";
 "Open documents in tabs" = "Open documents in tabs";
 "A file opened from Finder joins the front window as a tab instead of getting one of its own — Open in New Window still opens a window." = "A file opened from Finder joins the front window as a tab instead of getting one of its own — Open in New Window still opens a window.";
