@@ -36,7 +36,7 @@ struct AboutSettingsView: View {
             }
 
             Section {
-                Link(L("GitHub Project"), destination: URL(string: "https://github.com/pluk-inc/markdown-preview")!)
+                Link(L("GitHub Project"), destination: URL(string: "https://github.com/inquinity/belvedere")!)
             }
         }
         .formStyle(.grouped)

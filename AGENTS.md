@@ -2,7 +2,7 @@
 
 > ## ⚠️ FORK STATUS — read before acting on anything below
 >
-> This is **[inquinity/markdown-preview](https://github.com/inquinity/markdown-preview)**,
+> This is **[inquinity/belvedere](https://github.com/inquinity/belvedere)**,
 > a fork of pluk-inc/markdown-preview. Read
 > **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)** first — it is the source of truth for how
 > this repository differs from the document below.

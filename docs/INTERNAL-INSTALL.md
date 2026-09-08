@@ -1,7 +1,7 @@
 # Installing the internal build
 
 This is the internal build of Belvedere maintained at
-[inquinity/markdown-preview](https://github.com/inquinity/markdown-preview). It makes no
+[inquinity/belvedere](https://github.com/inquinity/belvedere). It makes no
 network connections of any kind — see [FORK-NOTES.md](FORK-NOTES.md) for what was removed
 and why.
 
@@ -59,7 +59,7 @@ To see which version you have: **Belvedere → About Belvedere**.
 
 ## Reporting problems
 
-File an issue at [inquinity/markdown-preview](https://github.com/inquinity/markdown-preview/issues).
+File an issue at [inquinity/belvedere](https://github.com/inquinity/belvedere/issues).
 
 If the problem also reproduces in the upstream build, it belongs
 [upstream](https://github.com/pluk-inc/markdown-preview/issues) instead — this fork
