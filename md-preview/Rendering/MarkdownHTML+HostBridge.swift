@@ -234,6 +234,26 @@ nonisolated extension MarkdownHTML {
             } catch (e) { return false; }
         }
 
+        // A grant needs somewhere to send the request. Quick Look registers no
+        // `mdPreviewHost` handler, so `post` is a no-op there and nothing can
+        // ever answer — a Load button would spin on "Loading…" forever, which
+        // is exactly what shipped.
+        //
+        // That check also happens to be the right *policy* boundary, not just
+        // a mechanical one. Quick Look is reached by pressing space on a file
+        // Finder selected, so it deliberately offers no grants and no prompts
+        // (see docs/FORK-NOTES.md, "Quick Look is a different surface"). The
+        // absence of the bridge and the absence of consent are the same fact.
+        //
+        // Labels still appear there. A label is information, not an
+        // affordance: it tells a reader why nothing rendered, and grants
+        // nothing. But the in/out-of-folder split is meaningless in Quick
+        // Look — the page loads with a nil base URL, so `document.baseURI` is
+        // not the document's folder and every reference looks external — so
+        // the label stays generic rather than claiming a boundary decision
+        // that was never made.
+        const canGrant = hasHostBridge;
+
         function makeDeferredPlaceholder(img) {
             // `img.src` is resolved against the page's <base href>; the raw
             // attribute is whatever the document wrote, which is usually
@@ -256,6 +276,8 @@ nonisolated extension MarkdownHTML {
             label.className = 'mdp-deferred-label';
             label.textContent = remote
                 ? 'Remote image blocked — ' + deferredLabel(src)
+                : !canGrant
+                    ? deferredLabel(raw) + ' — load failed'
                 : inside
                     // Provisional: the host is asked why, and the label is
                     // refined once it answers. WebKit's error event carries no
@@ -271,7 +293,7 @@ nonisolated extension MarkdownHTML {
             // so offering a button that always fails would be worse than
             // offering none. A deliberate remote fetch needs its own decision;
             // see docs/FORK-NOTES.md (F4).
-            if (!remote && !inside) {
+            if (!remote && !inside && canGrant) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'mdp-deferred-load';
@@ -284,7 +306,7 @@ nonisolated extension MarkdownHTML {
             }
 
             deferredAssets.set(token, { src, box, img, remote, inside, raw });
-            if (inside) {
+            if (inside && canGrant) {
                 // Safe without a grant: the app already attempted this exact
                 // read while rendering, so asking why it failed reveals
                 // nothing new. Only in-folder references are asked about.
@@ -350,7 +372,7 @@ nonisolated extension MarkdownHTML {
             let banner = article.querySelector('.mdp-deferred-banner');
             const pending = [...deferredAssets.values()]
                 .filter((e) => !e.refused && !e.remote && !e.inside);
-            if (pending.length < 2) { if (banner) banner.remove(); return; }
+            if (!canGrant || pending.length < 2) { if (banner) banner.remove(); return; }
             if (!banner) {
                 banner = document.createElement('div');
                 banner.className = 'mdp-deferred-banner';

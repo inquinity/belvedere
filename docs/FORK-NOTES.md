@@ -349,6 +349,27 @@ the bytes really are a raster image before answering with a `data:` URL. Verifie
 end in the running app: a real PNG loads on click, and a text file renamed `.png` comes
 back "not an image" with the dead action removed.
 
+**Quick Look gets labels, never grants — and the first cut got that wrong.** The rule was
+already written down (see "Quick Look is a different surface"), and the implementation
+ignored it: Load buttons appeared in Quick Look, on *every* failed image, and clicking one
+spun on "Loading…" forever.
+
+Two causes, and the second explains the first. Quick Look registers no `mdPreviewHost`
+handler, so `post` is a no-op there and nothing could ever answer a request. And the
+Quick Look page loads with `baseURL: nil`, so `document.baseURI` is not the document's
+folder and the in/out-of-folder check called *everything* external — which is what put a
+button on the inside-folder cases too.
+
+The fix ties the affordance to the bridge: `canGrant = hasHostBridge`. No host, no button,
+no "Load all", and no round trip to ask why something failed. That is a mechanical check
+that happens to land exactly on the policy boundary, because the absence of the bridge and
+the absence of consent are the same fact — Quick Look is reached by pressing space on a
+file Finder selected.
+
+Labels still appear, because a label is information rather than an affordance: it tells a
+reader why nothing rendered and grants nothing. But the label stays generic there
+(`load failed`) rather than naming a boundary decision that was never made.
+
 **Why a non-image still gets a Load button.** The obvious refinement — check eligibility
 when drawing the placeholder, and omit the button for something that is not an image — is
 the wrong trade. Eligibility is decided by magic bytes, which means reading the file, so

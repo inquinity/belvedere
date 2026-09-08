@@ -15,7 +15,7 @@ import XCTest
 final class DeferredImageRenderingTests: XCTestCase {
 
     @MainActor
-    private func harness() async throws -> WKWebView {
+    private func harness(withHostBridge: Bool = true) async throws -> WKWebView {
         let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
         let morphdom = try TestVendor.script("md-preview/Vendor/Morphdom/morphdom.min.js")
         let html = """
@@ -24,9 +24,13 @@ final class DeferredImageRenderingTests: XCTestCase {
         <script>\(purify)</script>
         <script>\(morphdom)</script>
         <script>
-        window.webkit = { messageHandlers: { mdPreviewHost: { postMessage(m) {
-            (window.__posted = window.__posted || []).push(m);
-        } } } };
+        \(withHostBridge
+          ? """
+            window.webkit = { messageHandlers: { mdPreviewHost: { postMessage(m) {
+                (window.__posted = window.__posted || []).push(m);
+            } } } };
+            """
+          : "window.webkit = { messageHandlers: {} };")
         </script>
         \(MarkdownHTML.hostBridgeScript)
         </head><body><article class="markdown-body"></article></body></html>
@@ -246,6 +250,49 @@ final class DeferredImageRenderingTests: XCTestCase {
                       the file is missing — nothing checked. It could equally \
                       be unreadable or a format WebKit does not render. \(raw)
                       """)
+    }
+
+    /// Quick Look registers no `mdPreviewHost` handler, so nothing can answer
+    /// a request. Offering Load there produced a button that spun on
+    /// "Loading…" forever — and it appeared on *every* failed image, because
+    /// the Quick Look page loads with a nil base URL, so the in/out-of-folder
+    /// check has no folder to compare against and calls everything external.
+    @MainActor
+    func testQuickLookGetsLabelsButNoGrants() async throws {
+        let webView = try await harness(withHostBridge: false)
+        try await update(doc, in: webView)
+        _ = try await waitForPlaceholders(webView, atLeast: 2)
+
+        let raw = try await webView.evaluateJavaScript("""
+        JSON.stringify({
+          placeholders: document.querySelectorAll('[data-mdp-deferred]').length,
+          buttons: document.querySelectorAll('.mdp-deferred-load').length,
+          banners: document.querySelectorAll('.mdp-deferred-banner').length,
+          text: [...document.querySelectorAll('.mdp-deferred-label')].map(e => e.textContent).join(' | ')
+        })
+        """) as? String ?? "{}"
+
+        XCTAssertTrue(raw.contains("\"buttons\":0"),
+                      """
+                      Quick Look offered a Load button. There is no host to \
+                      answer it, so it can only spin forever — and Quick Look \
+                      is reached by pressing space on a file the reader did \
+                      not choose, so it offers no grants by design. \(raw)
+                      """)
+        XCTAssertTrue(raw.contains("\"banners\":0"),
+                      "\"Load all\" needs a host too \(raw)")
+        XCTAssertGreaterThan(
+            (try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any])
+                .flatMap { $0?["placeholders"] as? Int } ?? 0, 0,
+            "a label is information rather than an affordance, and should still appear \(raw)"
+        )
+        XCTAssertFalse(
+            raw.contains("could not be displayed"),
+            """
+            Quick Look must not claim a boundary decision it cannot make: with \
+            a nil base URL there is no document folder to compare against. \(raw)
+            """
+        )
     }
 
     /// The morph path is the one that was broken: the hook ran on the detached
