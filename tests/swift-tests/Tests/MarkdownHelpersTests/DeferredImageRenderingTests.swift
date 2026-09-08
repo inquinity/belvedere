@@ -190,8 +190,12 @@ final class DeferredImageRenderingTests: XCTestCase {
           });
         })()
         """) as? String ?? "{}"
-        XCTAssertTrue(state.contains("not an image"),
-                      "a refusal must say why, in place \(state)")
+        XCTAssertTrue(state.contains("load failed: not an image"),
+                      """
+                      A refusal must read as the outcome of the action the \
+                      reader just took, not as a bare property of the file. \
+                      \(state)
+                      """)
         XCTAssertTrue(state.contains("\"stillOffersLoad\":false"),
                       "a refused asset must stop offering an action that will fail again \(state)")
     }
