@@ -63,10 +63,14 @@ final class DeferredImageRenderingTests: XCTestCase {
         return last
     }
 
+    /// The local reference points *outside* the document folder on purpose:
+    /// that is what containment refuses, and so the only case with a remedy.
+    /// An inside-folder failure is broken rather than blocked and is covered
+    /// by `testInsideFolderFailuresAreNotOfferedALoadButton`.
     private let doc = """
     # Doc
 
-    ![local](images/missing-on-purpose.png)
+    ![local](../elsewhere/missing-on-purpose.png)
 
     ![remote](https://example.invalid/pixel.png)
     """
@@ -198,6 +202,50 @@ final class DeferredImageRenderingTests: XCTestCase {
                       """)
         XCTAssertTrue(state.contains("\"stillOffersLoad\":false"),
                       "a refused asset must stop offering an action that will fail again \(state)")
+    }
+
+    /// A file inside the document's own folder was never blocked, so a
+    /// failure there means broken rather than withheld — and offering Load
+    /// would be offering to retry the thing that just failed.
+    @MainActor
+    func testInsideFolderFailuresAreNotOfferedALoadButton() async throws {
+        let webView = try await harness()
+        try await update("""
+        # Doc
+
+        ![inside](images/missing.png)
+
+        ![outside](../elsewhere/logo.png)
+        """, in: webView)
+        _ = try await waitForPlaceholders(webView, atLeast: 2)
+
+        let raw = try await webView.evaluateJavaScript("""
+        JSON.stringify({
+          broken: document.querySelectorAll('[data-mdp-broken]').length,
+          brokenButtons: document.querySelectorAll('[data-mdp-broken] .mdp-deferred-load').length,
+          outsideButtons: document.querySelectorAll(
+              '[data-mdp-deferred]:not([data-mdp-broken]):not([data-mdp-remote]) .mdp-deferred-load'
+          ).length,
+          brokenText: (document.querySelector('[data-mdp-broken]') || {}).textContent || ''
+        })
+        """) as? String ?? "{}"
+
+        XCTAssertTrue(raw.contains("\"broken\":1"),
+                      "a reference inside the document folder must be marked broken, not blocked \(raw)")
+        XCTAssertTrue(raw.contains("\"brokenButtons\":0"),
+                      """
+                      A file inside the document folder was offered Load. \
+                      Resolution is already permitted there, so the button \
+                      can only retry what already failed. \(raw)
+                      """)
+        XCTAssertTrue(raw.contains("\"outsideButtons\":1"),
+                      "an out-of-folder reference is the one with a remedy \(raw)")
+        XCTAssertTrue(raw.contains("load failed"),
+                      """
+                      The label must read as a failed load, and must not claim \
+                      the file is missing — nothing checked. It could equally \
+                      be unreadable or a format WebKit does not render. \(raw)
+                      """)
     }
 
     /// The morph path is the one that was broken: the hook ran on the detached

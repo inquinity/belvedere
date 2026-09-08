@@ -35,10 +35,25 @@ inlines images as `data:`/`cid:`.
 
 ![remote](https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png?202210171354)
 
-## Missing file
+## Missing file, inside this folder
 
-> **EXPECT:** a broken-image placeholder, and nothing else.
+> **EXPECT:** `missing.png — load failed`, and **no Load button**.
+> **FAIL IF:** a Load button appears. This file is inside the document's own
+> folder, so resolution was already permitted and nothing blocked it — the
+> load simply failed. A button there would offer to retry what just failed.
 > **FAIL IF:** the app or the Quick Look preview crashes, hangs, or renders
 > blank. A missing asset must be uneventful.
 
 ![missing](images/missing.png)
+
+## Missing file, outside this folder
+
+> **EXPECT:** `missing-outside.png` with a **Load** button. Click it and the
+> label becomes `load failed: could not be read`.
+> **FAIL IF:** no button appears. Containment refused this one, so the reader
+> is owed the choice — that is the difference from the case above.
+>
+> The two cases look similar and are not: one was *blocked*, the other merely
+> *broke*. Only the blocked one has a remedy.
+
+![missing outside](../missing-outside.png)
