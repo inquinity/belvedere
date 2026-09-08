@@ -146,6 +146,7 @@ merged it stops being our diff to carry:
 | `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) open, awaiting review |
 | Preview document has no Content-Security-Policy | Issue → PR | **filed** — [#339](https://github.com/pluk-inc/markdown-preview/issues/339), with both working policies and an offer to PR |
 | `ALLOWED_URI_REGEXP` permits `http`/`https` | Issue → PR, after the CSP lands | pending |
+| Documentation that describes behaviour goes stale silently | Practice → PR | **ready, unsent** — written into `AGENTS.md` in upstream-neutral language so it lifts onto a `contrib/` branch verbatim. Their own `README.md` Mermaid claim is the motivating example |
 | App icon too similar to macOS Preview (upstream's own issue) | Artwork offer | **posted** — concept board added to [#276](https://github.com/pluk-inc/markdown-preview/issues/276) on 2026-09-04. Their issue, opened by a user and endorsed by the maintainer, who said he is considering a rename and a distinct identity. Awaiting a pick |
 | Mermaid diagrams do not render in Quick Look, though `README.md` says they do | Issue → PR | ✅ **merged** — [PR #343](https://github.com/pluk-inc/markdown-preview/pull/343) landed as `eddc0d0` and shipped in upstream 0.0.53; [#338](https://github.com/pluk-inc/markdown-preview/issues/338) closed. Their version replaced ours on the next sync |
 
@@ -185,6 +186,26 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F10** | ⌘R to reload the open file from disk | The menu item exists and is permanently disabled. Auto-reload already covers the common case; this is the manual override. See below. |
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
+
+**Stale expectations, and the practice written to stop them.** Five times in this
+repository a fixture or a README has asserted the *opposite* of current behaviour:
+`path-traversal.md` denying containment existed three releases after it shipped; the
+Mermaid example calling a fixed bug an accepted Quick Look limitation; `post.md` expecting
+a broken-image icon after placeholders replaced them, and later giving one expectation for
+two surfaces that had diverged; and `inline-html.md` expecting an empty section where a
+placeholder now appears, plus calling task checkboxes unclickable after clicking them
+became a feature.
+
+Every one was accurate when written. Each went stale because something *else* changed, and
+each cost a round trip in which a correct result was reported as a bug.
+
+The practice — update the claim in the same commit as the behaviour — is now recorded
+twice, deliberately. `docs/MANUAL-TEST-CHECKLIST.md` carries the fork-specific version with
+the five examples, for whoever runs a release check. `AGENTS.md` carries an
+upstream-neutral version with no fork references, so it can be lifted onto a `contrib/`
+branch as-is. Upstream has the same problem and a better example of it than any of ours:
+their `README.md` claimed Mermaid rendered in both surfaces while it was broken in Quick
+Look, and that mismatch was read as documentation drift rather than as the bug it was.
 
 **F11 — the two F4 gaps left open on purpose.** An audit of the deferred-image behaviour
 space closed four gaps and left these two, recorded so they are decisions rather than
