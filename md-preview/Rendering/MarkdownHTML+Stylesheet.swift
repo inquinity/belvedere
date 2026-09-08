@@ -627,9 +627,11 @@ nonisolated extension MarkdownHTML {
        from. */
     .mdp-deferred {
         display: inline-flex;
-        align-items: center;
+        /* Top-align so a wrapped label keeps the button beside its first
+           line rather than floating to the vertical centre. */
+        align-items: flex-start;
         gap: 0.5em;
-        max-width: 100%;
+        max-width: min(100%, 42em);
         padding: 0.35em 0.6em;
         border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
         border-radius: 6px;
@@ -638,10 +640,12 @@ nonisolated extension MarkdownHTML {
     }
     .mdp-deferred-label {
         opacity: 0.75;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 32em;
+        /* Wrap rather than ellipsize. These labels are explanations — an
+           elided one ("... Quick Look cannot loa…") is worse than useless,
+           because the part that gets cut is the part the reader needed.
+           `anywhere` keeps a long unbroken filename from widening the pill
+           past the column. */
+        overflow-wrap: anywhere;
     }
     .mdp-deferred-load {
         font: inherit;
