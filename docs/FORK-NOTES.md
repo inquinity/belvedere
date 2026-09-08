@@ -177,12 +177,12 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 |---|---|---|
 | **F1** | Private Homebrew tap (`inquinity/homebrew-tap`) | Explicitly *not* part of M5 — M5 ships by corporate share / Dropbox. A tap is a separate, later distribution channel. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
-| **F3** | Security-scoped bookmarks; drop the `/` read-only entitlement | |
-| **F4** | Deferred content: click-to-load, plus trusted folders and a pane to manage them | One mechanism for two cases — remote images and out-of-boundary local files. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337) and blocked on their answer. See below. |
+| **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
+| **F4** | Click-to-load for deferred content | One mechanism for two cases — remote images and out-of-boundary local files. Stands alone: no trust, no persistence, no configuration. See below. |
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | Icon selected: Split Signal (concept 2), now generated reproducibly and wired into `AppIcon.icon`. `MDView` remains the current private-variant name; any future rename still needs to land in `Localizable.strings` and `MainMenu.strings` (see F7). |
-| ~~F9~~ | Trusted folders | Folded into F4 — the placeholder affordance is the same either way, and building it twice is the waste. |
+| ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 ### What is fork-only, and what is not
 
@@ -289,11 +289,10 @@ only, since the keys are the identifiers `L()` looks up.
 group, discarded preferences and another LaunchServices re-registration, all for a string
 no user sees. The mismatch is intentional; do not "tidy" it.
 
-**F4 — deferred content: click-to-load, trusted folders, and a pane to manage them.**
-Two backlog items that turned out to be one. Quick Look blocks remote images outright
+**F4 — click-to-load for deferred content.** Quick Look blocks remote images outright
 (M3b), which is right for a surface reached by pressing space on a file you did not
 choose. The app window is a deliberate act, so the answer there is the one mail clients
-settled on: do not load, show the reader what was withheld and offer it. Containment
+settled on: do not load, show the reader what was withheld, and offer it. Containment
 creates the same situation for a *local* file outside the boundary. The affordance is
 identical in both cases, and building it twice is the waste.
 
@@ -314,48 +313,14 @@ reference that is not an image is surfaced rather than hidden — a document poi
 `<img>` at `/etc/passwd` is not a broken layout, it is probing, and no other viewer tells
 you that.
 
-**Trusted folders are the durable half.** Per-image clicking is fine for a document that
-arrived from elsewhere and the wrong tax on your own work, where the shared `../images/`
-layout is normal. Marking a folder trusted bounds asset resolution by the trust root
-instead of the document folder. It also supplies something the app lacks: the maintainer's
-review asked to treat an "authorized folder" as the boundary, but there is no
-authorization in the tree — no `startAccessingSecurityScopedResource`, no `bookmarkData` —
-so the navigator root is a UI value, not a capability. Trust is a deliberate act, and it
-tracks provenance rather than directory distance, which is the distinction that matters:
-`~/dev/projects` is content the user wrote, `~/Downloads` is where a file someone sent
-them lands.
+**This item stands alone.** No trust, no persistence, no configuration, nothing to manage.
+A user who never touches F3 still gets working documents from this. That independence is
+the reason it is worth building first.
 
-**Guards, because tree trust is coarse by design.** Refuse `~`, `/`, `/Users` and volume
-roots outright rather than warning. Resolve symlinks when recording and when checking, and
-store the resolved path, so a trusted folder cannot become a redirect. Warn when a
-candidate covers an unusually large tree. Never auto-trust, and never offer "trust the
-parent". Prompt lazily — when a document actually reaches outside its folder, not when a
-folder is opened — because a prompt on open becomes a toll gate people dismiss without
-reading. **Quick Look does not honour trust at all:** it is the drive-by surface, with no
-window to show scope in and nowhere sane to prompt, so it stays document-folder-only.
-
-**The management pane.** Claude Code stores this shape in `~/.claude.json` — a map keyed by
-absolute path, one boolean per entry (`hasTrustDialogAccepted`), plain text and
-inspectable. Worth copying. Its management story is not: the only control is `claude
-project purge`, which revokes trust by also deleting transcripts, tasks and file history,
-so there is no proportionate way to withdraw one folder. An app with a Settings window can
-do better cheaply — Settings → Security, one list showing **resolved paths** rather than
-nicknames (the path is the boundary, so the path is what you show), the date each was
-added, per-row Remove and a Remove All behind a confirmation. Trust nothing by default.
-Flag entries whose folder no longer exists rather than letting them silently match
-nothing. Readable JSON in the app container, not an opaque blob. Revocation can take
-effect on the next render.
-
-**The seam worth remembering:** trust is about folders, and remote images are about hosts.
-The placeholder is shared, but a trusted folder says nothing about `example.com`. Remote
-content stays click-to-load only unless someone deliberately designs a per-host decision,
-which is a different axis and not part of this item.
-
-**Not started, and deliberately so.** Trust is proposed upstream as the middle of three
-layers on #337. If they take it, it arrives through them and the fork carries nothing; if
-they decline, it becomes a fork feature. Either way the long-term pairing is with F3: the
-moment a user trusts a folder is exactly when a security-scoped bookmark should be taken,
-which is the route to dropping the blanket `/` read-only exception.
+**Quick Look gets none of it.** There is no chrome to put the affordance in and nothing to
+persist a decision to, and a Load button in a panel that vanishes on the next space press
+would train people to click grants without reading them. See "Quick Look is a different
+surface" below.
 
 **F5 — manual-test `.md` files didn't say what "pass" looks like. Done, both ways.**
 Every fixture written for this fork explained the threat to a *developer*; none told a
@@ -553,14 +518,100 @@ This is the first time the fork has taken a behaviour change back from upstream 
 sending one, and it is the cheap outcome the contribution track exists to produce: the
 Mermaid fix is no longer a diff this fork carries.
 
-**F3 — the `/` read-only entitlement.** Both targets carry
-`com.apple.security.temporary-exception.files.absolute-path.read-only` = `/`. There is no
-security-scoped bookmark machinery anywhere in the codebase — the entitlement *is* the
-access strategy for the project navigator and relative-asset resolution. Replacing it
-means implementing bookmark persistence and an access lifecycle, which is a week of work
-on someone else's architecture. Once M4 (or upstream's fix) confines the `md-asset:`
-scheme, the WebView-reachable surface is closed and only the app's own code holds broad
-read, which is a much smaller concern for a read-only entitlement.
+**F3 — trusted folders, security-scoped bookmarks, and the `/` read-only entitlement.**
+Three things that were tracked separately and are one piece of work.
+
+Both targets carry `com.apple.security.temporary-exception.files.absolute-path.read-only`
+= `/`. There is no security-scoped bookmark machinery anywhere in the codebase — that
+entitlement *is* the access strategy for the project navigator and relative-asset
+resolution. Replacing it means bookmark persistence and an access lifecycle, which is why
+it sat untouched: a week of plumbing with nothing to show a user.
+
+**Trust is what makes it a feature rather than plumbing.** Bookmarks stalled on having no
+moment to ask for access. Trusting a folder is exactly that moment — the user names a
+folder, deliberately, and that is when the bookmark should be taken. One prompt, two
+payoffs: the containment boundary widens where the user said it should, and the app
+acquires real, OS-scoped access to that folder instead of relying on a blanket exception.
+Done properly this is the route to dropping the `/` entitlement altogether, which is the
+largest security win available here.
+
+Trust also supplies something the app currently lacks. The #337 review asked to treat an
+"authorized folder" as the boundary, but there is no authorization in the tree — no
+`startAccessingSecurityScopedResource`, no `bookmarkData` — so the navigator root is a UI
+value, not a capability. And trust tracks provenance rather than directory distance, which
+is the distinction that matters: `~/dev/projects` is content the user wrote, `~/Downloads`
+is where a file someone sent them lands.
+
+**Guards, because tree trust is coarse by design.** Refuse `~`, `/`, `/Users` and volume
+roots outright rather than warning. Resolve symlinks when recording and when checking, and
+store the resolved path, so a trusted folder cannot become a redirect. Warn when a
+candidate covers an unusually large tree. Never auto-trust, and never offer "trust the
+parent". Prompt lazily — when a document actually reaches outside its folder, not when a
+folder is opened — because a prompt on open becomes a toll gate people dismiss without
+reading. **Quick Look never honours trust**, for the reasons under F4.
+
+**The management pane.** Claude Code stores this shape in `~/.claude.json`: a map keyed by
+absolute path, one boolean per entry (`hasTrustDialogAccepted`), plain text and
+inspectable. Worth copying. Its management story is not — the only control is `claude
+project purge`, which revokes trust by also deleting transcripts, tasks and file history,
+so there is no proportionate way to withdraw one folder. An app with a Settings window can
+do better cheaply: Settings → Security, one list showing **resolved paths** rather than
+nicknames (the path is the boundary, so the path is what you show), the date each was
+added, per-row Remove and a Remove All behind a confirmation. Trust nothing by default.
+Flag entries whose folder no longer exists rather than letting them silently match
+nothing. Readable JSON in the app container, not an opaque blob. Revocation can take
+effect on the next render.
+
+**The seam worth remembering:** trust is about folders, and remote images are about hosts.
+F4's placeholder is shared between them, but a trusted folder says nothing about
+`example.com`. Remote content stays click-to-load only unless someone deliberately designs
+a per-host decision, which is a different axis and not part of either item.
+
+**Sequencing.** F4 first, since it stands alone and needs no policy. Then this. Trust is
+proposed upstream as the middle of three layers on #337; if they take it, it arrives
+through them, and if they decline it becomes a fork feature.
+
+## Quick Look is a different surface
+
+The two surfaces have drifted apart deliberately, and the divergence has now caused
+confusion three times — the CSP split (F2/M3b), the containment scope (M4), and the vendor
+loading mode behind B1. Collected here so it is one lookup rather than three.
+
+| | Quick Look | App window |
+|---|---|---|
+| Base URL | `nil` — opaque origin | `md-asset:` base href |
+| Scheme handler | **none registered** | `md-asset:` handler |
+| Vendor bundles | `.inline` — embedded in the page | `.lazy` — fetched after first paint |
+| Local images | rewritten to `data:` / `cid:` | served over `md-asset:` |
+| CSP `img-src` | `data: cid:` | `md-asset: data:` |
+| CSP `script-src` | `'unsafe-inline'` | `'unsafe-inline' md-asset:` |
+| Containment | document folder, always | document folder; trust proposed (F3) |
+| Editing, tabs, PDF export | none | yes |
+
+Identical in both: `default-src 'none'`, remote images blocked, and the same DOMPurify
+pass — both surfaces share `hostBridgeScript`, which is why the form-control fix landed in
+both at once.
+
+**The rule that generates all of it: Quick Look is reached by pressing space on a file
+Finder selected, not one the reader chose.** There is no chrome to put an affordance in,
+nothing to persist a decision to, and no deliberate act to attach a grant to. So the
+policy is self-contained: everything the page needs is embedded before it loads, and
+nothing it asks for afterwards is honoured.
+
+**Every grant-shaped feature is app-window-only, permanently.** Click-to-load (F4) and
+trust (F3) both need a button, a re-render and somewhere to remember a decision. A preview
+panel has none of those, and a Load button in a panel that vanishes on the next space
+press would be worse than no button — it trains the reflex to click grants without reading
+them. This is not a limitation to close later; it is the design.
+
+The distinction is the provenance of the *interaction*, not of the file. The same document
+gets different rules depending on how it was opened, which is correct: pressing space is
+not consent.
+
+**The cost is real.** Quick Look is stricter and less capable, and the strictness is what
+forces the vendor bundles inline. That inlining is what produced B1, where a 3 MB Mermaid
+bundle in the page met a CSS splice in the wrong place. Strictness bought a whole class of
+bug that the app window cannot have.
 
 ## Distribution
 
