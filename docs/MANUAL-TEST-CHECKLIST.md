@@ -18,6 +18,33 @@ itself**, as `EXPECT` / `FAIL IF` notes you read while looking at the rendered
 page. This file covers `samples/`, which is upstream's and deliberately left
 unannotated so it merges cleanly.
 
+## If you changed behaviour, re-read the expectations first
+
+**Before running this checklist against a change, re-read the `EXPECT` notes in
+every fixture the change could touch, and fix any that are now false.** Do it in
+the same commit as the behaviour change, not afterwards.
+
+This is not tidiness. A stale expectation asserts the *opposite* of what the
+code now does, and a tester trusts it — so the failure mode is reporting a
+correct result as a bug, or worse, reading a real regression as a known
+limitation. That has happened five times in this repository:
+
+- `path-traversal.md` said containment did not exist, three releases after it
+  shipped.
+- The Mermaid example described a fixed bug as an accepted Quick Look
+  limitation — which is exactly how the bug survived several releases in the
+  first place.
+- `post.md` told a tester to expect a broken-image icon for a missing file
+  after placeholders replaced them.
+- `post.md` gave one expectation for both surfaces after they diverged, so
+  Quick Look read as failing when it was correct.
+- `inline-html.md` said to expect nothing where a placeholder now appears, and
+  called task checkboxes unclickable after clicking them became a feature.
+
+Every one was written accurately and went stale when something else changed.
+The fixtures are only useful while they are true, so treat them as part of the
+behaviour rather than as notes about it.
+
 ## Before you start
 
 ```bash
