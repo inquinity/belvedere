@@ -13,7 +13,7 @@ should stay upstream's work.
 
 | Remote | URL | Role |
 |---|---|---|
-| `origin` | `inquinity/markdown-preview` | This fork. Where our `main` lives. |
+| `origin` | `inquinity/belvedere` | This fork. Where our `main` lives. |
 | `upstream` | `pluk-inc/markdown-preview` | The base project. Read-only; never pushed to. |
 
 Upstream is actively maintained (142 commits in the two months before this fork was
