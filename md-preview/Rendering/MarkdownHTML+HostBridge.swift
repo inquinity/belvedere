@@ -204,6 +204,28 @@ nonisolated extension MarkdownHTML {
             } catch (e) { return src; }
         }
 
+        // Whether a reference lies inside the document's own folder. This is
+        // a string comparison against the page's base href — no filesystem
+        // access — and it is what separates "blocked" from "broken".
+        //
+        // A file inside the folder was never blocked: resolution is already
+        // permitted there, so a failure means it is missing, unreadable or
+        // not a format WebKit renders. Offering Load would be offering to do
+        // the thing that just failed. Only an out-of-folder reference was
+        // refused by containment, and only that one has a remedy.
+        //
+        // Note the check we can afford here is *location*, not *presence*.
+        // Testing whether a file exists is cheap, but doing it for every path
+        // a document names would touch the filesystem on the document's behalf
+        // at render time, which is the automatic access containment exists to
+        // prevent. Presence is discovered when the reader asks, not before.
+        function isInsideDocumentFolder(src) {
+            try {
+                const base = document.baseURI || '';
+                return !!base && src.startsWith(base);
+            } catch (e) { return false; }
+        }
+
         function makeDeferredPlaceholder(img) {
             // `img.src` is resolved against the page's <base href>; the raw
             // attribute is whatever the document wrote, which is usually
@@ -212,17 +234,26 @@ nonisolated extension MarkdownHTML {
             const src = img.src || img.getAttribute('src') || '';
             const raw = img.getAttribute('src') || src;
             const remote = /^https?:/i.test(src);
+            const inside = !remote && isInsideDocumentFolder(src);
             const token = 'd' + (++deferredSeq);
             const box = document.createElement('span');
-            box.className = 'mdp-deferred' + (remote ? ' mdp-deferred-remote' : '');
+            box.className = 'mdp-deferred'
+                + (remote ? ' mdp-deferred-remote' : '')
+                + (inside ? ' mdp-deferred-broken' : '');
             box.setAttribute('data-mdp-deferred', token);
             if (remote) box.setAttribute('data-mdp-remote', '1');
+            if (inside) box.setAttribute('data-mdp-broken', '1');
 
             const label = document.createElement('span');
             label.className = 'mdp-deferred-label';
             label.textContent = remote
                 ? 'Remote image blocked — ' + deferredLabel(src)
-                : deferredLabel(raw);
+                : inside
+                    // A load was attempted and failed, so say that. Not
+                    // "missing": nothing checked, and the cause could equally
+                    // be an unreadable file or a format WebKit does not render.
+                    ? deferredLabel(raw) + ' — load failed'
+                    : deferredLabel(raw);
             label.title = raw;
             box.appendChild(label);
 
@@ -232,7 +263,7 @@ nonisolated extension MarkdownHTML {
             // so offering a button that always fails would be worse than
             // offering none. A deliberate remote fetch needs its own decision;
             // see docs/FORK-NOTES.md (F4).
-            if (!remote) {
+            if (!remote && !inside) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'mdp-deferred-load';
@@ -244,7 +275,7 @@ nonisolated extension MarkdownHTML {
                 box.appendChild(button);
             }
 
-            deferredAssets.set(token, { src, box, img, remote });
+            deferredAssets.set(token, { src, box, img, remote, inside });
             img.replaceWith(box);
             updateDeferredBanner();
             return box;
@@ -298,7 +329,8 @@ nonisolated extension MarkdownHTML {
             const article = document.querySelector('.markdown-body');
             if (!article) return;
             let banner = article.querySelector('.mdp-deferred-banner');
-            const pending = [...deferredAssets.values()].filter((e) => !e.refused && !e.remote);
+            const pending = [...deferredAssets.values()]
+                .filter((e) => !e.refused && !e.remote && !e.inside);
             if (pending.length < 2) { if (banner) banner.remove(); return; }
             if (!banner) {
                 banner = document.createElement('div');
@@ -311,7 +343,7 @@ nonisolated extension MarkdownHTML {
                 action.addEventListener('click', (e) => {
                     e.preventDefault();
                     [...deferredAssets.entries()]
-                        .filter(([, entry]) => !entry.remote && !entry.refused)
+                        .filter(([, entry]) => !entry.remote && !entry.inside && !entry.refused)
                         .forEach(([token]) => requestDeferred(token));
                 });
                 banner.appendChild(text);
