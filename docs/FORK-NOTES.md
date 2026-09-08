@@ -183,7 +183,31 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal (concept 2). See below. |
 | **F10** | ⌘R to reload the open file from disk | The menu item exists and is permanently disabled. Auto-reload already covers the common case; this is the manual override. See below. |
+| **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
+
+**F11 — the two F4 gaps left open on purpose.** An audit of the deferred-image behaviour
+space closed four gaps and left these two, recorded so they are decisions rather than
+oversights.
+
+**No page-level test of the `too large` label.** The condition is covered twice already —
+`DeferredAssetLoader` refuses oversize input before encoding, and `InlineLocalAssets`
+reports `tooLarge` for both the per-image and cumulative caps — and the label itself goes
+through `describeFailure`, the same mapping that `notAnImage` exercises end to end. A page
+test would pin the string and little else. It becomes worth writing if the reason ever
+needs different treatment in the UI than the other refusals, such as offering to load it
+anyway.
+
+**No test for two references to the same blocked file.** Each `<img>` gets its own token
+and placeholder, so clicking one leaves the other blocked, and "Load all" asks the host
+twice for the same path. Neither is wrong, but neither is asserted, and the second is
+mildly wasteful. Worth doing if deferred loads ever become expensive — a remote fetch
+would make a duplicate request visible — or if a reader reports that loading an image
+left an identical one still blocked further down the page, which is the confusing shape
+this could take.
+
+Both are small. They are listed because "we know and chose not to" is a different state
+from "nobody looked", and the difference is invisible six months later.
 
 **F10 — ⌘R to reload the open file.** Requested as a missing feature; it is really a
 half-present one.
