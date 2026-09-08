@@ -1122,10 +1122,14 @@ nonisolated extension MarkdownHTML {
                     // pair one-to-one with the live DOM during the diff.
                     decorateCodeBlocks(next);
                     enableTableEditing(next);
-                    deferBlockedImages(next);
                     keyExpensiveBlocks(article);
                     keyExpensiveBlocks(next);
                     morphdom(article, next, MORPH_OPTIONS);
+                    // Deferral has to run on the live tree, after the diff.
+                    // Images in the detached `next` never load, so no error
+                    // ever fires there, and morphdom would replace the nodes
+                    // the listeners were attached to anyway.
+                    deferBlockedImages(article);
                     morphed = true;
                 } catch (e) {
                     perfLog('morphdom fallback', String(e && e.message || e));
@@ -1180,6 +1184,7 @@ nonisolated extension MarkdownHTML {
             perfLog('start (DOM ready)');
             populateFromTemplate();
             decorateCodeBlocks();
+            deferBlockedImages();
             pushHeight();
             try {
                 const ro = new ResizeObserver(pushHeight);
