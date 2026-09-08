@@ -536,6 +536,32 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     #endif
 
 
+
+    /// Explains why an in-folder reference failed to render.
+    ///
+    /// No grant is involved: the page only asks for references inside the
+    /// document's own folder, which the app already tried to read while
+    /// rendering. The answer is a reason, never bytes — a file that would have
+    /// loaded is reported as "no reason", not quietly substituted, because the
+    /// reader asked what went wrong rather than for the image.
+    fileprivate func classifyDeferredFailure(token: String, src: String) {
+        func answer(_ reason: String?) {
+            let value = reason.map { "'\($0)'" } ?? "null"
+            webView.evaluateJavaScript(
+                "window.MdPreview && MdPreview.explainDeferredFailure('\(token)', \(value));"
+            ) { _, _ in }
+        }
+        guard let url = URL(string: src),
+              let path = DeferredAssetLoader.localPath(
+                  for: url, scheme: MarkdownAssetScheme.scheme
+              ),
+              let base = currentAssetBase,
+              // Belt and braces: only in-folder paths, whatever the page said.
+              path.hasPrefix(base.standardizedFileURL.path + "/")
+        else { return answer(nil) }
+        answer(DeferredAssetLoader.reasonForInFolderFailure(atPath: path)?.rawValue)
+    }
+
     /// Serves one blocked asset after the reader clicked its placeholder (F4).
     ///
     /// This is the only path by which content outside the containment boundary
@@ -608,6 +634,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
+        case "classifyDeferredFailure":
+            guard let token = dict["token"] as? String,
+                  let src = dict["src"] as? String else { return }
+            classifyDeferredFailure(token: token, src: src)
         case "loadDeferredAsset":
             guard let token = dict["token"] as? String,
                   let src = dict["src"] as? String else { return }

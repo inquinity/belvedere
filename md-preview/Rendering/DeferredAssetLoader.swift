@@ -53,6 +53,7 @@ enum DeferredAssetLoader {
     }
 
     enum Refusal: String, Equatable {
+        case missing
         case notAnImage
         case tooLarge
         case unreadable
@@ -71,12 +72,43 @@ enum DeferredAssetLoader {
     }
 
     /// Reads a local file and applies the same checks.
+    ///
+    /// Absence is reported separately from unreadability. Collapsing both into
+    /// one refusal told the reader "cannot read file" for a file that simply is
+    /// not there, which sends them looking for a permissions problem that does
+    /// not exist. The distinction costs one `stat`.
     static func outcome(forFileAt path: String,
                         maxBytes: Int = defaultMaxBytes,
+                        exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
                         reader: (URL) throws -> Data = { try Data(contentsOf: $0) }) -> Outcome {
         let url = URL(fileURLWithPath: path).standardizedFileURL
+        guard exists(url.path) else { return .refused(.missing) }
         guard let data = try? reader(url) else { return .refused(.unreadable) }
         return outcome(for: data, maxBytes: maxBytes)
+    }
+
+    /// Why a reference inside the document's own folder failed to render.
+    ///
+    /// Safe to call without a grant, and only for in-folder references: the
+    /// app already attempted that exact read while rendering the page, so
+    /// asking why it failed reveals nothing it did not already learn and
+    /// permits nothing new. The same call for an arbitrary path would be a
+    /// filesystem probe on the document's behalf, which is why the caller
+    /// restricts it.
+    ///
+    /// Returns nil when the file is present and would have loaded — WebKit
+    /// declined it for some reason of its own, and inventing a cause would be
+    /// worse than admitting there isn't one.
+    static func reasonForInFolderFailure(
+        atPath path: String,
+        maxBytes: Int = defaultMaxBytes,
+        exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
+        reader: (URL) throws -> Data = { try Data(contentsOf: $0) }
+    ) -> Refusal? {
+        switch outcome(forFileAt: path, maxBytes: maxBytes, exists: exists, reader: reader) {
+        case .loaded: return nil
+        case let .refused(reason): return reason
+        }
     }
 
     /// Sniffs the leading bytes. Extensions are attacker-controlled; these are
