@@ -89,6 +89,14 @@ final class SettingsModel {
         }
     }
 
+    var opensMarkdownLinksInNewWindows: Bool {
+        didSet {
+            guard !isRestoringExternalValues else { return }
+            UserDefaults.standard.set(opensMarkdownLinksInNewWindows,
+                                      forKey: "MarkdownPreview.opensMarkdownLinksInNewWindows")
+        }
+    }
+
     var sendsCrashReports: Bool {
         didSet {
             guard !isRestoringExternalValues, sendsCrashReports != oldValue else { return }
@@ -120,8 +128,7 @@ final class SettingsModel {
         themeColors = colors
     }
 
-    /// Reset returns to the default preset, not to "no theme" — the app
-    /// always has a theme applied.
+    /// Original restores the default colors by clearing theme overrides.
     func resetThemeColors() {
         applyPreset(.defaultPreset)
     }
@@ -171,8 +178,8 @@ final class SettingsModel {
         return themeColors.isCustomized ? nil : .defaultPreset
     }
 
-    /// Applies a preset: writes its palette into every slot for both
-    /// schemes and switches the app appearance to the preset's flavor so
+    /// Applies a preset: replaces color overrides for both schemes
+    /// (clearing them for Original) and switches to the preset's flavor so
     /// the native chrome matches. A `.system` preset keeps the Automatic
     /// appearance instead — its palettes carry both schemes.
     func applyPreset(_ preset: ThemePreset) {
@@ -250,6 +257,7 @@ final class SettingsModel {
         readerLayout = ReaderLayoutSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
+        opensMarkdownLinksInNewWindows = UserDefaults.standard.bool(forKey: "MarkdownPreview.opensMarkdownLinksInNewWindows")
         sendsCrashReports = CrashReporter.isEnabled
         themeColors = ThemeColorsSetting.current
         sharesAnonymousUsageAnalytics = UsageAnalyticsReporter.isEnabled
@@ -304,6 +312,7 @@ final class SettingsModel {
         readerLayout = ReaderLayoutSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
+        opensMarkdownLinksInNewWindows = UserDefaults.standard.bool(forKey: "MarkdownPreview.opensMarkdownLinksInNewWindows")
         sendsCrashReports = CrashReporter.isEnabled
         themeColors = ThemeColorsSetting.current
         sharesAnonymousUsageAnalytics = UsageAnalyticsReporter.isEnabled
