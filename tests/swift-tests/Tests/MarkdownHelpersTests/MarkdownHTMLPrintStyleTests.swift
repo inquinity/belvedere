@@ -55,6 +55,13 @@ final class MarkdownHTMLPrintStyleTests: XCTestCase {
         let block = try printBlock()
         XCTAssertTrue(block.contains(".md-code-copy"))
         XCTAssertTrue(block.contains("display: none !important"))
+        // A printed page cannot be clicked, so an offer to load something is
+        // noise on paper — and a PDF carrying "Load" next to an image that is
+        // not there reads as a broken export.
+        XCTAssertTrue(block.contains(".mdp-deferred-load"),
+                      "the deferred-image Load button must not print")
+        XCTAssertTrue(block.contains(".mdp-deferred-banner"),
+                      "the \"N images blocked / Load all\" banner must not print")
     }
 
     /// Media queries add no specificity, so the print body size only wins by

@@ -252,6 +252,142 @@ final class DeferredImageRenderingTests: XCTestCase {
                       """)
     }
 
+    /// Loads the **whole page** and lets it start itself, rather than driving
+    /// `MdPreview.update`.
+    ///
+    /// This is the path that opening a document takes, and it is the one that
+    /// shipped broken: `start()` was never hooked, so the feature did nothing
+    /// in the app while every update-driven test passed. Every other test here
+    /// calls `update` directly and would have stayed green.
+    @MainActor
+    func testInitialPageRenderDefersOnItsOwn() async throws {
+        let base = MarkdownAssetResolution.baseHref(
+            forFolder: URL(fileURLWithPath: "/docs/notes", isDirectory: true)
+        )
+        let pageHTML = MarkdownHTML.render(
+            markdown: """
+            # Doc
+
+            ![inside](images/missing.png)
+
+            ![outside](../elsewhere/logo.png)
+            """,
+            assetBaseHref: base,
+            vendorLoading: .inline
+        ).html
+
+        // MarkdownHTML reads vendor bundles from Bundle.main, which in an SPM
+        // test has none — so the page's `sanitize()` would fail closed and
+        // render nothing, and this test would pass vacuously against an empty
+        // article. Supply DOMPurify from the repo instead.
+        let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
+        let page = pageHTML.replacingOccurrences(
+            of: "<head>", with: "<head><script>\(purify)</script>", options: [], range: pageHTML.range(of: "<head>")
+        )
+
+        let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 900, height: 600))
+        // A host bridge, so grants are on offer — this is the app-window shape.
+        let config = WKUserScript(
+            source: """
+            window.webkit = { messageHandlers: { mdPreviewHost: { postMessage(m) {
+                (window.__posted = window.__posted || []).push(m);
+            } } } };
+            """,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        webView.configuration.userContentController.addUserScript(config)
+        webView.loadHTMLString(page, baseURL: nil)
+        while webView.isLoading { try await Task.sleep(for: .milliseconds(10)) }
+
+        let found = try await waitForPlaceholders(webView, atLeast: 2)
+        XCTAssertGreaterThanOrEqual(
+            found, 2,
+            """
+            The initial render did not defer. Nothing here called \
+            MdPreview.update — this is the path that opening a document takes, \
+            and the one that shipped doing nothing at all.
+            """
+        )
+    }
+
+    /// The document-level offer. It exists because a reader thinks in
+    /// documents rather than folders, so it must count what it can actually
+    /// act on — not remote references, which have no remedy.
+    @MainActor
+    func testLoadAllOffersAndRequestsOnlyTheLoadableOnes() async throws {
+        let webView = try await harness()
+        try await update("""
+        # Doc
+
+        ![a](../elsewhere/one.png)
+
+        ![b](../elsewhere/two.png)
+
+        ![c](https://example.invalid/pixel.png)
+        """, in: webView)
+        _ = try await waitForPlaceholders(webView, atLeast: 3)
+
+        let before = try await webView.evaluateJavaScript("""
+        (() => {
+          const b = document.querySelector('.mdp-deferred-banner');
+          return JSON.stringify({ shown: !!b, text: b ? b.textContent : '' });
+        })()
+        """) as? String ?? "{}"
+        XCTAssertTrue(before.contains("\"shown\":true"), "two loadable images should raise the banner \(before)")
+        XCTAssertTrue(before.contains("2 images blocked"),
+                      "the count must exclude the remote one, which has no remedy \(before)")
+
+        _ = try await webView.evaluateJavaScript(
+            "document.querySelector('.mdp-deferred-banner button').click(); true"
+        )
+        let posted = try await webView.evaluateJavaScript("""
+        JSON.stringify((window.__posted || [])
+          .filter((m) => m.kind === 'loadDeferredAsset')
+          .map((m) => m.src))
+        """) as? String ?? "[]"
+        XCTAssertTrue(posted.contains("one.png") && posted.contains("two.png"),
+                      "Load all must request every loadable image \(posted)")
+        XCTAssertFalse(posted.contains("example.invalid"),
+                       """
+                       Load all requested a remote image. Fetching one would \
+                       disclose the reader to the document's author, which is \
+                       what the CSP prevents. \(posted)
+                       """)
+    }
+
+    /// Grants are per document, per session. A reader who loaded something
+    /// once has not consented to it loading forever, and F4 deliberately
+    /// remembers nothing — durable grants are F3.
+    @MainActor
+    func testGrantsDoNotPersistIntoAFreshRender() async throws {
+        let webView = try await harness()
+        try await update(doc, in: webView)
+        _ = try await waitForPlaceholders(webView)
+        _ = try await webView.evaluateJavaScript("""
+        document.querySelector('[data-mdp-deferred]:not([data-mdp-remote]) .mdp-deferred-load').click(); true
+        """)
+        let token = try await webView.evaluateJavaScript("""
+        (window.__posted || []).filter((m) => m.kind === 'loadDeferredAsset').pop().token
+        """) as? String ?? ""
+        _ = try await webView.evaluateJavaScript(
+            "window.MdPreview.resolveDeferredAsset('\(token)', 'data:image/png;base64,iVBORw0KGgo=', null); true"
+        )
+
+        // Reopening the document is a fresh page, not a fresh update.
+        let reopened = try await harness()
+        try await update(doc, in: reopened)
+        let again = try await waitForPlaceholders(reopened)
+        XCTAssertGreaterThan(
+            again, 0,
+            """
+            A previously granted image loaded on its own in a new page. The \
+            grant must not outlive the document — that is what makes it a \
+            per-asset decision rather than a standing permission.
+            """
+        )
+    }
+
     /// Quick Look registers no `mdPreviewHost` handler, so nothing can answer
     /// a request. Offering Load there produced a button that spun on
     /// "Loading…" forever — and it appeared on *every* failed image, because

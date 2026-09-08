@@ -37,14 +37,21 @@ inlines images as `data:`/`cid:`.
 
 ## Outside this folder, and really there — Load succeeds
 
-> **EXPECT:** `logo.png` with a **Load** button. Click it and the image
-> appears in place of the placeholder.
-> **FAIL IF:** the button reports a failure. This file exists and is a real
-> PNG; containment refused it only because it sits outside the document's
-> folder, which is precisely the case Load exists to resolve.
-> **FAIL IF:** the image renders without a click. Out-of-folder assets must
-> not load on their own — that is the containment boundary doing its job, and
-> a document should not be able to read across it just by naming a path.
+> **In the app window — EXPECT:** `logo.png` with a **Load** button. Click it
+> and the image appears in place of the placeholder.
+> **In Quick Look — EXPECT:** `logo.png — outside this folder — Quick Look
+> cannot load it`, and **no button**. Quick Look offers no grants at all, so
+> there is nothing to click; the same file loads in the app window.
+>
+> **FAIL IF:** the app window's button reports a failure. This file exists and
+> is a real PNG; containment refused it only because it sits outside the
+> document's folder, which is precisely the case Load exists to resolve.
+> **FAIL IF:** the image renders without a click, on either surface.
+> Out-of-folder assets must not load on their own — that is the containment
+> boundary doing its job, and a document should not be able to read across it
+> just by naming a path.
+> **FAIL IF:** Quick Look shows a Load button. It has no host to answer one,
+> so it could only spin forever.
 >
 > This is the shared-image layout that motivated the whole design: a
 > `shared-images/` folder one level up, referenced from several documents.
@@ -52,6 +59,15 @@ inlines images as `data:`/`cid:`.
 > grant is trusted folders (F3).
 
 ![shared logo](../shared-images/logo.png)
+
+## Long name, outside this folder — the label must wrap
+
+> **EXPECT:** the whole message, wrapped onto as many lines as it needs.
+> **FAIL IF:** it ends in an ellipsis. These labels are explanations, and the
+> clause that gets cut is the one that explains why — an elided
+> `… Quick Look cannot loa…` tells the reader nothing.
+
+![long name](../shared-images/a-deliberately-long-shared-image-filename.png)
 
 ## Missing file, inside this folder
 
@@ -66,10 +82,13 @@ inlines images as `data:`/`cid:`.
 
 ## Missing file, outside this folder
 
-> **EXPECT:** `missing-outside.png` with a **Load** button. Click it and the
-> label becomes `file missing`.
-> **FAIL IF:** no button appears. Containment refused this one, so the reader
-> is owed the choice — that is the difference from the case above.
+> **In the app window — EXPECT:** `missing-outside.png` with a **Load**
+> button. Click it and the label becomes `file missing`.
+> **In Quick Look — EXPECT:** `outside this folder — Quick Look cannot load
+> it`, and no button.
+> **FAIL IF:** the app window shows no button. Containment refused this one,
+> so the reader is owed the choice — that is the difference from the case
+> above.
 >
 > The two cases look similar and are not: one was *blocked*, the other merely
 > *broke*. Only the blocked one has a remedy.
