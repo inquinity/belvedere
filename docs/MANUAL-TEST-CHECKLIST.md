@@ -22,7 +22,7 @@ unannotated so it merges cleanly.
 
 ```bash
 ./scripts/build.sh
-SOURCE_APP=build/MDView.app ./scripts/install.sh   # required for Quick Look to register
+SOURCE_APP=build/Belvedere.app ./scripts/install.sh   # required for Quick Look to register
 qlmanage -r && qlmanage -r cache
 ```
 
@@ -100,8 +100,8 @@ Check each sample in the surface it matters for:
 For a `--release` build, verify the artifact rather than trusting the log:
 
 ```bash
-xcrun stapler validate "dist/MDView <version>.dmg"
-spctl -a -vvv -t open --context context:primary-signature "dist/MDView <version>.dmg"
+xcrun stapler validate "dist/Belvedere <version>.dmg"
+spctl -a -vvv -t open --context context:primary-signature "dist/Belvedere <version>.dmg"
 ```
 
 Both must pass. Then **check it on a second Mac** — one that has never run this

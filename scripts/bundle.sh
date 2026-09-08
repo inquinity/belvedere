@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Zip a locally built MDView.app for sneaker-net distribution.
+# Zip a locally built Belvedere.app for sneaker-net distribution.
 #
 # Uses ditto rather than zip: zip can drop extended attributes and mangle the
 # code signature's resource fork data, which ditto preserves.
@@ -20,20 +20,20 @@ print_colored() {
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
-APP_NAME="MDView"
+APP_NAME="Belvedere"
 SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build/$APP_NAME.app}"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/dist}"
 
 usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: bundle.sh [options]${COLOR_RESET}"
     printf '\n'
-    printf '%s\n' 'Zip a locally built MDView.app for sneaker-net distribution.'
+    printf '%s\n' 'Zip a locally built Belvedere.app for sneaker-net distribution.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Options:${COLOR_RESET}"
     printf '%s\n' '  -h, --help    Show this help text.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
-    printf '%s\n' '  SOURCE_APP    The built .app to bundle. Default: ./build/MDView.app'
+    printf '%s\n' '  SOURCE_APP    The built .app to bundle. Default: ./build/Belvedere.app'
     printf '%s\n' '  OUTPUT_DIR    Where the .zip lands. Default: ./dist'
 }
 

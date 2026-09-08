@@ -3,7 +3,7 @@
 The two selected icon families are generated from deterministic AppKit paths:
 
 - `rendered-fold/` is the public `markdown-preview` artwork (concept 1).
-- `mdview/` is the private MDView artwork (concept 2 / Split Signal) and is the
+- `mdview/` is the private Belvedere artwork (concept 2 / Split Signal) and is the
   design wired into `md-preview/AppIcon.icon`.
 
 Each directory contains:

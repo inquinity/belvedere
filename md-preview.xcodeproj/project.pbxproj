@@ -522,8 +522,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.markdown-preview.dev";
-				PRODUCT_NAME = "MDView (Dev)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.belvedere.dev";
+				PRODUCT_NAME = "Belvedere (Dev)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -560,8 +560,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.markdown-preview";
-				PRODUCT_NAME = "MDView";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.belvedere";
+				PRODUCT_NAME = "Belvedere";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -592,7 +592,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.markdown-preview.dev.quick-look";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.belvedere.dev.quick-look";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -623,7 +623,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.markdown-preview.quick-look";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.altmansoftwaredesign.belvedere.quick-look";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

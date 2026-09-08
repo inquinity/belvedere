@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build MDView locally for development and testing.
+# Build Belvedere locally for development and testing.
 #
 # Lighter-weight than scripts/build-release.sh: no archive step -- compiles
 # with signing disabled, then signs it ourselves -- with the Developer ID
@@ -33,7 +33,7 @@ OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build}"
 DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
 
 SCHEME="md-preview"
-APP_NAME="MDView"
+APP_NAME="Belvedere"
 APPEX_NAME="quick-look"
 APP_ENTITLEMENTS="$PROJECT_ROOT/md-preview/md-preview.entitlements"
 APPEX_ENTITLEMENTS="$PROJECT_ROOT/quick-look/quick-look.entitlements"
@@ -48,7 +48,7 @@ work_dir=""
 usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: build.sh [options]${COLOR_RESET}"
     printf '\n'
-    printf '%s\n' 'Build MDView locally from Version.xcconfig.'
+    printf '%s\n' 'Build Belvedere locally from Version.xcconfig.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Options:${COLOR_RESET}"
     printf '%s\n' '  -h, --help              Show this help text.'
