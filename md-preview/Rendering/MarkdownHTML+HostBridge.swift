@@ -205,7 +205,12 @@ nonisolated extension MarkdownHTML {
         }
 
         function makeDeferredPlaceholder(img) {
-            const src = img.getAttribute('src') || '';
+            // `img.src` is resolved against the page's <base href>; the raw
+            // attribute is whatever the document wrote, which is usually
+            // relative. The host needs the resolved one — it cannot act on
+            // `../outside.png` — while the label reads better from the raw.
+            const src = img.src || img.getAttribute('src') || '';
+            const raw = img.getAttribute('src') || src;
             const remote = /^https?:/i.test(src);
             const token = 'd' + (++deferredSeq);
             const box = document.createElement('span');
@@ -217,8 +222,8 @@ nonisolated extension MarkdownHTML {
             label.className = 'mdp-deferred-label';
             label.textContent = remote
                 ? 'Remote image blocked — ' + deferredLabel(src)
-                : deferredLabel(src);
-            label.title = src;
+                : deferredLabel(raw);
+            label.title = raw;
             box.appendChild(label);
 
             // No Load button for remote content. Fetching it would send the
@@ -317,7 +322,7 @@ nonisolated extension MarkdownHTML {
         function deferBlockedImages(root = document) {
             root.querySelectorAll('img:not([data-mdp-deferred-seen])').forEach((img) => {
                 img.setAttribute('data-mdp-deferred-seen', '1');
-                const src = img.getAttribute('src') || '';
+                const src = img.src || img.getAttribute('src') || '';
                 if (!src || src.startsWith('data:')) return;
                 const fail = () => {
                     if (img.isConnected) makeDeferredPlaceholder(img);

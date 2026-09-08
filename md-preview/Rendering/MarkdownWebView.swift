@@ -559,19 +559,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
         guard let url = URL(string: src) else { return resolve(nil, "unavailable") }
 
-        let path: String
-        if url.scheme == MarkdownAssetScheme.scheme {
-            // The page resolved this against its base href already, so the
-            // path is absolute. Containment refused it; the click is the
-            // grant, so resolve it without the boundary this time.
-            guard url.host?.isEmpty ?? true, url.path.count > 1 else {
-                return resolve(nil, "unavailable")
-            }
-            path = url.path
-        } else if url.isFileURL {
-            path = url.path
-        } else {
-            // http/https and anything else: not served, see the note above.
+        // The page sends the URL resolved against its base href; containment
+        // refused it, and the click is the grant, so it is resolved here
+        // without the boundary.
+        guard let path = DeferredAssetLoader.localPath(
+            for: url, scheme: MarkdownAssetScheme.scheme
+        ) else {
             return resolve(nil, "unavailable")
         }
 

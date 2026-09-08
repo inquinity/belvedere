@@ -131,8 +131,19 @@ final class DeferredImageRenderingTests: XCTestCase {
         let messages = try JSONSerialization.jsonObject(with: Data(posted.utf8)) as? [[String: Any]] ?? []
         XCTAssertEqual(messages.count, 1, "clicking Load must ask the host exactly once \(posted)")
         let token = try XCTUnwrap(messages.first?["token"] as? String)
-        XCTAssertTrue((messages.first?["src"] as? String ?? "").contains("missing-on-purpose.png"),
+        // Must be the resolved URL, not the raw attribute. Shipping
+        // getAttribute('src') sent the host "images/missing-on-purpose.png",
+        // which it cannot act on, so every Load answered "unavailable".
+        let requested = messages.first?["src"] as? String ?? ""
+        XCTAssertTrue(requested.contains("missing-on-purpose.png"),
                       "the request must name the blocked asset \(posted)")
+        XCTAssertFalse(
+            requested.hasPrefix("images/") || requested.hasPrefix("../"),
+            """
+            The host was sent a relative path. It resolves nothing, so the \
+            click can only ever come back unavailable. Send img.src. \(posted)
+            """
+        )
 
         // The host answers with a data: URL, as DeferredAssetLoader would.
         let pixel = "data:image/png;base64,iVBORw0KGgo="

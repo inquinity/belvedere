@@ -29,6 +29,29 @@ enum DeferredAssetLoader {
 
     static let defaultMaxBytes = 16 * 1024 * 1024
 
+    /// The filesystem path a granted asset refers to, or nil when the request
+    /// is not one this loader will serve.
+    ///
+    /// The page must send the URL **resolved** against its `<base href>`. An
+    /// early version sent `img.getAttribute('src')`, which is whatever the
+    /// document wrote — usually something like `../images/logo.png` — and a
+    /// relative reference means nothing on this side, so every click came back
+    /// unavailable. Refusing them here rather than guessing keeps that failure
+    /// loud instead of turning it into a path relative to whatever the process
+    /// working directory happens to be.
+    static func localPath(for url: URL, scheme: String) -> String? {
+        if url.scheme == scheme {
+            // A host would make it someone else's file, not ours.
+            guard url.host?.isEmpty ?? true else { return nil }
+            guard url.path.count > 1 else { return nil }
+            return url.path
+        }
+        if url.isFileURL { return url.path }
+        // http/https are not fetched: doing so would send the reader's IP to
+        // whoever authored the document, which is what the CSP prevents.
+        return nil
+    }
+
     enum Refusal: String, Equatable {
         case notAnImage
         case tooLarge

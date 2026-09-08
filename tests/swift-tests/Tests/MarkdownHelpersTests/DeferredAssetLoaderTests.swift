@@ -94,3 +94,54 @@ final class DeferredAssetLoaderTests: XCTestCase {
         XCTAssertNil(DeferredAssetLoader.imageMIMEType(of: Data([0x52, 0x49, 0x46, 0x46])))
     }
 }
+
+/// The URL a granted click resolves to. This is where F4's worst bug lived:
+/// the page sent the raw `src` attribute, so the host received a relative path
+/// and answered "unavailable" for every image the reader asked for.
+final class DeferredAssetPathTests: XCTestCase {
+
+    private let scheme = "md-asset"
+
+    func testResolvedSchemeURLYieldsItsPath() {
+        let url = URL(string: "md-asset:///Users/me/notes/images/logo.png")!
+        XCTAssertEqual(DeferredAssetLoader.localPath(for: url, scheme: scheme),
+                       "/Users/me/notes/images/logo.png")
+    }
+
+    func testFileURLYieldsItsPath() {
+        let url = URL(fileURLWithPath: "/Users/me/notes/logo.png")
+        XCTAssertEqual(DeferredAssetLoader.localPath(for: url, scheme: scheme),
+                       "/Users/me/notes/logo.png")
+    }
+
+    func testRelativeReferenceIsRefusedRatherThanGuessedAt() {
+        let url = URL(string: "../images/logo.png")!
+        XCTAssertNil(
+            DeferredAssetLoader.localPath(for: url, scheme: scheme),
+            """
+            A relative reference was accepted. It means nothing on this side, \
+            so resolving it would produce a path relative to the process \
+            working directory — a file the document never named.
+            """
+        )
+    }
+
+    func testRemoteURLsAreNotServed() {
+        for s in ["https://example.com/pixel.png", "http://example.com/pixel.png"] {
+            XCTAssertNil(
+                DeferredAssetLoader.localPath(for: URL(string: s)!, scheme: scheme),
+                "fetching remote content would disclose the reader to the document's author"
+            )
+        }
+    }
+
+    func testSchemeURLCarryingAHostIsRefused() {
+        let url = URL(string: "md-asset://evil.example/etc/passwd")!
+        XCTAssertNil(DeferredAssetLoader.localPath(for: url, scheme: scheme),
+                     "a host makes it someone else's file, not one on this disk")
+    }
+
+    func testBareRootIsRefused() {
+        XCTAssertNil(DeferredAssetLoader.localPath(for: URL(string: "md-asset:///")!, scheme: scheme))
+    }
+}
