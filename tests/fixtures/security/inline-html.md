@@ -26,10 +26,20 @@ Two things to know before reading, or you will misjudge a pass:
 
 ## Script execution
 
-> **EXPECT:** nothing at all between this note and the next heading.
-> **FAIL IF:** you see any text, box or broken-image placeholder here.
-> Scripts cannot show themselves, so absence is the only visible evidence —
-> `SanitizerNegativeTests` is what proves they did not *run*.
+> **EXPECT:** one placeholder reading `x — file missing`, and nothing else.
+> **FAIL IF:** anything appears that you can click or type into.
+> **FAIL IF:** that placeholder offers a **Load** button. `x` is a reference
+> inside this document's own folder, so nothing blocked it — it simply is not
+> there, and a button would offer to retry what already failed.
+>
+> The placeholder is expected and is *not* a sanitiser failure. It comes from
+> `<img src="x" onerror="…">`, the probe below: DOMPurify strips the **handler**
+> and keeps the element, which is the correct outcome — the attack is the
+> handler, not the image. F4 then labels a reference that cannot load instead
+> of leaving a bare broken-image icon.
+>
+> Scripts cannot show themselves, so absence is the only visible evidence here
+> — `SanitizerNegativeTests` is what proves they did not *run*.
 
 <script>window.__pwned = true;</script>
 
@@ -54,10 +64,16 @@ Two things to know before reading, or you will misjudge a pass:
 
 > **This is a positive control: you SHOULD see checkboxes.**
 >
-> **EXPECT:** two checkboxes below, one ticked, both greyed out and unclickable.
+> **EXPECT:** two checkboxes below, one ticked, and **both clickable**.
 > **FAIL IF:** they are missing. Form controls are stripped so a document
-> cannot draw a credential prompt, and the rule that allows this one shape —
-> a disabled checkbox — is narrow enough to get wrong in the strict direction.
+> cannot draw a credential prompt, and the rule that admits this one shape —
+> a checkbox — is narrow enough to get wrong in the strict direction.
+> **FAIL IF:** they are greyed out. The renderer emits `disabled`, DOMPurify
+> strips it, and that removal is load-bearing: clicking a task checkbox is a
+> real feature that writes the change back to the file.
+>
+> **Clicking one edits this fixture.** That is the feature working, not a
+> fault — undo it with `git checkout tests/fixtures/security/inline-html.md`.
 
 - [ ] unchecked task
 - [x] checked task
