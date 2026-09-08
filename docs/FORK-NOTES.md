@@ -182,6 +182,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | Icon selected: Split Signal (concept 2), now generated reproducibly and wired into `AppIcon.icon`. `MDView` remains the current private-variant name; any future rename still needs to land in `Localizable.strings` and `MainMenu.strings` (see F7). |
+| **F9** | Trusted folders, and a pane to manage them | Proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337) as the middle of three access layers. Blocked on their answer — see below. |
 
 ### What is fork-only, and what is not
 
@@ -516,6 +517,48 @@ theirs is the one that ships here now.
 This is the first time the fork has taken a behaviour change back from upstream rather than
 sending one, and it is the cheap outcome the contribution track exists to produce: the
 Mermaid fix is no longer a diff this fork carries.
+
+**F9 — trusted folders, and somewhere to manage them.** Proposed to upstream on #337 as
+the second of three layers: click-to-load always available, trusted folders for a durable
+opt-out of friction, and an explicitly opened folder as a session-scoped root. Trust is the
+part that needs storage and UI, and it is the part with a management story.
+
+The concept answers something the app currently lacks. The maintainer's review asked to use
+an "authorized folder" as the containment boundary, but there is no authorization anywhere
+in the tree — no `startAccessingSecurityScopedResource`, no `bookmarkData` — so the
+navigator root is a UI value, not a capability. Trust supplies the missing deliberate act,
+and it tracks provenance rather than directory distance, which is the distinction that
+actually matters: `~/dev/projects` is content the user wrote, `~/Downloads` is where a file
+someone sent them lands.
+
+**Guards, because tree trust is coarse by design.** Refuse `~`, `/`, `/Users` and volume
+roots outright rather than warning. Resolve symlinks when recording and when checking, and
+store the resolved path, so a trusted folder cannot become a redirect. Warn when a
+candidate covers an unusually large tree. Never auto-trust and never offer "trust the
+parent". Prompt lazily — when a document actually reaches outside its folder, not when a
+folder is opened — because a prompt on open becomes a toll gate people dismiss without
+reading. **Quick Look does not honour trust at all:** it is the drive-by surface, with no
+window to show scope in and nowhere sane to prompt, so it stays document-folder-only.
+
+**The management pane is the part this entry is really about.** Claude Code stores exactly
+this shape in `~/.claude.json` — a map keyed by absolute path, one boolean per entry
+(`hasTrustDialogAccepted`), plain text and inspectable. Worth copying. What is not worth
+copying is its management story: the only control is `claude project purge`, which revokes
+trust by also deleting transcripts, tasks and file history. There is no proportionate way
+to withdraw trust from one folder.
+
+An app with a Settings window can do better cheaply. Settings → Security, one list showing
+**resolved paths** rather than nicknames (the path is the boundary, so the path is what you
+show), the date each was added, per-row Remove and a Remove All behind a confirmation.
+Trust nothing by default. Flag entries whose folder no longer exists rather than letting
+them silently match nothing. Storage as readable JSON in the app container, not an opaque
+blob. Revocation can take effect on the next render; it does not need to be live.
+
+**Not started, and deliberately so.** If upstream takes the proposal, this arrives through
+them and the fork carries nothing. If they decline, it becomes a fork feature and the entry
+stands on its own. Either way the interesting long-term pairing is with F3: the moment a
+user trusts a folder is exactly when a security-scoped bookmark should be taken, which is
+the route to eventually dropping the blanket `/` read-only exception.
 
 **F3 — the `/` read-only entitlement.** Both targets carry
 `com.apple.security.temporary-exception.files.absolute-path.read-only` = `/`. There is no
