@@ -994,17 +994,27 @@ nonisolated extension MarkdownHTML {
             // the form and kept a text field and a submit button, and a
             // document could draw a credential prompt. Counting <form> made
             // that look sanitized; the controls are what the reader sees.
+            // `button` is deliberately NOT forbidden. MarkdownHTML+Mermaid
+            // emits the five HUD controls (zoom out, reset, zoom in, fill
+            // width, open in window) as part of the article HTML, so they pass
+            // through this sanitiser like any other markup. Forbidding the tag
+            // removed all five, which shipped in 1.0.4 and 1.0.5 before it was
+            // caught. Distinguishing app buttons from document ones by class
+            // would not do either: the class is author-supplied, so it cannot
+            // be a security exception. The tags below are the ones the
+            // renderer never emits -- verified, not assumed.
             FORBID_TAGS: ['style', 'form', 'iframe', 'object',
                           'embed', 'meta', 'link', 'base',
-                          'button', 'select', 'textarea', 'option', 'optgroup',
+                          'select', 'textarea', 'option', 'optgroup',
                           'fieldset', 'legend', 'label', 'datalist', 'output'],
             FORBID_ATTR: ['style'],
             ADD_ATTR: ['target'],
             ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|md-asset):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))/i
         };
         // <input> cannot simply be forbidden: EscapingHTMLFormatter emits one
-        // per task-list item, as a checkbox. Allow exactly that shape, drop
-        // every other input, and force the checkbox inert.
+        // per task-list item. Allow exactly that shape and drop every other
+        // input: a text or password field is what invites typing, and a bare
+        // button without one is not worth breaking the Mermaid HUD for.
         //
         // Two traps here, both hit while writing this:
         //
@@ -1015,14 +1025,15 @@ nonisolated extension MarkdownHTML {
         //    the hot path -- every file change and editor exit -- unhardened.
         //    DOMPurify hooks are global, so installing once covers both.
         //
-        // 2. The rule cannot require `disabled`, and `disabled` must not be
-        //    restored. The renderer emits `disabled=""` on task checkboxes,
-        //    matching GitHub's static output, and DOMPurify strips it because
-        //    it is not in the default attribute allowlist. That removal is
-        //    load-bearing: clicking a checkbox writes the change back to the
-        //    file (DocumentWindowController+EditSession) and the stylesheet
-        //    styles `:not(:disabled)` as a pointer. Adding `disabled` to
-        //    ADD_ATTR makes every task list inert -- tried, and it does.
+        // 2. The rule must not require `disabled`. The renderer emits
+        //    `disabled=""` on task checkboxes and DOMPurify *preserves* it.
+        //    An earlier version of this comment said DOMPurify strips the
+        //    attribute; that was wrong, and the error came from reading the
+        //    final DOM without asking what else had touched it. It is
+        //    `enableTaskCheckboxes()`, called from MdPreview.update, that sets
+        //    `.disabled = false` afterwards -- and only when a host bridge
+        //    exists, which is why the checkboxes stay inert in Quick Look,
+        //    where there is nothing to write a change back to.
         let sanitizerHooked = false;
         function configureSanitizer() {
             if (sanitizerHooked || typeof DOMPurify === 'undefined' || !DOMPurify.addHook) return;
