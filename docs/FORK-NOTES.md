@@ -404,12 +404,20 @@ the disclosure the CSP exists to prevent. Offering a button that always fails wo
 worse than offering none. Remote click-to-load needs its own decision about what a fetch
 may carry, and has not been made.
 
-**Three bugs shipped past a green test suite before this worked**, all of the same kind:
-every test asserted that dangerous things were *absent*, so zero placeholders satisfied all
-of them. `start()` was never hooked, so the feature did nothing on the path that opens a
-document; the morph path ran on morphdom's detached tree, where images never load and no
-error fires; and the page sent `img.getAttribute('src')`, a relative reference the host
-cannot resolve, so every click answered "unavailable". `DeferredImageRenderingTests` now
+**Bugs shipped past a green test suite before this worked**, all of the same kind: every
+test asserted that dangerous things were *absent*, so zero placeholders satisfied all of
+them. The morph path ran on morphdom's detached tree, where images never load and no error
+fires; and the page sent `img.getAttribute('src')`, a relative reference the host cannot
+resolve, so every click answered "unavailable".
+
+**One reported cause was wrong, and is worth correcting rather than leaving in the
+history.** The claim that `start()` was never hooked, so the feature did nothing on the
+path that opens a document, does not survive checking: `populateFromTemplate` routes
+through `MdPreview.update`, which defers, so the initial render was always covered. A hook
+added there was redundant, and a later mutation test proved it — removing it changed
+nothing. Two of the reports of "still broken" during that work were caused by a stale
+binary being installed from a second DerivedData directory left behind by the folder
+rename, not by the code. `DeferredImageRenderingTests` now
 asserts the feature is *present* — placeholders appear, only local ones offer Load, they
 survive a morph update, a click asks the host exactly once with a non-relative URL, and a
 refusal is shown in place.

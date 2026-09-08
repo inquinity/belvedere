@@ -1278,7 +1278,11 @@ nonisolated extension MarkdownHTML {
             perfLog('start (DOM ready)');
             populateFromTemplate();
             decorateCodeBlocks();
-            deferBlockedImages();
+            // No deferBlockedImages() here: populateFromTemplate routes through
+            // MdPreview.update, which defers. A second call would be dead code
+            // whose rationale reads as a real requirement.
+            // testInitialPageRenderDefersOnItsOwn guards the outcome rather
+            // than this arrangement, so rerouting populate is free to change it.
             pushHeight();
             try {
                 const ro = new ResizeObserver(pushHeight);
