@@ -146,7 +146,7 @@ merged it stops being our diff to carry:
 | `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) open, awaiting review |
 | Preview document has no Content-Security-Policy | Issue → PR | **filed** — [#339](https://github.com/pluk-inc/markdown-preview/issues/339), with both working policies and an offer to PR |
 | `ALLOWED_URI_REGEXP` permits `http`/`https` | Issue → PR, after the CSP lands | pending |
-| DOMPurify's KEEP_CONTENT lets form controls survive a forbidden `<form>` | PR | **submitted** — [PR #369](https://github.com/pluk-inc/markdown-preview/pull/369), open. Reported publicly rather than by advisory: no exfiltration path, patch attached, and the analysis was already public in this fork's history |
+| DOMPurify's KEEP_CONTENT lets form controls survive a forbidden `<form>` | PR | **changes requested** — [PR #369](https://github.com/pluk-inc/markdown-preview/pull/369). Reported publicly rather than by advisory: no exfiltration path, patch attached, and the analysis was already public in this fork's history. Both review findings were correct; see *The Mermaid HUD regression* below |
 | Documentation that describes behaviour goes stale silently | Practice → PR | **submitted** — [PR #368](https://github.com/pluk-inc/markdown-preview/pull/368), open. Their own `README.md` Mermaid claim is the motivating example: it concealed #338 for several releases |
 | App icon too similar to macOS Preview (upstream's own issue) | Artwork offer | **posted** — concept board added to [#276](https://github.com/pluk-inc/markdown-preview/issues/276) on 2026-09-04. Their issue, opened by a user and endorsed by the maintainer, who said he is considering a rename and a distinct identity. Awaiting a pick |
 | Mermaid diagrams do not render in Quick Look, though `README.md` says they do | Issue → PR | ✅ **merged** — [PR #343](https://github.com/pluk-inc/markdown-preview/pull/343) landed as `eddc0d0` and shipped in upstream 0.0.53; [#338](https://github.com/pluk-inc/markdown-preview/issues/338) closed. Their version replaced ours on the next sync |
@@ -759,6 +759,36 @@ a per-host decision, which is a different axis and not part of either item.
 **Sequencing.** F4 first, since it stands alone and needs no policy. Then this. Trust is
 proposed upstream as the middle of three layers on #337; if they take it, it arrives
 through them, and if they decline it becomes a fork feature.
+
+## The Mermaid HUD regression (shipped in 1.0.4 and 1.0.5)
+
+The sanitizer hardening added `button` to `FORBID_TAGS`. `MarkdownHTML+Mermaid`
+emits the five HUD controls — zoom out, reset, zoom in, fill width, open in
+window — as **article HTML**, so they go through `sanitize()` like any document
+content. Forbidding the tag deleted all five. It shipped in two releases and was
+caught by the upstream maintainer reviewing #369, not by us.
+
+Three things let it through, and each has a fix in place:
+
+1. **Every sanitizer test asserted what must be *absent*.** Nothing asserted the
+   app's own UI must remain, so deleting that UI could not fail a test.
+   `SanitizerKeepsAppControlsTests` now asserts the five buttons survive, and
+   re-forbidding `button` fails it.
+2. **The manual checklist exercised Mermaid for *rendering*, not for controls.**
+   A diagram that draws correctly with no HUD reads as a pass at a glance.
+3. **The threat model was wrong about the payoff.** A `<button>` with no `<form>`
+   behind it and no script that can run is inert — clicking does nothing. It was
+   never worth the app's own controls. `input` is the tag that matters, because a
+   text or password field is what invites typing; that restriction stays, narrowed
+   to allow only the task-list checkbox shape.
+
+The second finding on #369 was that our explanation of `disabled` was wrong.
+DOMPurify *preserves* the attribute; `enableTaskCheckboxes()` sets
+`.disabled = false` afterwards, gated on `hasHostBridge` — which is why task
+checkboxes stay inert in Quick Look. The claim came from reading the final DOM
+without asking what else had touched it between sanitising and looking. That is
+the same failure shape as the stale fixture expectations: trusting an
+observation without establishing what produced it.
 
 ## Quick Look is a different surface
 

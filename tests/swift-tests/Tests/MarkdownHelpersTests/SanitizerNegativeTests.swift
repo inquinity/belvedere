@@ -228,9 +228,13 @@ final class SanitizerNegativeTests: XCTestCase {
                 // cannot produce one at all, and any button present is markup
                 // this app injected after sanitising (F4's deferred-image
                 // placeholder).
-                formControls: [...a.querySelectorAll(
-                    'button, select, textarea, label, fieldset, legend, output, datalist, option'
-                )].filter((el) => !el.closest('.mdp-deferred, .mdp-deferred-banner')).length
+                // `button` is not counted: the app emits its own (the Mermaid
+                // HUD, the code-copy control), so a surviving button is not
+                // evidence of anything. What matters is whether a document can
+                // put something on the page that invites typing.
+                formControls: a.querySelectorAll(
+                    'select, textarea, label, fieldset, legend, output, datalist, option'
+                ).length
                 + [...a.querySelectorAll('input')].filter(
                     (el) => (el.getAttribute('type') || '').toLowerCase() !== 'checkbox'
                 ).length,
@@ -283,5 +287,52 @@ final class SanitizerNegativeTests: XCTestCase {
             case styleTags, styleAttributes, eventHandlerAttributes, scriptedHrefs
             case remoteImages, scriptExecuted, deferredRemote, deferredLoadButtons
         }
+    }
+}
+
+/// The app's own Mermaid controls must survive sanitisation.
+///
+/// `MarkdownHTML+Mermaid` emits the five HUD buttons as part of the article
+/// HTML, so they pass through DOMPurify like any other markup. Adding `button`
+/// to `FORBID_TAGS` removed all five, and that shipped in 1.0.4 and 1.0.5
+/// because every sanitiser test asserted what must be *absent* and none
+/// asserted what must remain.
+final class SanitizerKeepsAppControlsTests: XCTestCase {
+
+    @MainActor
+    func testMermaidHUDButtonsSurviveSanitisation() async throws {
+        let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
+        let morphdom = try TestVendor.script("md-preview/Vendor/Morphdom/morphdom.min.js")
+        let page = """
+        <!DOCTYPE html><html><head>
+        <script>\(purify)</script><script>\(morphdom)</script>
+        <script>window.webkit={messageHandlers:{mdPreviewHost:{postMessage(){}}}};</script>
+        \(MarkdownHTML.hostBridgeScript)
+        </head><body><article class="markdown-body"></article></body></html>
+        """
+        let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 900, height: 600))
+        webView.loadHTMLString(page, baseURL: TestVendor.repositoryRoot)
+        while webView.isLoading { try await Task.sleep(for: .milliseconds(10)) }
+
+        let article = MarkdownHTML.render(
+            markdown: "```mermaid\ngraph TD; A-->B\n```\n", vendorLoading: .lazy
+        ).articleHTML
+        _ = try await webView.evaluateJavaScript(
+            "window.MdPreview.update(\(MarkdownHTML.javaScriptStringLiteral(article))); true"
+        )
+        try await Task.sleep(for: .milliseconds(120))
+
+        let count = try await webView.evaluateJavaScript(
+            "document.querySelectorAll('.mermaid-hud button').length"
+        ) as? Int ?? 0
+        XCTAssertEqual(
+            count, 5,
+            """
+            The Mermaid HUD controls did not survive sanitisation. They are \
+            emitted as article HTML, so anything that forbids <button> deletes \
+            zoom out, reset, zoom in, fill width and open-in-window — with no \
+            other test noticing, because the rest assert only what must be absent.
+            """
+        )
     }
 }

@@ -104,7 +104,7 @@ from "failed to connect", and it is worth doing when the CSP changes.
 | File | Expected | Notes |
 |---|---|---|
 | `samples/full.md` | Everything renders | The broad smoke test |
-| `samples/codeblocks.md` | Syntax highlighting, working copy buttons, **Mermaid diagram renders** | Mermaid in Quick Look was broken until 1.0.3. It must render now, in **both** surfaces |
+| `samples/codeblocks.md` | Syntax highlighting, working copy buttons, **Mermaid diagram renders** **and shows all five HUD controls** (zoom out, reset, zoom in, fill width, open in window) | Mermaid in Quick Look was broken until 1.0.3. It must render now, in **both** surfaces. **Count the HUD buttons, don't just check the diagram drew:** the controls are emitted as article HTML and pass through the sanitiser, so a sanitiser change can delete them while the diagram still renders perfectly. That shipped in 1.0.4 and 1.0.5 |
 | `samples/mermaid-heavy.md` | Ten diagram types render | Only diagrams near the viewport render at first; the rest fill in as you scroll. **That is the design, not a failure** — rendering is gated on an `IntersectionObserver` |
 | `samples/long-footnotes.md` | Footnote links jump both ways | |
 | `samples/navigation.md` | In-document links work | |

