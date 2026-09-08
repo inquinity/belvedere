@@ -349,6 +349,23 @@ the bytes really are a raster image before answering with a `data:` URL. Verifie
 end in the running app: a real PNG loads on click, and a text file renamed `.png` comes
 back "not an image" with the dead action removed.
 
+**Quick Look says why, and the reason comes from the inliner.** The first labels there
+were misleading: a file sitting one folder up, present and perfectly readable, was
+reported as `load failed`, which sends a reader hunting a broken file that is not broken.
+It was refused by the boundary — a different fact, and the one worth saying.
+
+The page cannot work that out in Quick Look, because the preview loads with a nil base URL
+and has no document folder to compare against. `InlineLocalAssets` does know: it made the
+decision. So the refusal reason now rides along on the element as
+`data-mdp-refused="outsideFolder"` (or `missing`, `unreadable`, `tooLarge`), and the page
+renders the label from that rather than guessing. Quick Look reads
+`outside this folder — Quick Look cannot load it`, naming both the cause and the surface
+limitation, since the same file loads with one click in the app window.
+
+One case deliberately gets no reason: a percent-encoded scheme or fragment. Those are
+disguised remote references rather than boundary escapes, and labelling them
+`outside this folder` would be a confident wrong answer.
+
 **Quick Look gets labels, never grants — and the first cut got that wrong.** The rule was
 already written down (see "Quick Look is a different surface"), and the implementation
 ignored it: Load buttons appeared in Quick Look, on *every* failed image, and clicking one

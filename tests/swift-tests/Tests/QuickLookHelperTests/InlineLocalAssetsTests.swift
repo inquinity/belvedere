@@ -12,6 +12,15 @@ final class InlineLocalAssetsTests: XCTestCase {
         }
     }
 
+
+    /// The refusal reason is additive metadata on the tag. These tests care
+    /// that the `src` was not rewritten, which is a different claim from the
+    /// element being byte-identical.
+    private func withoutRefusalReason(_ html: String) -> String {
+        html.replacingOccurrences(of: #" data-mdp-refused="[a-zA-Z]+""#,
+                                  with: "", options: .regularExpression)
+    }
+
     private let red = Data([0xDE, 0xAD, 0xBE, 0xEF])
     private let blue = Data([0xCA, 0xFE, 0xBA, 0xBE])
 
@@ -70,7 +79,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail("reader must not be called"); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -81,7 +90,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail(); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
     }
 
     func testCIDUntouched() {
@@ -91,7 +100,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail(); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
     }
 
     func testHostAbsolutePathUntouched() {
@@ -101,7 +110,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail(); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
     }
 
     func testParentDirectoryTraversalIsLeftAlone() {
@@ -111,7 +120,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail("reader must not be called for parent traversal"); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -122,7 +131,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail("reader must not be called for encoded absolute path"); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -133,7 +142,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail("reader must not be called for encoded URL scheme"); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -144,7 +153,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: { _ in XCTFail("reader must not be called"); return Data() }
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -157,7 +166,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             baseDirectory: baseDir,
             reader: reader([:])
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -173,7 +182,7 @@ final class InlineLocalAssetsTests: XCTestCase {
             perImageByteCap: 1_000,
             cumulativeByteCap: 1_000_000
         )
-        XCTAssertEqual(result.html, html)
+        XCTAssertEqual(withoutRefusalReason(result.html), html)
         XCTAssertTrue(result.attachments.isEmpty)
     }
 
@@ -318,5 +327,81 @@ final class InlineLocalAssetsTests: XCTestCase {
         XCTAssertTrue(result.attachments.isEmpty, "a symlinked-out file was inlined")
         XCTAssertTrue(result.html.contains(#"src="escape/secret.png""#),
                       "the src should be left untouched, not rewritten to a cid:")
+    }
+}
+
+/// Why a reference was not inlined, recorded on the element for the page.
+///
+/// Quick Look's page loads with a nil base URL, so it cannot tell a file that
+/// was *refused by the boundary* from one that is simply *broken* — and those
+/// deserve different words. "load failed" for a healthy file that sits one
+/// folder up sends the reader looking for a problem that is not there.
+final class InlineLocalAssetRefusalTests: XCTestCase {
+
+    private let base = URL(fileURLWithPath: "/docs/notes/", isDirectory: true)
+    private let png = Data([0x89, 0x50, 0x4E, 0x47] + Array(repeating: 0, count: 16))
+
+    private func reason(_ src: String,
+                        reader: @escaping (URL) throws -> Data = { _ in Data() },
+                        cap: Int = 4 * 1024 * 1024,
+                        budget: Int = 8 * 1024 * 1024) -> String? {
+        InlineLocalAssets.refusalReason(src: src, baseDirectory: base, reader: reader,
+                                        perImageByteCap: cap, remainingBudget: budget)
+    }
+
+    func testClimbingOutOfTheFolderIsReportedAsABoundaryRefusal() {
+        XCTAssertEqual(reason("../shared/logo.png", reader: { _ in self.png }), "outsideFolder",
+                       "a healthy file one folder up was refused by containment, not broken")
+    }
+
+    func testHostAbsolutePathIsABoundaryRefusal() {
+        XCTAssertEqual(reason("/etc/passwd", reader: { _ in self.png }), "outsideFolder")
+    }
+
+    func testAbsentInFolderFileIsReportedMissing() {
+        XCTAssertEqual(
+            reason("images/gone.png", reader: { _ in throw CocoaError(.fileReadNoSuchFile) }),
+            "missing"
+        )
+    }
+
+    func testOversizeIsReportedSeparately() {
+        XCTAssertEqual(reason("images/huge.png", reader: { _ in self.png }, cap: 4), "tooLarge")
+    }
+
+    func testRemoteAndFragmentRefsAreNotOurBusiness() {
+        XCTAssertNil(reason("https://example.com/x.png"),
+                     "a remote URL is not a refusal; the page labels it from the scheme")
+        XCTAssertNil(reason("#section"))
+    }
+
+    func testAFileThatWouldInlineHasNoReason() {
+        XCTAssertNil(reason("images/ok.png", reader: { _ in self.png }))
+    }
+
+    // MARK: - End to end through the rewriter
+
+    func testRefusedImageCarriesItsReasonIntoTheHTML() {
+        let html = #"<p><img src="../shared/logo.png" alt="x"></p>"#
+        let result = InlineLocalAssets.rewriteRelativeImages(
+            html: html, baseDirectory: base, reader: { _ in self.png }
+        )
+        XCTAssertTrue(
+            result.html.contains(#"data-mdp-refused="outsideFolder""#),
+            """
+            The reason must reach the page. Without it Quick Look can only say \
+            "load failed" for a file that is present and perfectly readable. \
+            \(result.html)
+            """
+        )
+    }
+
+    func testInlinedImageCarriesNoReason() {
+        let html = #"<p><img src="images/ok.png"></p>"#
+        let result = InlineLocalAssets.rewriteRelativeImages(
+            html: html, baseDirectory: base, reader: { _ in self.png }
+        )
+        XCTAssertFalse(result.html.contains("data-mdp-refused"))
+        XCTAssertEqual(result.attachments.count, 1)
     }
 }

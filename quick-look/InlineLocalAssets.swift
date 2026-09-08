@@ -64,7 +64,28 @@ enum InlineLocalAssets {
                 cumulativeBytes += data.count
                 replacement = "\(prefix)cid:\(cid)\(suffix)"
             } else {
-                replacement = nsHtml.substring(with: match.range)
+                // Record *why* this one was not inlined. The page cannot work
+                // it out for itself in Quick Look: that preview loads with a
+                // nil base URL, so there is no document folder to compare a
+                // reference against, and every refusal would otherwise read as
+                // a generic failure. "Blocked by the boundary" and "the file is
+                // broken" are different facts and a reader deserves to be told
+                // which one applies.
+                //
+                // The regex match ends at the closing quote of `src`, so this
+                // appends inside the tag. DOMPurify keeps `data-*` attributes.
+                let original = nsHtml.substring(with: match.range)
+                if let reason = refusalReason(
+                    src: src,
+                    baseDirectory: baseDirectory,
+                    reader: reader,
+                    perImageByteCap: perImageByteCap,
+                    remainingBudget: cumulativeByteCap - cumulativeBytes
+                ) {
+                    replacement = original + " data-mdp-refused=\"\(reason)\""
+                } else {
+                    replacement = original
+                }
             }
 
             output += replacement
@@ -120,6 +141,35 @@ enum InlineLocalAssets {
             options: [.caseInsensitive]
         )
     }()
+
+    /// Why a local reference was not inlined, for the page to display.
+    ///
+    /// Returns nil when there is nothing useful to say — a remote URL or a
+    /// fragment is not a refusal, it is simply not this function's business,
+    /// and the page labels those from the scheme itself.
+    static func refusalReason(src: String,
+                              baseDirectory: URL,
+                              reader: (URL) throws -> Data,
+                              perImageByteCap: Int,
+                              remainingBudget: Int) -> String? {
+        if src.isEmpty || src.hasPrefix("#") || hasURLScheme(src) { return nil }
+        guard let resolved = resolveRelative(src: src, baseDirectory: baseDirectory) else {
+            // A percent-encoded scheme or fragment is a disguised remote
+            // reference, not a boundary escape, and calling it "outside this
+            // folder" would be a confident wrong answer. Say nothing.
+            let decoded = src.removingPercentEncoding ?? src
+            if decoded.hasPrefix("#") || hasURLScheme(decoded) { return nil }
+            // What remains is a containment decision: a host-absolute path, or
+            // one that climbs out of the document's folder.
+            return "outsideFolder"
+        }
+        guard let data = try? reader(resolved) else {
+            return FileManager.default.fileExists(atPath: resolved.path)
+                ? "unreadable" : "missing"
+        }
+        if data.count > perImageByteCap || data.count > remainingBudget { return "tooLarge" }
+        return nil
+    }
 
     /// Returns nil for srcs that should not be rewritten (absolute URLs,
     /// fragment refs, host-absolute paths, empty values).
