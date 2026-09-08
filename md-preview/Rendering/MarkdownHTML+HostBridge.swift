@@ -224,6 +224,13 @@ nonisolated extension MarkdownHTML {
             if (reason === 'notAnImage') return 'load failed: not an image';
             if (reason === 'tooLarge') return 'load failed: too large';
             if (reason === 'unreadable') return 'load failed: cannot read file';
+            // Not a failure at all — the file is fine and was refused. Saying
+            // "load failed" for it sends the reader hunting a broken file.
+            if (reason === 'outsideFolder') {
+                return canGrant
+                    ? 'outside this folder'
+                    : 'outside this folder — Quick Look cannot load it';
+            }
             return 'load failed';
         }
 
@@ -274,8 +281,14 @@ nonisolated extension MarkdownHTML {
 
             const label = document.createElement('span');
             label.className = 'mdp-deferred-label';
+            // Quick Look's inliner records why it refused each reference, so
+            // the label can be exact on a surface where the page has no base
+            // URL to reason from.
+            const stated = img.getAttribute('data-mdp-refused');
             label.textContent = remote
                 ? 'Remote image blocked — ' + deferredLabel(src)
+                : stated
+                    ? deferredLabel(raw) + ' — ' + describeFailure(stated)
                 : !canGrant
                     ? deferredLabel(raw) + ' — load failed'
                 : inside
