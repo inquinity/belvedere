@@ -749,12 +749,48 @@ nonisolated extension MarkdownHTML {
         // `md-asset:` so markdown image references that resolve to the
         // document's base directory (![alt](relative/path.png)) keep working.
         const SANITIZE_CONFIG = {
+            // Forbidding 'form' alone is not enough. DOMPurify defaults to
+            // KEEP_CONTENT: true, which unwraps a forbidden element and
+            // reparents its children -- so <form><input><button></form> loses
+            // the form and keeps a text field and a submit button, and a
+            // document can draw what looks like a credential prompt.
             FORBID_TAGS: ['style', 'form', 'iframe', 'object',
-                          'embed', 'meta', 'link', 'base'],
+                          'embed', 'meta', 'link', 'base',
+                          'button', 'select', 'textarea', 'option', 'optgroup',
+                          'fieldset', 'legend', 'label', 'datalist', 'output'],
             FORBID_ATTR: ['style'],
             ADD_ATTR: ['target'],
             ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|md-asset):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))/i
         };
+        // <input> cannot simply be forbidden: EscapingHTMLFormatter emits one
+        // per task-list item. Allow exactly that shape and drop every other
+        // input, so task lists keep rendering while document content cannot
+        // place a text or password field on the page.
+        //
+        // The hook is installed for both sanitize paths. MdPreview.update
+        // calls DOMPurify.sanitize directly with SANITIZE_DOM_CONFIG rather
+        // than going through sanitize() below, so hooking only the latter
+        // would leave the hot path -- every file change and editor exit --
+        // unprotected. DOMPurify hooks are global, so installing once covers
+        // both.
+        //
+        // The rule deliberately does not require `disabled`, and does not
+        // restore it: DOMPurify strips that attribute, and the removal is
+        // load-bearing, since clicking a task checkbox writes the change back
+        // to the file.
+        let sanitizerHooked = false;
+        function configureSanitizer() {
+            if (sanitizerHooked || typeof DOMPurify === 'undefined' || !DOMPurify.addHook) return;
+            sanitizerHooked = true;
+            DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+                if (data.tagName !== 'input') return;
+                const type = (node.getAttribute && node.getAttribute('type') || '').toLowerCase();
+                if (type !== 'checkbox' && node.parentNode) {
+                    node.parentNode.removeChild(node);
+                }
+            });
+        }
+
         function sanitize(html) {
             if (typeof html !== 'string') return '';
             if (typeof DOMPurify === 'undefined' || !DOMPurify.sanitize) {
@@ -766,6 +802,7 @@ nonisolated extension MarkdownHTML {
                 }
                 return '';
             }
+            configureSanitizer();
             return DOMPurify.sanitize(html, SANITIZE_CONFIG);
         }
 
@@ -926,6 +963,7 @@ nonisolated extension MarkdownHTML {
             let morphed = false;
             if (canMorph) {
                 try {
+                    configureSanitizer();
                     const frag = DOMPurify.sanitize(articleHTML, SANITIZE_DOM_CONFIG);
                     const next = document.createElement('article');
                     next.appendChild(frag);
