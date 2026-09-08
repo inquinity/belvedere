@@ -35,6 +35,24 @@ inlines images as `data:`/`cid:`.
 
 ![remote](https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png?202210171354)
 
+## Outside this folder, and really there — Load succeeds
+
+> **EXPECT:** `logo.png` with a **Load** button. Click it and the image
+> appears in place of the placeholder.
+> **FAIL IF:** the button reports a failure. This file exists and is a real
+> PNG; containment refused it only because it sits outside the document's
+> folder, which is precisely the case Load exists to resolve.
+> **FAIL IF:** the image renders without a click. Out-of-folder assets must
+> not load on their own — that is the containment boundary doing its job, and
+> a document should not be able to read across it just by naming a path.
+>
+> This is the shared-image layout that motivated the whole design: a
+> `shared-images/` folder one level up, referenced from several documents.
+> Nothing is remembered, so reopening this file blocks it again. A durable
+> grant is trusted folders (F3).
+
+![shared logo](../shared-images/logo.png)
+
 ## Missing file, inside this folder
 
 > **EXPECT:** `missing.png — file missing`, and **no Load button**.

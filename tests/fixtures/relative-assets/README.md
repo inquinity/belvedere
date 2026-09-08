@@ -18,6 +18,11 @@ Expectations:
 
 - `images/local.png` renders.
 - `images dir/two words.png` renders (URL-decoded path).
+- `../shared-images/logo.png` does **not** render on its own — it sits outside
+  the document's folder, so containment refuses it. It shows a placeholder with
+  a **Load** button, and clicking that button renders it. Both halves matter:
+  loading without a click would mean the boundary is not holding, and a failure
+  after the click would mean the remedy is broken.
 - ~~The remote https image renders (network entitlement already granted).~~
   **Changed in this fork: the remote image must NOT render.**
   `QuickLookContentPolicy` denies remote origins in the preview page, so a
