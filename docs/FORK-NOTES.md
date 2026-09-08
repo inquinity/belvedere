@@ -182,7 +182,37 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal (concept 2). See below. |
+| **F10** | ⌘R to reload the open file from disk | The menu item exists and is permanently disabled. Auto-reload already covers the common case; this is the manual override. See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
+
+**F10 — ⌘R to reload the open file.** Requested as a missing feature; it is really a
+half-present one.
+
+`MainMenu.xib` already carries a **Revert to Saved** item bound to ⌘R and wired to
+`revertDocumentToSaved:`. Checked in the running app, it is **permanently disabled**:
+`MarkdownDocument` overrides `isDocumentEdited` to return `false` and `autosavesInPlace`
+to `false`, so AppKit's own validation greys the item out. There is nothing to revert
+*to*, as far as NSDocument is concerned. So the shortcut looks supported, does nothing,
+and gives no clue why.
+
+**Most of the time nothing needs reloading, which is worth knowing before building this.**
+`FileWatcher` already watches the open document with a `DispatchSource` on an `O_EVTONLY`
+descriptor and calls `loadFile(at:)` on change, so an edit made by another process appears
+on its own. It handles the awkward cases too: atomic-rename saves (Vim, VS Code) replace
+the inode, so the watcher reopens against the path, and a rename is followed via
+`F_GETPATH` on the still-open descriptor and updates the window without re-rendering.
+
+Auto-reload is deliberately suppressed in exactly one situation — while the reader is
+editing, or has uncommitted editor changes — because reloading there would clobber work in
+progress. That is the gap a manual command fills, alongside the case where a watcher
+misses an event.
+
+So the work is: make the existing item do something rather than adding a new one. Either
+implement `revertDocumentToSaved:` on the window controller (bypassing NSDocument's
+validation, which is keyed to an edited-state this app does not maintain), or retitle it
+**Reload from Disk** — the string already exists in `Localizable.strings`, currently used
+only as a button in the editor's conflict alert. Retitling has the advantage of being
+honest: nothing is being reverted, the file is being re-read.
 
 ### What is fork-only, and what is not
 
