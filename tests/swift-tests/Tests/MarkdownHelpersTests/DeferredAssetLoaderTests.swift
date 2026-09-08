@@ -30,7 +30,9 @@ final class DeferredAssetLoaderTests: XCTestCase {
         // The path says .png; the bytes say otherwise. Bytes win.
         let disguised = Data("root:x:0:0:root:/root:/bin/sh\n".utf8)
         XCTAssertEqual(
-            DeferredAssetLoader.outcome(forFileAt: "/tmp/passwd.png", reader: { _ in disguised }),
+            DeferredAssetLoader.outcome(forFileAt: "/tmp/passwd.png",
+                                        exists: { _ in true },
+                                        reader: { _ in disguised }),
             .refused(.notAnImage),
             "Eligibility must come from magic bytes, not the extension, which document content chooses."
         )
@@ -44,11 +46,12 @@ final class DeferredAssetLoaderTests: XCTestCase {
         )
     }
 
-    func testUnreadableFileIsRefusedRatherThanCrashing() {
+    func testAbsentFileIsRefusedRatherThanCrashing() {
         XCTAssertEqual(
             DeferredAssetLoader.outcome(forFileAt: "/nonexistent/nope.png",
                                         reader: { _ in throw CocoaError(.fileReadNoSuchFile) }),
-            .refused(.unreadable)
+            .refused(.missing),
+            "an absent file is missing, not unreadable — see DeferredAssetMissingTests"
         )
     }
 
@@ -143,5 +146,71 @@ final class DeferredAssetPathTests: XCTestCase {
 
     func testBareRootIsRefused() {
         XCTAssertNil(DeferredAssetLoader.localPath(for: URL(string: "md-asset:///")!, scheme: scheme))
+    }
+}
+
+/// Absence reported separately from unreadability. Telling a reader "cannot
+/// read file" for a file that is not there sends them hunting a permissions
+/// problem that does not exist.
+final class DeferredAssetMissingTests: XCTestCase {
+
+    private let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] + Array(repeating: 0, count: 8))
+
+    func testAbsentFileReportsMissing() {
+        XCTAssertEqual(
+            DeferredAssetLoader.outcome(forFileAt: "/nope/gone.png",
+                                        exists: { _ in false },
+                                        reader: { _ in throw CocoaError(.fileReadNoSuchFile) }),
+            .refused(.missing)
+        )
+    }
+
+    func testPresentButUnreadableFileReportsUnreadable() {
+        XCTAssertEqual(
+            DeferredAssetLoader.outcome(forFileAt: "/locked/secret.png",
+                                        exists: { _ in true },
+                                        reader: { _ in throw CocoaError(.fileReadNoPermission) }),
+            .refused(.unreadable),
+            "a file that exists but cannot be opened is a different problem from one that is absent"
+        )
+    }
+
+    func testPresentTextFileStillReportsNotAnImage() {
+        XCTAssertEqual(
+            DeferredAssetLoader.outcome(forFileAt: "/tmp/passwd.png",
+                                        exists: { _ in true },
+                                        reader: { _ in Data("root:x:0:0".utf8) }),
+            .refused(.notAnImage)
+        )
+    }
+
+    // MARK: - In-folder classification
+
+    func testInFolderReasonIsNilWhenTheFileWouldHaveLoaded() {
+        XCTAssertNil(
+            DeferredAssetLoader.reasonForInFolderFailure(atPath: "/doc/ok.png",
+                                                         exists: { _ in true },
+                                                         reader: { _ in self.png }),
+            """
+            A file that is present and valid has no explanation to give. \
+            Inventing one would be worse than admitting WebKit declined it \
+            for a reason of its own.
+            """
+        )
+    }
+
+    func testInFolderReasonDistinguishesMissingFromUnreadable() {
+        XCTAssertEqual(
+            DeferredAssetLoader.reasonForInFolderFailure(atPath: "/doc/gone.png",
+                                                         exists: { _ in false },
+                                                         reader: { _ in Data() }),
+            .missing
+        )
+        XCTAssertEqual(
+            DeferredAssetLoader.reasonForInFolderFailure(atPath: "/doc/locked.png",
+                                                         exists: { _ in true },
+                                                         reader: { _ in throw CocoaError(.fileReadNoPermission) }),
+            .unreadable
+        )
     }
 }

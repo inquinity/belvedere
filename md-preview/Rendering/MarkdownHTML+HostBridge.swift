@@ -219,6 +219,14 @@ nonisolated extension MarkdownHTML {
         // a document names would touch the filesystem on the document's behalf
         // at render time, which is the automatic access containment exists to
         // prevent. Presence is discovered when the reader asks, not before.
+        function describeFailure(reason) {
+            if (reason === 'missing') return 'file missing';
+            if (reason === 'notAnImage') return 'load failed: not an image';
+            if (reason === 'tooLarge') return 'load failed: too large';
+            if (reason === 'unreadable') return 'load failed: cannot read file';
+            return 'load failed';
+        }
+
         function isInsideDocumentFolder(src) {
             try {
                 const base = document.baseURI || '';
@@ -249,9 +257,9 @@ nonisolated extension MarkdownHTML {
             label.textContent = remote
                 ? 'Remote image blocked — ' + deferredLabel(src)
                 : inside
-                    // A load was attempted and failed, so say that. Not
-                    // "missing": nothing checked, and the cause could equally
-                    // be an unreadable file or a format WebKit does not render.
+                    // Provisional: the host is asked why, and the label is
+                    // refined once it answers. WebKit's error event carries no
+                    // reason, so "load failed" is all the page knows on its own.
                     ? deferredLabel(raw) + ' — load failed'
                     : deferredLabel(raw);
             label.title = raw;
@@ -275,7 +283,13 @@ nonisolated extension MarkdownHTML {
                 box.appendChild(button);
             }
 
-            deferredAssets.set(token, { src, box, img, remote, inside });
+            deferredAssets.set(token, { src, box, img, remote, inside, raw });
+            if (inside) {
+                // Safe without a grant: the app already attempted this exact
+                // read while rendering, so asking why it failed reveals
+                // nothing new. Only in-folder references are asked about.
+                post({ kind: 'classifyDeferredFailure', token: token, src: src });
+            }
             img.replaceWith(box);
             updateDeferredBanner();
             return box;
@@ -292,6 +306,15 @@ nonisolated extension MarkdownHTML {
 
         // Called by the host once it has read or fetched the bytes.
         window.MdPreview = window.MdPreview || {};
+        window.MdPreview.explainDeferredFailure = (token, reason) => {
+            const entry = deferredAssets.get(token);
+            if (!entry || !reason) return;
+            const label = entry.box.querySelector('.mdp-deferred-label');
+            if (label) {
+                label.textContent = deferredLabel(entry.raw) + ' — ' + describeFailure(reason);
+            }
+        };
+
         window.MdPreview.resolveDeferredAsset = (token, dataURL, refusal) => {
             const entry = deferredAssets.get(token);
             if (!entry) return;
@@ -311,11 +334,7 @@ nonisolated extension MarkdownHTML {
                     // Say that the load was attempted and failed, and why.
                     // "not an image" alone reads as a property of the file
                     // rather than the outcome of the action just taken.
-                    label.textContent = label.textContent + ' — load failed: ' + (
-                        entry.refused === 'notAnImage' ? 'not an image'
-                        : entry.refused === 'tooLarge' ? 'too large'
-                        : 'could not be read'
-                    );
+                    label.textContent = label.textContent + ' — ' + describeFailure(entry.refused);
                 }
             }
             updateDeferredBanner();
