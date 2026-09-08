@@ -184,6 +184,151 @@ nonisolated extension MarkdownHTML {
             }
         }, true);
 
+        // Deferred images (F4). Two different blocks land in the same place:
+        // the CSP refuses a remote image so a document cannot beacon on mere
+        // open, and md-asset: containment refuses a local file outside the
+        // document's folder. Either way the reader sees a placeholder naming
+        // what was withheld, and one click asks the host for it.
+        //
+        // This markup is built here rather than coming from the document, so
+        // it is not attacker-controlled. Document content cannot click the
+        // button either: the sanitiser strips scripts and the CSP forbids
+        // them, so every activation is a real one.
+        const deferredAssets = new Map();
+        let deferredSeq = 0;
+
+        function deferredLabel(src) {
+            try {
+                if (/^https?:/i.test(src)) return new URL(src).host || src;
+                return decodeURIComponent(src).split('/').pop() || src;
+            } catch (e) { return src; }
+        }
+
+        function makeDeferredPlaceholder(img) {
+            const src = img.getAttribute('src') || '';
+            const remote = /^https?:/i.test(src);
+            const token = 'd' + (++deferredSeq);
+            const box = document.createElement('span');
+            box.className = 'mdp-deferred' + (remote ? ' mdp-deferred-remote' : '');
+            box.setAttribute('data-mdp-deferred', token);
+            if (remote) box.setAttribute('data-mdp-remote', '1');
+
+            const label = document.createElement('span');
+            label.className = 'mdp-deferred-label';
+            label.textContent = remote
+                ? 'Remote image blocked — ' + deferredLabel(src)
+                : deferredLabel(src);
+            label.title = src;
+            box.appendChild(label);
+
+            // No Load button for remote content. Fetching it would send the
+            // reader's IP to whoever authored the document, which is the
+            // disclosure the CSP exists to prevent, and the host refuses it —
+            // so offering a button that always fails would be worse than
+            // offering none. A deliberate remote fetch needs its own decision;
+            // see docs/FORK-NOTES.md (F4).
+            if (!remote) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'mdp-deferred-load';
+                button.textContent = 'Load';
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    requestDeferred(token);
+                });
+                box.appendChild(button);
+            }
+
+            deferredAssets.set(token, { src, box, img, remote });
+            img.replaceWith(box);
+            updateDeferredBanner();
+            return box;
+        }
+
+        function requestDeferred(token) {
+            const entry = deferredAssets.get(token);
+            if (!entry || entry.pending) return;
+            entry.pending = true;
+            const button = entry.box.querySelector('.mdp-deferred-load');
+            if (button) { button.disabled = true; button.textContent = 'Loading…'; }
+            post({ kind: 'loadDeferredAsset', token: token, src: entry.src });
+        }
+
+        // Called by the host once it has read or fetched the bytes.
+        window.MdPreview = window.MdPreview || {};
+        window.MdPreview.resolveDeferredAsset = (token, dataURL, refusal) => {
+            const entry = deferredAssets.get(token);
+            if (!entry) return;
+            if (dataURL) {
+                const img = entry.img.cloneNode(true);
+                img.setAttribute('src', dataURL);
+                entry.box.replaceWith(img);
+                deferredAssets.delete(token);
+            } else {
+                entry.pending = false;
+                entry.refused = refusal || 'unavailable';
+                entry.box.classList.add('mdp-deferred-refused');
+                const button = entry.box.querySelector('.mdp-deferred-load');
+                if (button) button.remove();
+                const label = entry.box.querySelector('.mdp-deferred-label');
+                if (label) {
+                    label.textContent = label.textContent + ' — ' + (
+                        entry.refused === 'notAnImage' ? 'not an image'
+                        : entry.refused === 'tooLarge' ? 'too large'
+                        : 'unavailable'
+                    );
+                }
+            }
+            updateDeferredBanner();
+        };
+
+        // "Load all images in this document." Framed around the document
+        // because that is how a reader thinks about it, and safe because the
+        // host checks each one: anything that is not really an image comes
+        // back refused and stays visible as such.
+        function updateDeferredBanner() {
+            const article = document.querySelector('.markdown-body');
+            if (!article) return;
+            let banner = article.querySelector('.mdp-deferred-banner');
+            const pending = [...deferredAssets.values()].filter((e) => !e.refused && !e.remote);
+            if (pending.length < 2) { if (banner) banner.remove(); return; }
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.className = 'mdp-deferred-banner';
+                const text = document.createElement('span');
+                text.className = 'mdp-deferred-banner-text';
+                const action = document.createElement('button');
+                action.type = 'button';
+                action.textContent = 'Load all';
+                action.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    [...deferredAssets.entries()]
+                        .filter(([, entry]) => !entry.remote && !entry.refused)
+                        .forEach(([token]) => requestDeferred(token));
+                });
+                banner.appendChild(text);
+                banner.appendChild(action);
+                article.insertBefore(banner, article.firstChild);
+            }
+            banner.querySelector('.mdp-deferred-banner-text').textContent =
+                pending.length + ' images blocked';
+        }
+
+        function deferBlockedImages(root = document) {
+            root.querySelectorAll('img:not([data-mdp-deferred-seen])').forEach((img) => {
+                img.setAttribute('data-mdp-deferred-seen', '1');
+                const src = img.getAttribute('src') || '';
+                if (!src || src.startsWith('data:')) return;
+                const fail = () => {
+                    if (img.isConnected) makeDeferredPlaceholder(img);
+                };
+                img.addEventListener('error', fail, { once: true });
+                // An image that already failed before the listener attached
+                // reports complete with no intrinsic size.
+                if (img.complete && img.naturalWidth === 0) fail();
+            });
+        }
+
         function decorateCodeBlocks(root = document) {
             root.querySelectorAll('pre > code').forEach((code) => {
                 const pre = code.parentElement;
@@ -977,6 +1122,7 @@ nonisolated extension MarkdownHTML {
                     // pair one-to-one with the live DOM during the diff.
                     decorateCodeBlocks(next);
                     enableTableEditing(next);
+                    deferBlockedImages(next);
                     keyExpensiveBlocks(article);
                     keyExpensiveBlocks(next);
                     morphdom(article, next, MORPH_OPTIONS);
@@ -1003,6 +1149,7 @@ nonisolated extension MarkdownHTML {
                 if (!morphed) {
                     decorateCodeBlocks();
                     enableTableEditing();
+                    deferBlockedImages();
                 }
                 enableTaskCheckboxes();
                 for (const fn of reappliers) {

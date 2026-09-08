@@ -535,6 +535,54 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     }
     #endif
 
+
+    /// Serves one blocked asset after the reader clicked its placeholder (F4).
+    ///
+    /// This is the only path by which content outside the containment boundary
+    /// reaches the page, so it is deliberately narrow. `DeferredAssetLoader`
+    /// verifies the bytes really are a raster image and caps the size; the
+    /// result goes back as a `data:` URL, which `img-src` already allows, so
+    /// no policy is relaxed to make the click work.
+    ///
+    /// Remote URLs are not fetched here. Doing so would turn one click into a
+    /// network request carrying the reader's IP to whoever authored the
+    /// document, which is the disclosure the CSP exists to prevent — a
+    /// deliberate remote fetch needs its own decision, not this one.
+    fileprivate func loadDeferredAsset(token: String, src: String) {
+        func resolve(_ dataURL: String?, _ refusal: String?) {
+            let value = dataURL.map { "'\($0)'" } ?? "null"
+            let reason = refusal.map { "'\($0)'" } ?? "null"
+            webView.evaluateJavaScript(
+                "window.MdPreview && MdPreview.resolveDeferredAsset('\(token)', \(value), \(reason));"
+            ) { _, _ in }
+        }
+
+        guard let url = URL(string: src) else { return resolve(nil, "unavailable") }
+
+        let path: String
+        if url.scheme == MarkdownAssetScheme.scheme {
+            // The page resolved this against its base href already, so the
+            // path is absolute. Containment refused it; the click is the
+            // grant, so resolve it without the boundary this time.
+            guard url.host?.isEmpty ?? true, url.path.count > 1 else {
+                return resolve(nil, "unavailable")
+            }
+            path = url.path
+        } else if url.isFileURL {
+            path = url.path
+        } else {
+            // http/https and anything else: not served, see the note above.
+            return resolve(nil, "unavailable")
+        }
+
+        switch DeferredAssetLoader.outcome(forFileAt: path) {
+        case let .loaded(dataURL):
+            resolve(dataURL, nil)
+        case let .refused(reason):
+            resolve(nil, reason.rawValue)
+        }
+    }
+
     fileprivate func didReceiveHostMessage(_ body: Any) {
         guard let dict = body as? [String: Any],
               let kind = dict["kind"] as? String else { return }
@@ -567,6 +615,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
+        case "loadDeferredAsset":
+            guard let token = dict["token"] as? String,
+                  let src = dict["src"] as? String else { return }
+            loadDeferredAsset(token: token, src: src)
         case "taskCheckbox":
             guard let line = dict["line"] as? NSNumber,
                   let checked = dict["checked"] as? NSNumber else { return }

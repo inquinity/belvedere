@@ -1,0 +1,88 @@
+import Foundation
+
+/// Decides whether a blocked asset may be loaded after the reader asks for it,
+/// and turns it into a `data:` URL the page can use.
+///
+/// Two different blocks land here. A remote image is refused by the
+/// Content-Security-Policy so a document cannot beacon on mere open, and a
+/// local file outside the document's folder is refused by `md-asset:`
+/// containment. The reader's remedy is the same in both cases — click the
+/// placeholder — so the mechanism is shared: the host reads or fetches the
+/// bytes, checks them, and hands back a `data:` URL. `img-src` already permits
+/// `data:`, so nothing about the policy is relaxed to make this work.
+///
+/// Everything here is deliberately narrow, because the click is the only thing
+/// standing between document content and an arbitrary file read:
+///
+/// - **Only raster images are eligible.** Verified by magic bytes rather than
+///   by file extension, so `passwd` renamed to `.png` is still refused. SVG is
+///   excluded on purpose: it is a document format, and while an `<img>` will
+///   not run its scripts, it is the one image type where that sentence needs a
+///   caveat at all.
+/// - **A size cap**, so a click cannot pull a multi-gigabyte file into memory
+///   and base64 it.
+/// - **No persistence.** The caller grants one asset at a time and forgets it
+///   when the document closes; see `docs/FORK-NOTES.md` (F4). Durable grants
+///   are trusted folders (F3), which are a different decision made about a
+///   folder rather than about an image.
+enum DeferredAssetLoader {
+
+    static let defaultMaxBytes = 16 * 1024 * 1024
+
+    enum Refusal: String, Equatable {
+        case notAnImage
+        case tooLarge
+        case unreadable
+    }
+
+    enum Outcome: Equatable {
+        case loaded(dataURL: String)
+        case refused(Refusal)
+    }
+
+    /// Wraps `data` as a `data:` URL when it is a raster image within budget.
+    static func outcome(for data: Data, maxBytes: Int = defaultMaxBytes) -> Outcome {
+        guard data.count <= maxBytes else { return .refused(.tooLarge) }
+        guard let mime = imageMIMEType(of: data) else { return .refused(.notAnImage) }
+        return .loaded(dataURL: "data:\(mime);base64,\(data.base64EncodedString())")
+    }
+
+    /// Reads a local file and applies the same checks.
+    static func outcome(forFileAt path: String,
+                        maxBytes: Int = defaultMaxBytes,
+                        reader: (URL) throws -> Data = { try Data(contentsOf: $0) }) -> Outcome {
+        let url = URL(fileURLWithPath: path).standardizedFileURL
+        guard let data = try? reader(url) else { return .refused(.unreadable) }
+        return outcome(for: data, maxBytes: maxBytes)
+    }
+
+    /// Sniffs the leading bytes. Extensions are attacker-controlled; these are
+    /// not. Returns nil for anything that is not a raster image this app is
+    /// willing to render.
+    static func imageMIMEType(of data: Data) -> String? {
+        func starts(_ bytes: [UInt8], at offset: Int = 0) -> Bool {
+            guard data.count >= offset + bytes.count else { return false }
+            let start = data.index(data.startIndex, offsetBy: offset)
+            return Array(data[start..<data.index(start, offsetBy: bytes.count)]) == bytes
+        }
+
+        if starts([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) { return "image/png" }
+        if starts([0xFF, 0xD8, 0xFF]) { return "image/jpeg" }
+        if starts([0x47, 0x49, 0x46, 0x38]) { return "image/gif" }
+        if starts([0x42, 0x4D]) { return "image/bmp" }
+        if starts([0x49, 0x49, 0x2A, 0x00]) || starts([0x4D, 0x4D, 0x00, 0x2A]) { return "image/tiff" }
+        // RIFF....WEBP — the size field sits between the two markers.
+        if starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], at: 8) {
+            return "image/webp"
+        }
+        // ISO base media: ....ftyp then a HEIF/AVIF brand.
+        if starts([0x66, 0x74, 0x79, 0x70], at: 4) {
+            for brand in [[0x68, 0x65, 0x69, 0x63], [0x68, 0x65, 0x69, 0x78],
+                          [0x6D, 0x69, 0x66, 0x31]] where starts(brand.map(UInt8.init), at: 8) {
+                return "image/heic"
+            }
+            if starts([0x61, 0x76, 0x69, 0x66], at: 8) { return "image/avif" }
+        }
+        return nil
+    }
+}
