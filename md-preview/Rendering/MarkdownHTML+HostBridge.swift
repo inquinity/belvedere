@@ -751,12 +751,22 @@ nonisolated extension MarkdownHTML {
         const SANITIZE_CONFIG = {
             // Forbidding 'form' alone is not enough. DOMPurify defaults to
             // KEEP_CONTENT: true, which unwraps a forbidden element and
-            // reparents its children -- so <form><input><button></form> loses
-            // the form and keeps a text field and a submit button, and a
-            // document can draw what looks like a credential prompt.
+            // reparents its children -- so <form><input></form> loses the form
+            // and keeps a working text field, and a document can put a
+            // password box on the page.
+            //
+            // 'button' is deliberately NOT in this list. MarkdownHTML+Mermaid
+            // emits the diagram HUD (zoom out, reset, zoom in, fill width,
+            // open in window) as article HTML, so it passes through here like
+            // document content; forbidding the tag deletes the app's own
+            // controls. Distinguishing them by class would not work either --
+            // the class comes from the document. A button with no form behind
+            // it and no script that can run is inert, so this is a fair trade:
+            // the tag that matters is 'input', because a field is what invites
+            // typing.
             FORBID_TAGS: ['style', 'form', 'iframe', 'object',
                           'embed', 'meta', 'link', 'base',
-                          'button', 'select', 'textarea', 'option', 'optgroup',
+                          'select', 'textarea', 'option', 'optgroup',
                           'fieldset', 'legend', 'label', 'datalist', 'output'],
             FORBID_ATTR: ['style'],
             ADD_ATTR: ['target'],
@@ -774,10 +784,12 @@ nonisolated extension MarkdownHTML {
         // unprotected. DOMPurify hooks are global, so installing once covers
         // both.
         //
-        // The rule deliberately does not require `disabled`, and does not
-        // restore it: DOMPurify strips that attribute, and the removal is
-        // load-bearing, since clicking a task checkbox writes the change back
-        // to the file.
+        // The rule deliberately does not require `disabled`. The formatter
+        // emits `disabled=""` on task checkboxes and DOMPurify preserves it;
+        // enableTaskCheckboxes() clears it afterwards, and only when a host
+        // bridge exists, which is why the checkboxes stay inert in Quick Look.
+        // Matching on the attribute would therefore depend on which side of
+        // that call the sanitizer happens to run.
         let sanitizerHooked = false;
         function configureSanitizer() {
             if (sanitizerHooked || typeof DOMPurify === 'undefined' || !DOMPurify.addHook) return;

@@ -10,7 +10,10 @@ import XCTest
 /// so DOMPurify is the only thing between a document and the reader here.
 final class SanitizerFormControlTests: XCTestCase {
 
-    /// The shape that motivated this: a credential prompt written in raw HTML.
+    /// The shape that motivated this: a credential prompt written in raw HTML,
+    /// followed by every other control the sanitiser removes. Exercising all of
+    /// them matters — with only the form here, dropping tags from FORBID_TAGS
+    /// left the assertion passing on zero.
     private let credentialPrompt = """
     # Doc
 
@@ -18,6 +21,13 @@ final class SanitizerFormControlTests: XCTestCase {
       <input name="password" type="password">
       <button type="submit">Sign in</button>
     </form>
+
+    <label for="pw">Account password</label>
+    <select name="target"><option>Choose an account</option></select>
+    <textarea name="notes" rows="3">Paste your recovery phrase</textarea>
+    <fieldset><legend>Billing</legend><output name="total">0.00</output></fieldset>
+    <datalist id="s"><option value="admin"></option></datalist>
+    <input type="text" name="username" list="s">
     """
 
     @MainActor
@@ -31,7 +41,7 @@ final class SanitizerFormControlTests: XCTestCase {
           return JSON.stringify({
             forms: a.querySelectorAll('form').length,
             controls: a.querySelectorAll(
-              'button, select, textarea, label, fieldset, legend, output, datalist, option'
+              'select, textarea, label, fieldset, legend, output, datalist, option'
             ).length + [...a.querySelectorAll('input')].filter(
               (el) => (el.getAttribute('type') || '').toLowerCase() !== 'checkbox'
             ).length
@@ -46,7 +56,9 @@ final class SanitizerFormControlTests: XCTestCase {
             A form control survived without its form. DOMPurify's KEEP_CONTENT \
             default unwraps the forbidden <form> and reparents its children, so \
             counting <form> alone does not show whether a document can draw a \
-            password field and a Sign in button. \(raw)
+            password field. <button> is not counted here: the app emits its own \
+            buttons into the same article HTML, so a surviving button is not \
+            evidence of anything. \(raw)
             """
         )
     }
@@ -81,6 +93,32 @@ final class SanitizerFormControlTests: XCTestCase {
     }
 
     // MARK: - Harness
+
+    /// The app's own Mermaid controls must survive sanitisation.
+    ///
+    /// `MarkdownHTML+Mermaid` emits the five HUD buttons as part of the article
+    /// HTML, so they pass through DOMPurify like document content. An earlier
+    /// version of this patch put `button` in FORBID_TAGS and removed all five —
+    /// with no test failing, because every sanitiser assertion checked what must
+    /// be *absent* and none checked what must remain.
+    @MainActor
+    func testMermaidControlsSurviveSanitisation() async throws {
+        let webView = try await loadHarness()
+        try await render("```mermaid\ngraph TD; A-->B\n```\n", in: webView)
+        try await Task.sleep(for: .milliseconds(80))
+
+        let count = try await webView.evaluateJavaScript(
+            "document.querySelectorAll('.mermaid-hud button').length"
+        ) as? Int ?? 0
+        XCTAssertEqual(
+            count, 5,
+            """
+            The Mermaid HUD controls did not survive sanitisation. They are \
+            emitted as article HTML, so forbidding <button> deletes zoom out, \
+            reset, zoom in, fill width and open-in-window.
+            """
+        )
+    }
 
     @MainActor
     private func loadHarness() async throws -> WKWebView {
