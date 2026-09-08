@@ -1,9 +1,11 @@
 import AppKit
 import Foundation
 
-// Generates both selected app-icon families from deterministic AppKit paths.
-// The production app uses Belvedere / Split Signal; Rendered Fold remains the
-// public markdown-preview artwork. Run from the repository root:
+// Generates both selected app-icon families. Belvedere / Split Signal is
+// resampled from its approved checked-in master artwork so the dimensional
+// lighting, glow, and monogram geometry cannot drift; Rendered Fold remains a
+// deterministic AppKit drawing for the public markdown-preview project. Run
+// from the repository root:
 //
 //   swift scripts/make-icon.swift
 //   swift scripts/make-icon.swift --install-mdview
@@ -116,71 +118,6 @@ func fill(
     NSGraphicsContext.restoreGraphicsState()
 }
 
-func splitSignalSeam() -> NSBezierPath {
-    let path = NSBezierPath()
-    path.move(to: NSPoint(x: 570, y: 770))
-    path.curve(to: NSPoint(x: 625, y: 735), controlPoint1: NSPoint(x: 595, y: 770), controlPoint2: NSPoint(x: 620, y: 758))
-    path.line(to: NSPoint(x: 510, y: 245))
-    path.curve(to: NSPoint(x: 455, y: 205), controlPoint1: NSPoint(x: 502, y: 218), controlPoint2: NSPoint(x: 480, y: 205))
-    path.line(to: NSPoint(x: 440, y: 205))
-    path.line(to: NSPoint(x: 570, y: 770))
-    path.close()
-    return path
-}
-
-func splitSignalLeftPanel() -> NSBezierPath {
-    let path = NSBezierPath()
-    path.move(to: NSPoint(x: 290, y: 760))
-    path.line(to: NSPoint(x: 535, y: 760))
-    path.curve(to: NSPoint(x: 587, y: 695), controlPoint1: NSPoint(x: 575, y: 760), controlPoint2: NSPoint(x: 597, y: 730))
-    path.line(to: NSPoint(x: 478, y: 258))
-    path.curve(to: NSPoint(x: 420, y: 200), controlPoint1: NSPoint(x: 470, y: 224), controlPoint2: NSPoint(x: 447, y: 200))
-    path.line(to: NSPoint(x: 322, y: 200))
-    path.curve(to: NSPoint(x: 195, y: 330), controlPoint1: NSPoint(x: 247, y: 200), controlPoint2: NSPoint(x: 195, y: 254))
-    path.line(to: NSPoint(x: 195, y: 668))
-    path.curve(to: NSPoint(x: 290, y: 760), controlPoint1: NSPoint(x: 195, y: 724), controlPoint2: NSPoint(x: 232, y: 760))
-    path.close()
-    return path
-}
-
-func splitSignalRightPanel() -> NSBezierPath {
-    let path = NSBezierPath()
-    path.move(to: NSPoint(x: 665, y: 760))
-    path.line(to: NSPoint(x: 770, y: 760))
-    path.curve(to: NSPoint(x: 862, y: 664), controlPoint1: NSPoint(x: 829, y: 760), controlPoint2: NSPoint(x: 862, y: 722))
-    path.line(to: NSPoint(x: 862, y: 304))
-    path.curve(to: NSPoint(x: 764, y: 200), controlPoint1: NSPoint(x: 862, y: 238), controlPoint2: NSPoint(x: 827, y: 200))
-    path.line(to: NSPoint(x: 556, y: 200))
-    path.curve(to: NSPoint(x: 500, y: 267), controlPoint1: NSPoint(x: 516, y: 200), controlPoint2: NSPoint(x: 490, y: 232))
-    path.line(to: NSPoint(x: 616, y: 714))
-    path.curve(to: NSPoint(x: 665, y: 760), controlPoint1: NSPoint(x: 623, y: 742), controlPoint2: NSPoint(x: 641, y: 760))
-    path.close()
-    return path
-}
-
-func drawSplitSignal(shadow: Bool, context: CGContext) {
-    let ivoryTop = color(1.00, 0.98, 0.91)
-    let ivoryBottom = color(0.89, 0.84, 0.73)
-    let goldTop = color(1.00, 0.78, 0.16)
-    let goldBottom = color(0.89, 0.52, 0.03)
-
-    fill(splitSignalSeam(), colors: [goldTop, goldBottom], angle: 80, shadow: shadow)
-
-    let leftPanel = splitSignalLeftPanel()
-    fill(leftPanel, colors: [ivoryTop, ivoryBottom], angle: 90, shadow: shadow)
-
-    context.saveGState()
-    context.setBlendMode(.clear)
-    let grooves = [
-        NSBezierPath(roundedRect: NSRect(x: 254, y: 585, width: 238, height: 56), xRadius: 28, yRadius: 28),
-        NSBezierPath(roundedRect: NSRect(x: 254, y: 466, width: 205, height: 56), xRadius: 28, yRadius: 28),
-        NSBezierPath(roundedRect: NSRect(x: 254, y: 347, width: 166, height: 56), xRadius: 28, yRadius: 28),
-    ]
-    grooves.forEach { $0.fill() }
-    context.restoreGState()
-
-    fill(splitSignalRightPanel(), colors: [ivoryTop, ivoryBottom], angle: 90, shadow: shadow)
-}
 
 func renderedFoldSurface() -> NSBezierPath {
     let path = NSBezierPath()
@@ -236,20 +173,19 @@ func drawRenderedFold(shadow: Bool) {
 }
 
 func renderMark(_ design: IconDesign, side: Int, shadow: Bool) -> CGImage {
-    let context = makeContext(side: side)
-    withGraphicsContext(context) {
-        switch design {
-        case .renderedFold:
+    switch design {
+    case .splitSignal:
+        return renderSplitSignalReference(side: side)
+    case .renderedFold:
+        let context = makeContext(side: side)
+        withGraphicsContext(context) {
             drawRenderedFold(shadow: shadow)
-        case .splitSignal:
-            drawSplitSignal(shadow: shadow, context: context)
         }
+        guard let image = context.makeImage() else {
+            fatalError("Unable to create \(design.displayName) mark")
+        }
+        return image
     }
-
-    guard let image = context.makeImage() else {
-        fatalError("Unable to create \(design.displayName) mark")
-    }
-    return image
 }
 
 func drawBackground(_ design: IconDesign) {
@@ -268,20 +204,148 @@ func drawBackground(_ design: IconDesign) {
     }
     fill(iconShape, colors: colors, angle: 90)
 
-    NSGraphicsContext.saveGraphicsState()
-    iconShape.addClip()
-    let highlight = NSBezierPath()
-    highlight.move(to: NSPoint(x: 0, y: 760))
-    highlight.line(to: NSPoint(x: 1024, y: 1024))
-    highlight.line(to: NSPoint(x: 1024, y: 820))
-    highlight.line(to: NSPoint(x: 0, y: 555))
-    highlight.close()
-    NSColor.white.withAlphaComponent(0.055).setFill()
-    highlight.fill()
-    NSGraphicsContext.restoreGraphicsState()
+    if design == .renderedFold {
+        NSGraphicsContext.saveGraphicsState()
+        iconShape.addClip()
+        let highlight = NSBezierPath()
+        highlight.move(to: NSPoint(x: 0, y: 760))
+        highlight.line(to: NSPoint(x: 1024, y: 1024))
+        highlight.line(to: NSPoint(x: 1024, y: 820))
+        highlight.line(to: NSPoint(x: 0, y: 555))
+        highlight.close()
+        NSColor.white.withAlphaComponent(0.055).setFill()
+        highlight.fill()
+        NSGraphicsContext.restoreGraphicsState()
+    }
+}
+
+func makeTransparentSplitSignalMaster() -> CGImage {
+    let referenceURL = URL(
+        fileURLWithPath: "artwork/app-icons/mdview/design-reference.png",
+        relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    ).standardizedFileURL
+    guard
+        let referenceImage = NSImage(contentsOf: referenceURL),
+        let source = referenceImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+    else {
+        fatalError("Unable to load Split Signal design reference at \(referenceURL.path)")
+    }
+
+    guard source.width == source.height else {
+        fatalError("Split Signal design reference must be square")
+    }
+    let side = source.width
+
+    let bytesPerRow = side * 4
+    let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue |
+        CGImageAlphaInfo.premultipliedLast.rawValue
+    guard let context = CGContext(
+        data: nil,
+        width: side,
+        height: side,
+        bitsPerComponent: 8,
+        bytesPerRow: bytesPerRow,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: bitmapInfo
+    ) else {
+        fatalError("Unable to create Split Signal reference context")
+    }
+
+    context.interpolationQuality = .high
+    context.draw(source, in: CGRect(x: 0, y: 0, width: side, height: side))
+
+    guard let rawData = context.data else {
+        fatalError("Unable to access Split Signal reference pixels")
+    }
+    let pixels = rawData.bindMemory(to: UInt8.self, capacity: side * bytesPerRow)
+    let pixelCount = side * side
+    var outside = [Bool](repeating: false, count: pixelCount)
+    var queue: [Int] = []
+    queue.reserveCapacity(pixelCount / 3)
+
+    func isEdgeBackground(_ index: Int) -> Bool {
+        let offset = index * 4
+        let red = Int(pixels[offset])
+        let green = Int(pixels[offset + 1])
+        let blue = Int(pixels[offset + 2])
+        let brightest = max(red, green, blue)
+        let darkest = min(red, green, blue)
+        return darkest >= 170 && brightest - darkest <= 36
+    }
+
+    func enqueue(_ index: Int) {
+        guard !outside[index], isEdgeBackground(index) else { return }
+        outside[index] = true
+        queue.append(index)
+    }
+
+    for coordinate in 0..<side {
+        enqueue(coordinate)
+        enqueue((side - 1) * side + coordinate)
+        enqueue(coordinate * side)
+        enqueue(coordinate * side + side - 1)
+    }
+
+    var cursor = 0
+    while cursor < queue.count {
+        let index = queue[cursor]
+        cursor += 1
+        let x = index % side
+        let y = index / side
+        if x > 0 { enqueue(index - 1) }
+        if x + 1 < side { enqueue(index + 1) }
+        if y > 0 { enqueue(index - side) }
+        if y + 1 < side { enqueue(index + side) }
+    }
+
+    for index in queue {
+        let offset = index * 4
+        pixels[offset] = 0
+        pixels[offset + 1] = 0
+        pixels[offset + 2] = 0
+        pixels[offset + 3] = 0
+    }
+
+    guard let image = context.makeImage() else {
+        fatalError("Unable to create Split Signal reference render")
+    }
+    return image
+}
+
+enum SplitSignalMaster {
+    static let image = makeTransparentSplitSignalMaster()
+}
+
+func renderSplitSignalReference(side: Int) -> CGImage {
+    let source = SplitSignalMaster.image
+    let bytesPerRow = side * 4
+    let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue |
+        CGImageAlphaInfo.premultipliedLast.rawValue
+    guard let context = CGContext(
+        data: nil,
+        width: side,
+        height: side,
+        bitsPerComponent: 8,
+        bytesPerRow: bytesPerRow,
+        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: bitmapInfo
+    ) else {
+        fatalError("Unable to create Split Signal output context")
+    }
+
+    context.interpolationQuality = .high
+    context.draw(source, in: CGRect(x: 0, y: 0, width: side, height: side))
+    guard let image = context.makeImage() else {
+        fatalError("Unable to resize Split Signal master")
+    }
+    return image
 }
 
 func renderFullIcon(_ design: IconDesign, side: Int) -> CGImage {
+    if design == .splitSignal {
+        return renderSplitSignalReference(side: side)
+    }
+
     let context = makeContext(side: side)
     withGraphicsContext(context) {
         drawBackground(design)
