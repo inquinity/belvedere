@@ -33,6 +33,11 @@ install *args:
 bundle *args:
     bin/bundle.sh {{ args }}
 
+# Remove local build scratch: ./build and this project's Xcode DerivedData. Keeps ./dist.
+clean:
+    rm -rf build
+    rm -rf "$HOME/Library/Developer/Xcode/DerivedData/md-preview-"*
+
 # Has upstream moved? (read-only)
 check-upstream:
     bin/check-upstream.sh

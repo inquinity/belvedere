@@ -254,8 +254,11 @@ main() {
 
     [[ -d "$built_app" ]] || die "build did not produce $built_app"
 
+    # Start from an empty output dir so renamed or stale bundles never pile up
+    # here (e.g. an old MDView.app from before the rename to Belvedere).
+    [[ -n "$OUTPUT_DIR" && "$OUTPUT_DIR" != "/" ]] || die "unsafe OUTPUT_DIR: '$OUTPUT_DIR'"
+    rm -rf "$OUTPUT_DIR"
     mkdir -p "$OUTPUT_DIR"
-    rm -rf "$output_app"
     cp -R "$built_app" "$output_app"
     [[ -d "$appex_path" ]] || die "build did not embed $appex_path"
 
