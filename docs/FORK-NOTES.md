@@ -766,7 +766,8 @@ through them, and if they decline it becomes a fork feature.
 standard panel from the app menu and the in-app pane. Two lines there are not
 decoration:
 
-> Never connects on its own. Remote content stays blocked until you allow it.
+> Belvedere never connects on its own.
+> Remote content stays blocked until you allow it.
 
 Those are the two guarantees from *What upstream sends over the network*, split
 deliberately. The first is about the app (stubbed reporters, excised updater);

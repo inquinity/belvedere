@@ -106,7 +106,7 @@ final class ForkPostureTests: XCTestCase {
     func testAboutBoxStillMakesTheNoNetworkClaim() throws {
         let source = try text(at: "md-preview/App/AboutCopy.swift")
         XCTAssertTrue(
-            source.contains("Never connects on its own."),
+            source.contains("never connects on its own."),
             """
             The About box no longer claims the app never connects on its own. \
             If that is because the app gained an outbound connection, this test \

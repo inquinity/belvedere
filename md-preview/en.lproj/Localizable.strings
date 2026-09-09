@@ -32,7 +32,8 @@
 "Markdown Preview" = "Belvedere";
 "Version %@" = "Version %@";
 "A security-centric Markdown viewer, with editing and printing." = "A security-centric Markdown viewer, with editing and printing.";
-"Never connects on its own. Remote content stays blocked until you allow it." = "Never connects on its own. Remote content stays blocked until you allow it.";
+"A security-centric Markdown viewer,\nwith editing and printing." = "A security-centric Markdown viewer,\nwith editing and printing.";
+"Markdown Preview never connects on its own.\nRemote content stays blocked until you allow it." = "Belvedere never connects on its own.\nRemote content stays blocked until you allow it.";
 "A fork of pluk-inc/markdown-preview" = "A fork of pluk-inc/markdown-preview";
 "Check for Updates" = "Check for Updates";
 "Automatically check for updates" = "Automatically check for updates";

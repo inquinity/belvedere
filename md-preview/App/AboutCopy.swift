@@ -46,6 +46,18 @@ enum AboutCopy {
         L("A security-centric Markdown viewer, with editing and printing.")
     }
 
+    /// The same sentence with an explicit break, for the standard About panel.
+    ///
+    /// The panel is narrow enough that the one-line form wraps mid-clause. The
+    /// break is a separate localized string rather than surgery on `tagline`
+    /// -- splitting at ", with" would work in English and do nothing in
+    /// zh-Hans, which has no such comma -- so a translator places it where the
+    /// sentence actually allows. The in-app pane is wide enough and keeps the
+    /// unbroken form.
+    static var taglineWrapped: String {
+        L("A security-centric Markdown viewer,\nwith editing and printing.")
+    }
+
     /// Two separate guarantees, deliberately not merged into one sentence.
     ///
     /// The first is about the app: the telemetry reporters are stubs and the
@@ -56,8 +68,11 @@ enum AboutCopy {
     /// Neither claim is "the sandbox forbids networking" -- it does not, and
     /// cannot. `com.apple.security.network.client` is required on both targets
     /// or WKWebView renders blank. See docs/FORK-NOTES.md.
+    /// Named rather than starting "Never connects", so the claim is anchored to
+    /// the app on first read. The break is in the string because the two
+    /// sentences are two different guarantees and should not run together.
     static var securitySummary: String {
-        L("Never connects on its own. Remote content stays blocked until you allow it.")
+        L("Markdown Preview never connects on its own.\nRemote content stays blocked until you allow it.")
     }
 
     static let repositoryURL = URL(string: "https://github.com/inquinity/belvedere")!
@@ -77,7 +92,7 @@ enum AboutCopy {
         let credits = NSMutableAttributedString()
 
         credits.append(NSAttributedString(
-            string: tagline + "\n",
+            string: taglineWrapped + "\n",
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .foregroundColor: NSColor.labelColor,
@@ -95,7 +110,7 @@ enum AboutCopy {
         ))
 
         credits.append(NSAttributedString(
-            string: repositoryLabel + "\n",
+            string: repositoryLabel + "\n\n",
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .link: repositoryURL,

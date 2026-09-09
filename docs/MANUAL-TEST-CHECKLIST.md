@@ -122,6 +122,8 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | Version reads `Version 1.1.0`, once | The panel supplies the word "Version" itself. Passing an already-prefixed string renders **"Version Version 1.1.0"** — it did, during this work |
 | No build number | Deliberate. `bin/build.sh` moves `CURRENT_PROJECT_VERSION` in lockstep with `MARKETING_VERSION`, so it carried no information the version did not |
 | Tagline and security line both present | The security line is a **claim about behaviour**. If the app ever connects on its own, or stops blocking remote content by default, the line is false and must change with the code |
+| The tagline breaks after "viewer," in the **menu panel** and runs on one line in **Settings → About** | Deliberate, not a bug. The panel is narrow enough to wrap mid-clause, so it uses its own localized string with the break in it (`taglineWrapped`); the pane is wide enough for the unbroken form |
+| The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
 | Both links open the right repositories | `github.com/inquinity/belvedere` and the upstream fork credit |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
 
