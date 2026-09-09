@@ -49,12 +49,23 @@ One line in `build.sh` (`dmg_path="$DIST_DIR/$APP_NAME-$version.dmg"`, volume na
 unchanged) drops step 5. Requires updating the `dist/Belvedere 1.1.0.dmg` references
 in `FORK-NOTES.md`.
 
-### 4. Release notes come from a required per-version file
+### 4. Release notes come from a required per-version file, accumulated as work lands
 
-The fork keeps no changelog. `gh --generate-notes` is noisy for this commit style.
-`publish-release.sh` requires `docs/release-notes/<v>.md` (one paragraph — the summary
-a `brew` user sees) and passes it as `--notes-file`; it refuses to publish if the file
-is missing.
+The fork keeps no changelog (`CHANGELOG.md` is upstream's and stays untouched so it
+merges clean). `gh --generate-notes` is noisy for this commit style. So:
+
+- **`docs/release-notes/UNRELEASED.md`** is a running list. When a change alters what a
+  `brew`-installed user sees or does, the same commit adds a bullet here — this is the
+  `README.md` / fixture rule from `AGENTS.md` ("documentation that describes behaviour
+  is part of the behaviour") applied to release notes.
+- At release, `UNRELEASED.md` is renamed to **`docs/release-notes/<v>.md`** (a short
+  paragraph plus the bullets) and a fresh stub `UNRELEASED.md` is committed. This can be
+  a step in `bin/publish-release.sh` or done by hand in the release commit.
+- `bin/publish-release.sh` passes `docs/release-notes/<v>.md` as `--notes-file` and
+  refuses to publish if it is missing.
+
+Notes live in **this repo**, not the tap repo — the tap will carry casks for more than
+one app, so per-app release notes don't belong there.
 
 ### 5. `--draft` mode, and dry-run by default
 
@@ -72,7 +83,7 @@ preconditions (fail fast):
   Version.xcconfig MARKETING_VERSION == <v>
   dist/Belvedere-<v>.dmg exists; xcrun stapler validate passes
   tap repo checkout found (--tap-repo, or `brew --repository inquinity/homebrew-tap`) and clean
-  docs/release-notes/<v>.md exists
+  docs/release-notes/<v>.md exists (renamed from UNRELEASED.md in the release commit)
 
 steps (each idempotent — safe to re-run after a mid-way failure):
   1. git push origin main
@@ -99,16 +110,13 @@ stay as history.
 ## Out of scope
 
 - CI-based notarization (needs secret provisioning the fork avoids).
-- The second cask — `publish-release.sh` is Belvedere-specific. Parameterize the cask
-  token, bundle id, and source repo when the second app lands.
-- `AGENTS.md` still says `Version.xcconfig` is bumped by `scripts/release.sh` in one
-  place (line ~105) — stale; it is `build.sh --update`. Fix when touching that file.
+- The second cask — `bin/publish-release.sh` is Belvedere-specific. Parameterize the
+  cask token, bundle id, and source repo when the second app lands.
 
-## Open questions
+## Status of the decisions above
 
-1. Separate `publish-release.sh` vs. `build.sh --publish`? *(recommend: separate)*
-2. Script validates a human commit/tag vs. makes them? *(recommend: validates)*
-3. Rename `package_dmg` output to `Belvedere-<v>.dmg`? *(recommend: yes)*
-4. Release notes: required per-version file vs. `--generate-notes` vs. interactive? *(recommend: required file)*
-5. Notes files under `belvedere/docs/release-notes/` vs. the tap repo?
-6. Default to a dry run that needs `--go`? *(recommend: yes)*
+All six settled (2026-09-09): separate `bin/publish-release.sh`; it validates a human
+release commit rather than making one; `package_dmg` emits `Belvedere-<v>.dmg`;
+release notes are a required per-version file accumulated in `UNRELEASED.md`, kept in
+this repo; default run is a dry run needing `--go`. What remains is writing the script
+and making the `package_dmg` one-line change.
