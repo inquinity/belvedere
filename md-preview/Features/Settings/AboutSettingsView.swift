@@ -49,6 +49,6 @@ struct AboutSettingsView: View {
         let info = Bundle.main.infoDictionary
         let marketing = info?["CFBundleShortVersionString"] as? String ?? "—"
         let build = info?["CFBundleVersion"] as? String ?? "—"
-        return String(format: L("Version %@ (%@)"), marketing, build)
+        return String(format: L("Version %@ build %@"), marketing, build)
     }
 }

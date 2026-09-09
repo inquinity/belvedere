@@ -30,7 +30,8 @@
 "Install…" = "安装…";
 "Adds mdp, md-preview, and markdown-preview to your PATH. Run it again after updating the app to refresh the commands." = "将 mdp、md-preview 和 markdown-preview 添加到 PATH。更新 App 后请再次运行，以刷新这些命令。";
 "Markdown Preview" = "Belvedere";
-"Version %@ (%@)" = "版本 %@（%@）";
+"Version %@ build %@" = "版本 %@ 构建 %@";
+"%@ build %@" = "%@ 构建 %@";
 "Check for Updates" = "检查更新";
 "Automatically check for updates" = "自动检查更新";
 "Automatically download updates" = "自动下载更新";
