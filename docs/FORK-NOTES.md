@@ -871,6 +871,25 @@ the DMG out directly via the corporate share or Dropbox still works as a fallbac
 `docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look
 does not register until the app has been moved to `/Applications` and launched once.
 
+### Installing on the maintainer's own machine
+
+Run **the brew-managed copy**, same as everyone else — `brew install --cask
+inquinity/tap/belvedere`, and after each `just publish --go`,
+`brew update && brew upgrade --cask belvedere` (the command `bin/publish-release.sh`
+prints when it finishes). `/Applications/Belvedere.app` then always reflects a
+*published* release, which is the point of dogfooding: it is exactly what users have.
+
+`just release` does **not** install anything, and it should not. Verifying an
+unpublished build does not need an install — `open build/Belvedere.app`, or mount
+`dist/Belvedere-<v>.dmg`, and test it in place.
+
+The one case that needs `/Applications` is a **Quick Look** change: an extension only
+registers from an app that has been moved there and launched. To test one against an
+unpublished build, `just install` (which also re-runs `qlmanage -r`), then
+`brew reinstall --cask belvedere` to return to the tracked copy. Running `just install`
+/ `bin/install.sh` over a brew-managed `/Applications/Belvedere.app` for any other
+reason just desyncs Homebrew and forces `--force` on the next `brew` operation.
+
 ## License
 
 Upstream is MIT and this fork remains MIT. `LICENSE` is unmodified and upstream's
