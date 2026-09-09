@@ -1,3 +1,24 @@
+> ## ⚠️ This is a fork — Belvedere
+>
+> [`inquinity/belvedere`](https://github.com/inquinity/belvedere) is a fork of
+> [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) that removes the
+> app's outbound network connections (Sentry, PostHog, Sparkle). It ships as **Belvedere**,
+> installed with `brew install --cask inquinity/tap/belvedere`.
+> **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)** is the source of truth for how this repo
+> differs from the text below. In particular:
+>
+> - The **Installation** section is correct for this fork. **Crash reporting**,
+>   **Anonymous usage analytics**, and the Sparkle/Sentry parts of **Building from source**
+>   describe upstream — those integrations are stubbed or excised here.
+> - **Releasing** is `bin/build.sh --release` plus the Homebrew tap
+>   ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)); see
+>   [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md). Upstream's Amore pipeline and
+>   `scripts/release.sh` do not exist here. Fork-authored scripts live in `bin/`, not `scripts/`.
+> - The release/cask **badges** below and the **Special Sponsor** / **Acknowledgments**
+>   sections are upstream's.
+>
+> Everything below this block is upstream's README, preserved as-is.
+
 <h1 align="center">Markdown Preview</h1>
 
 <p align="center">
@@ -96,6 +117,9 @@ UTI: `net.daringfireball.markdown`
 
 ## Building from source
 
+> _This fork: clone `inquinity/belvedere` instead. Swift Package Manager no longer resolves
+> Sparkle or Sentry — both were removed. See the fork banner at the top._
+
 ```sh
 git clone git@github.com:pluk-inc/markdown-preview.git
 cd markdown-preview
@@ -106,17 +130,27 @@ Build and run the `markdown-preview` scheme. Swift Package Manager will resolve 
 
 ### Crash reporting
 
+> _Not this fork: the Sentry integration is stubbed — no crash reports are sent. The section
+> below describes upstream._
+
 Release builds submit native crash reports to the `pluk-inc/markdown-preview` Sentry project. The integration does not collect performance traces, session data, breadcrumbs, network requests, user information, document contents, or file paths. Users can turn reporting off directly from Markdown Preview > Send Anonymous Crash Reports; on later launches, the Sentry SDK will not initialize at all.
 
 The committed DSN is a public client key. Release archives upload the app dSYM with `sentry-cli`; authenticate locally with `sentry-cli login` and keep that authentication token outside the repository.
 
 ### Anonymous usage analytics
 
+> _Not this fork: the PostHog integration is stubbed — no analytics events are sent. The
+> section below describes upstream._
+
 Release builds can submit at most one anonymous `app became active` event per installation per UTC day when Markdown Preview becomes active. The event contains a random installation identifier, app version, macOS major version, processor architecture, locale country or region, and the flag that prevents PostHog from creating a person profile. It is used to count daily and monthly active installations and understand basic platform compatibility. It does not contain document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers. Users can disable it from Settings > Privacy.
 
 The PostHog project token is injected from the gitignored `Secrets.xcconfig`. Copy `Secrets.xcconfig.example` to `Secrets.xcconfig` and set `POSTHOG_PROJECT_TOKEN` before making a release build. If the token is absent, or for a Debug build, analytics remains disabled. Every event disables GeoIP enrichment, and the PostHog project must also be configured to discard IP data in Project Settings > General.
 
 ## Project layout
+
+> _This fork: the fork's own scripts are in `bin/` (`build.sh`, `build-release.sh`,
+> `publish-release.sh`, …); `scripts/` holds only upstream tooling, and there is no
+> `appcast.xml`. See the fork banner._
 
 ```
 md-preview/         Main app target (AppKit, WKWebView)
@@ -127,6 +161,11 @@ appcast.xml         Sparkle update feed
 ```
 
 ## Releasing
+
+> _Not this fork. Releases here are `bin/build.sh --release` plus the Homebrew tap —
+> see [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md). Amore, `appcast.xml`,
+> `scripts/release.sh` and `scripts/rollback-release.sh` do not exist in this fork. The
+> section below describes upstream._
 
 Releases are driven by [Amore](http://amore.computer/) — it handles building, code signing, notarization, DMG creation, S3 upload, and Sparkle appcast publishing in one shot.
 
