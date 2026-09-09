@@ -186,8 +186,12 @@ create_release() {
     print_colored "$COLOR_GREEN" "  sha256($(basename "$dmg")) = $sha"
 
     if gh release view "$tag" --repo "$TAP_SLUG" >/dev/null 2>&1; then
-        print_colored "$COLOR_YELLOW" "* Release $tag exists -- re-uploading the asset"
+        print_colored "$COLOR_YELLOW" "* Release $tag exists -- re-uploading the asset and refreshing its notes"
         run gh release upload "$tag" "$dmg" --repo "$TAP_SLUG" --clobber
+        # The notes are refreshed too. Uploading with --clobber replaces only
+        # the asset, so without this a re-publish leaves the release page
+        # describing the artifact it used to carry.
+        run gh release edit "$tag" --repo "$TAP_SLUG" --notes-file "$notes"
     else
         print_colored "$COLOR_BRIGHTYELLOW" "* Creating GitHub Release $tag on $TAP_SLUG"
         local args=(release create "$tag" "$dmg"
