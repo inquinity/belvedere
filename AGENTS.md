@@ -7,7 +7,7 @@
 > **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)** first — it is the source of truth for how
 > this repository differs from the document below.
 >
-> - **Releases go through `scripts/build.sh --release`.** It builds, signs, notarizes
+> - **Releases go through `bin/build.sh --release`.** It builds, signs, notarizes
 >   and packages a DMG into `dist/`, with no `CHANGELOG.md` requirement, and composes
 >   with `--update` to bump the version first. Upstream's `release.sh`,
 >   `rollback-release.sh` and the whole Amore pipeline drove *their* account and have
@@ -19,7 +19,7 @@
 >   `45GJWJVQN2` — that change is deliberate, and reverting it to match the text below
 >   would break signing here. The surrounding warning still applies: never let Xcode
 >   silently rewrite it to some *other* team.
-> - **`Version.xcconfig` is bumped by `scripts/build.sh --update`**, not by
+> - **`Version.xcconfig` is bumped by `bin/build.sh --update`**, not by
 >   `scripts/release.sh`, which no longer exists. The fork versions on its own `1.0.x`
 >   line, independent of upstream's `0.0.x`.
 > - **Sparkle is excised**, so the EdDSA key, the notary-profile pairing, `SUPublicEDKey`
@@ -31,6 +31,11 @@
 > - **The "No git remote yet" known issue below is stale here.** This fork has `origin`
 >   (inquinity) and `upstream` (pluk-inc).
 > - Sync with `git merge upstream/main`. **Never rebase `main`** — it is published.
+> - **Fork-authored scripts live in `bin/`** (`build.sh`, `build-release.sh`,
+>   `install.sh`, `bundle.sh`, `check-upstream.sh`, `show-private-changes.sh`,
+>   `make-icon.swift`). `scripts/` now holds only upstream's tooling, so
+>   `git merge upstream/main` never touches `bin/`. Wherever the text below says
+>   `scripts/<one of those>`, read `bin/`.
 >
 > Everything after this block is upstream's documentation, preserved as-is.
 

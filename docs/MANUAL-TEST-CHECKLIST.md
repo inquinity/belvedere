@@ -48,8 +48,8 @@ behaviour rather than as notes about it.
 ## Before you start
 
 ```bash
-./scripts/build.sh
-SOURCE_APP=build/Belvedere.app ./scripts/install.sh   # required for Quick Look to register
+./bin/build.sh
+SOURCE_APP=build/Belvedere.app ./bin/install.sh   # required for Quick Look to register
 qlmanage -r && qlmanage -r cache
 ```
 

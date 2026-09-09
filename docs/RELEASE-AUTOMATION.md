@@ -9,7 +9,7 @@ Everything after the DMG is hand-run:
 
 | # | Step | Tool |
 |---|---|---|
-| 1 | Bump `Version.xcconfig`, build, sign, notarize, staple → `dist/Belvedere <v>.dmg` | `./scripts/build.sh --release --update <seg>` |
+| 1 | Bump `Version.xcconfig`, build, sign, notarize, staple → `dist/Belvedere <v>.dmg` | `./bin/build.sh --release --update <seg>` |
 | 2 | Update docs where a claim goes stale (`FORK-NOTES.md` milestones, `README.md`) | manual |
 | 3 | `git commit -m "Release <v> build <n>"`, `git tag -a v<v>` | manual |
 | 4 | `git push origin main && git push origin v<v>` | manual |
@@ -22,7 +22,7 @@ Goal: steps 4–7 collapse into one re-runnable command. Steps 1–3 and 8 stay 
 
 ## Key decisions
 
-### 1. A separate `scripts/publish-release.sh`, not a `build.sh` flag
+### 1. A separate `bin/publish-release.sh`, not a `build.sh` flag
 
 `build.sh`'s scope is "build locally". Publishing is a different concern and has to be
 independently re-runnable when step 6 succeeds but step 7 fails. `build.sh --release`
@@ -63,7 +63,7 @@ Promote later once the build is checked on a second Mac (the QA step `FORK-NOTES
 still wants). The default run is a dry run that prints every command and mutates
 nothing; `--go` makes it act.
 
-## `scripts/publish-release.sh` sketch
+## `bin/publish-release.sh` sketch
 
 ```
 preconditions (fail fast):

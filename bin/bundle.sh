@@ -59,7 +59,7 @@ read_xcconfig() {
 main() {
     parse_arguments "$@"
 
-    [[ -d "$SOURCE_APP" ]] || die "no build at $SOURCE_APP -- run scripts/build.sh first"
+    [[ -d "$SOURCE_APP" ]] || die "no build at $SOURCE_APP -- run bin/build.sh first"
     [[ -f "$VERSION_CONFIG" ]] || die "missing $VERSION_CONFIG"
 
     local version

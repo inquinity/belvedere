@@ -7,9 +7,9 @@ import Foundation
 // deterministic AppKit drawing for the public markdown-preview project. Run
 // from the repository root:
 //
-//   swift scripts/make-icon.swift
-//   swift scripts/make-icon.swift --install-mdview
-//   swift scripts/make-icon.swift --install-rendered-fold
+//   swift bin/make-icon.swift
+//   swift bin/make-icon.swift --install-mdview
+//   swift bin/make-icon.swift --install-rendered-fold
 //
 // Both families are generated every run; the --install flags choose which one
 // is copied into md-preview/AppIcon.icon. Rendered Fold is installable because
@@ -52,7 +52,7 @@ func parseOptions() -> Options {
             options.outputRoot = arguments.removeFirst()
         case "--help", "-h":
             print("""
-            Usage: swift scripts/make-icon.swift [--output-root PATH] \
+            Usage: swift bin/make-icon.swift [--output-root PATH] \
             [--install-mdview | --install-rendered-fold]
             """)
             exit(0)

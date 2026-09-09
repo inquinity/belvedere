@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Build Belvedere locally for development and testing.
 #
-# Lighter-weight than scripts/build-release.sh: no archive step -- compiles
+# Lighter-weight than bin/build-release.sh: no archive step -- compiles
 # with signing disabled, then signs it ourselves -- with the Developer ID
 # identity and notarization if those credentials are already in the keychain,
 # or an ad-hoc signature otherwise so the app still runs on this machine.
@@ -61,7 +61,7 @@ usage() {
     printf '%s\n' '                          unlike a plain build, this does not fall'
     printf '%s\n' '                          back to an ad-hoc signature. No'
     printf '%s\n' '                          CHANGELOG.md entry is required, unlike'
-    printf '%s\n' '                          scripts/build-release.sh.'
+    printf '%s\n' '                          bin/build-release.sh.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Notarization:${COLOR_RESET}"
     printf '%s\n' '  Signs with the Developer ID identity and notarizes if both'
@@ -169,7 +169,7 @@ sign_component() {
 }
 
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
-# someone else. Mirrors scripts/build-release.sh's DMG steps -- starting from
+# someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
 # the app this script already built rather than re-archiving, since there is
 # no separate release build to keep in sync.
 #

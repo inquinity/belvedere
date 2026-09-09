@@ -73,7 +73,7 @@ asked to review.
 ### Syncing with upstream
 
 ```bash
-./scripts/check-upstream.sh          # read-only: has upstream moved?
+./bin/check-upstream.sh              # read-only: has upstream moved?
 git fetch upstream
 git merge upstream/main              # merge, never rebase
 ```
@@ -103,9 +103,9 @@ done to the base project.
 ### Reviewing what this fork changes
 
 ```bash
-./scripts/show-private-changes.sh --stat     # summary
-./scripts/show-private-changes.sh            # full diff
-./scripts/show-private-changes.sh --commits  # commit log
+./bin/show-private-changes.sh --stat     # summary
+./bin/show-private-changes.sh            # full diff
+./bin/show-private-changes.sh --commits  # commit log
 ```
 
 This is the authoritative answer, independent of branch structure. Both scripts are
@@ -168,7 +168,7 @@ Those are product decisions, not defects, and filing them would be noise.
 | **M3** | Deprivileging | Stub Sentry + PostHog; excise Sparkle; orphan CLI installer; collapse Privacy pane; drop `network.client` and test Quick Look | ✅ done |
 | **M3b** | *Conditional* | Quick Look CSP — the extension does need `network.client`, so the page blocks remote content instead | ✅ done |
 | **M4** | Containment | `md-asset:` confinement — submitted upstream as [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) and **carried on this fork ahead of that merge** (cherry-pick of `cb6ae07`) | ✅ shipping here; still open upstream — see below |
-| **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal / Geometric B, regenerate with `swift scripts/make-icon.swift --install-mdview` |
+| **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal / Geometric B, regenerate with `swift bin/make-icon.swift --install-mdview` |
 | **M5** | Distribution | Notarize (✅ `dist/Belvedere 1.1.0.dmg`), verify on a second Mac (✅ passed on an earlier build), distribute via the public Homebrew tap (✅ `inquinity/homebrew-tap`, from 1.1.0); corporate share / Dropbox stays as a fallback | ✅ done |
 
 ## Backlog
@@ -292,7 +292,7 @@ bring back the Dock collision `Belvedere` exists to prevent. Concept 1 is alread
 full production family in `artwork/app-icons/rendered-fold/`, so the switch is:
 
 ```bash
-swift scripts/make-icon.swift --install-rendered-fold
+swift bin/make-icon.swift --install-rendered-fold
 ```
 
 plus a rebuild. That flag was added for exactly this contingency — the installer
@@ -349,7 +349,7 @@ the three source grooves, while the custom disconnected B identifies Belvedere i
 two-thirds of the rendered pane. The same light shows through the central split, the right
 ends of the grooves, and the B; it is not a flat gold seam painted between them.
 
-`swift scripts/make-icon.swift --install-mdview` regenerates the installed layer. The
+`swift bin/make-icon.swift --install-mdview` regenerates the installed layer. The
 script resamples Belvedere from its approved checked-in master and draws the public
 Rendered Fold set with deterministic AppKit paths. It produces conventional 16–1024 px
 iconsets, compiled ICNS files, and flattened previews under `artwork/app-icons/`.
@@ -506,7 +506,7 @@ The rename touched 22 files. The parts that are easy to miss, and were all cover
 `PRODUCT_NAME` for both configurations, four bundle identifiers, the app group in both
 entitlements files, the exported and declared UTIs in both `Info.plist` files, the display
 name in `Localizable.strings` and `MainMenu.strings` for both locales, `MainMenu.xib`
-itself, every `scripts/*.sh` that names the built app, and the identifier assertion in
+itself, every fork build script that names the built app, and the identifier assertion in
 `ForkPostureTests`. Both `.strings` files kept their exact line counts, which is the check
 that matters after the earlier incident where a regex joined entries by dropping
 newlines.
@@ -837,7 +837,7 @@ bug that the app window cannot have.
 No Sparkle means no automatic updates. Builds are published to a public Homebrew tap:
 `brew install --cask inquinity/tap/belvedere` (repo
 [`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)). The DMG that
-`scripts/build.sh --release` produces is uploaded as a GitHub Release on the tap repo,
+`bin/build.sh --release` produces is uploaded as a GitHub Release on the tap repo,
 and the cask points at it; the tap is public so no token is needed to install. Handing
 the DMG out directly via the corporate share or Dropbox still works as a fallback. See
 `docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look

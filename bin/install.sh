@@ -55,7 +55,7 @@ parse_arguments() {
 main() {
     parse_arguments "$@"
 
-    [[ -d "$SOURCE_APP" ]] || die "no build at $SOURCE_APP -- run scripts/build.sh first"
+    [[ -d "$SOURCE_APP" ]] || die "no build at $SOURCE_APP -- run bin/build.sh first"
 
     local target_app="$INSTALL_DIR/$APP_NAME.app"
 
