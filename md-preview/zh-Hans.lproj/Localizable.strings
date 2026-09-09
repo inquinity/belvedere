@@ -34,7 +34,7 @@
 "A security-centric Markdown viewer, with editing and printing." = "一款以安全为核心的 Markdown 阅读器，支持编辑与打印。";
 "A security-centric Markdown viewer,\nwith editing and printing." = "一款以安全为核心的 Markdown 阅读器，\n支持编辑与打印。";
 "Markdown Preview never connects on its own.\nRemote content stays blocked until you allow it." = "Belvedere 绝不自行联网。\n远程内容在您允许之前始终被阻止。";
-"A fork of pluk-inc/markdown-preview" = "pluk-inc/markdown-preview 的分支";
+"Forked from pluk-inc/markdown-preview" = "复刻自 pluk-inc/markdown-preview";
 "Check for Updates" = "检查更新";
 "Automatically check for updates" = "自动检查更新";
 "Automatically download updates" = "自动下载更新";

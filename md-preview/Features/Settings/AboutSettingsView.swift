@@ -47,9 +47,13 @@ struct AboutSettingsView: View {
 
             }
 
+            // The fork credit is a section footer rather than a second row:
+            // it is attribution, not somewhere to go. See AboutCopy.forkCredit.
             Section {
                 Link(AboutCopy.repositoryLabel, destination: AboutCopy.repositoryURL)
-                Link(AboutCopy.forkCredit, destination: AboutCopy.upstreamURL)
+            } footer: {
+                Text(AboutCopy.forkCredit)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

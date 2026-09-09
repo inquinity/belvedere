@@ -124,7 +124,8 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | Tagline and security line both present | The security line is a **claim about behaviour**. If the app ever connects on its own, or stops blocking remote content by default, the line is false and must change with the code |
 | The tagline breaks after "viewer," in the **menu panel** and runs on one line in **Settings → About** | Deliberate, not a bug. The panel is narrow enough to wrap mid-clause, so it uses its own localized string with the break in it (`taglineWrapped`); the pane is wide enough for the unbroken form |
 | The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
-| Both links open the right repositories | `github.com/inquinity/belvedere` and the upstream fork credit |
+| The repository link opens `github.com/inquinity/belvedere` | The only link in the box |
+| "Forked from pluk-inc/markdown-preview" is **not** clickable | Deliberate. It is attribution, not navigation — this is our app, and upstream is reachable from our repository. A repo slug is not a URL, so nothing on screen looks like a link that fails to behave as one |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
 
 ## 3. Surfaces
