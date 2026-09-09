@@ -13,22 +13,34 @@ struct AboutSettingsView: View {
     var body: some View {
         Form {
             Section {
-                HStack(spacing: 16) {
+                HStack(alignment: .top, spacing: 16) {
                     if let appIcon = NSApplication.shared.applicationIconImage {
                         Image(nsImage: appIcon)
                             .resizable()
                             .frame(width: 64, height: 64)
                     }
 
+                    // Copy is shared with the standard About panel
+                    // (AppDelegate.showAboutPanel) via AboutCopy, so the two
+                    // surfaces cannot drift apart.
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(L("Markdown Preview"))
+                        Text(AboutCopy.applicationName)
                             .font(.title)
                             .fontWeight(.medium)
 
-                        Text(versionSummary)
+                        Text(AboutCopy.versionSummary)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
+
+                        Text(AboutCopy.tagline)
+                            .font(.subheadline)
+                            .padding(.top, 4)
+
+                        Text(AboutCopy.securitySummary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding(.vertical, 8)
@@ -36,19 +48,13 @@ struct AboutSettingsView: View {
             }
 
             Section {
-                Link(L("GitHub Project"), destination: URL(string: "https://github.com/inquinity/belvedere")!)
+                Link(AboutCopy.repositoryLabel, destination: AboutCopy.repositoryURL)
+                Link(AboutCopy.forkCredit, destination: AboutCopy.upstreamURL)
             }
         }
         .formStyle(.grouped)
         .onAppear {
             model.refreshFromExternalSources()
         }
-    }
-
-    private var versionSummary: String {
-        let info = Bundle.main.infoDictionary
-        let marketing = info?["CFBundleShortVersionString"] as? String ?? "—"
-        let build = info?["CFBundleVersion"] as? String ?? "—"
-        return String(format: L("Version %@ build %@"), marketing, build)
     }
 }

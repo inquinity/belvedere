@@ -30,8 +30,10 @@
 "Install…" = "安装…";
 "Adds mdp, md-preview, and markdown-preview to your PATH. Run it again after updating the app to refresh the commands." = "将 mdp、md-preview 和 markdown-preview 添加到 PATH。更新 App 后请再次运行，以刷新这些命令。";
 "Markdown Preview" = "Belvedere";
-"Version %@ build %@" = "版本 %@ 构建 %@";
-"%@ build %@" = "%@ 构建 %@";
+"Version %@" = "版本 %@";
+"A security-centric Markdown viewer, with editing and printing." = "一款以安全为核心的 Markdown 阅读器，支持编辑与打印。";
+"Never connects on its own. Remote content stays blocked until you allow it." = "绝不自行联网。远程内容在您允许之前始终被阻止。";
+"A fork of pluk-inc/markdown-preview" = "pluk-inc/markdown-preview 的分支";
 "Check for Updates" = "检查更新";
 "Automatically check for updates" = "自动检查更新";
 "Automatically download updates" = "自动下载更新";

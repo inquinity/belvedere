@@ -111,6 +111,20 @@ from "failed to connect", and it is worth doing when the CSP changes.
 | `samples/rtl-test.md` | Right-to-left text lays out correctly | |
 | `samples/toml-frontmatter.md` | Frontmatter handled, not dumped as body text | |
 
+## 2b. The About box
+
+Two surfaces, and they must agree — the app menu's **About Belvedere** panel and
+**Settings → About**. `AboutCopy` is shared between them so they cannot drift,
+but the panel and the SwiftUI pane lay it out independently, so look at both.
+
+| Check | Why |
+|---|---|
+| Version reads `Version 1.1.0`, once | The panel supplies the word "Version" itself. Passing an already-prefixed string renders **"Version Version 1.1.0"** — it did, during this work |
+| No build number | Deliberate. `bin/build.sh` moves `CURRENT_PROJECT_VERSION` in lockstep with `MARKETING_VERSION`, so it carried no information the version did not |
+| Tagline and security line both present | The security line is a **claim about behaviour**. If the app ever connects on its own, or stops blocking remote content by default, the line is false and must change with the code |
+| Both links open the right repositories | `github.com/inquinity/belvedere` and the upstream fork credit |
+| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
+
 ## 3. Surfaces
 
 Check each sample in the surface it matters for:

@@ -1,0 +1,118 @@
+//
+//  AboutCopy.swift
+//  md-preview
+//
+
+import AppKit
+
+/// The text shown in both About surfaces -- the standard panel from the app
+/// menu (`AppDelegate.showAboutPanel`) and the in-app pane
+/// (`AboutSettingsView`). They are kept identical on purpose, so the copy lives
+/// here rather than in either one.
+///
+/// **These lines make claims about behaviour, so they are behaviour.** If the
+/// app ever gains an outbound connection of its own, or stops blocking remote
+/// content by default, `securitySummary` becomes false and must change in the
+/// same commit. `ForkPostureTests` guards the code those claims rest on.
+///
+/// Fork-only: upstream's About box carries neither the tagline nor the
+/// security line, and upstream is the thing being forked *from* in
+/// `forkCredit`.
+enum AboutCopy {
+
+    /// Upstream's product name, which the .strings files map to "Belvedere".
+    /// Localizing rather than hardcoding is how the whole rename works.
+    static var applicationName: String { L("Markdown Preview") }
+
+    /// Marketing version only. The build number is deliberately not shown:
+    /// `bin/build.sh` bumps CURRENT_PROJECT_VERSION by exactly one whenever
+    /// MARKETING_VERSION changes and never on its own, so it is a bijection
+    /// with the version and carries no information the version does not.
+    ///
+    /// Bare, with no "Version" prefix: the standard About panel supplies that
+    /// word itself, so a prefixed string there renders as "Version Version
+    /// 1.1.0". The in-app pane has no such label and uses `versionSummary`.
+    static var versionNumber: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    /// The version as its own complete line, for surfaces that do not add a
+    /// label of their own.
+    static var versionSummary: String {
+        String(format: L("Version %@"), versionNumber)
+    }
+
+    static var tagline: String {
+        L("A security-centric Markdown viewer, with editing and printing.")
+    }
+
+    /// Two separate guarantees, deliberately not merged into one sentence.
+    ///
+    /// The first is about the app: the telemetry reporters are stubs and the
+    /// updater is gone, so there is no request to approve. The second is about
+    /// document content: a remote image or script is blocked by the content
+    /// policy until you load it.
+    ///
+    /// Neither claim is "the sandbox forbids networking" -- it does not, and
+    /// cannot. `com.apple.security.network.client` is required on both targets
+    /// or WKWebView renders blank. See docs/FORK-NOTES.md.
+    static var securitySummary: String {
+        L("Never connects on its own. Remote content stays blocked until you allow it.")
+    }
+
+    static let repositoryURL = URL(string: "https://github.com/inquinity/belvedere")!
+    static let upstreamURL = URL(string: "https://github.com/pluk-inc/markdown-preview")!
+
+    static var repositoryLabel: String { "github.com/inquinity/belvedere" }
+    static var forkCredit: String { L("A fork of pluk-inc/markdown-preview") }
+
+    /// The `.credits` value for the standard About panel, which renders it
+    /// below the version. Links are live: the field is backed by a text view
+    /// that honours `.link`.
+    static func creditsAttributedString() -> NSAttributedString {
+        let centred = NSMutableParagraphStyle()
+        centred.alignment = .center
+        centred.lineSpacing = 2
+
+        let credits = NSMutableAttributedString()
+
+        credits.append(NSAttributedString(
+            string: tagline + "\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: centred,
+            ]
+        ))
+
+        credits.append(NSAttributedString(
+            string: "\n" + securitySummary + "\n\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .paragraphStyle: centred,
+            ]
+        ))
+
+        credits.append(NSAttributedString(
+            string: repositoryLabel + "\n",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .link: repositoryURL,
+                .paragraphStyle: centred,
+            ]
+        ))
+
+        credits.append(NSAttributedString(
+            string: forkCredit,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .link: upstreamURL,
+                .paragraphStyle: centred,
+            ]
+        ))
+
+        return credits
+    }
+}
