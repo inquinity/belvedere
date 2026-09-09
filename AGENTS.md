@@ -36,6 +36,11 @@
 >   `make-icon.swift`, `publish-release.sh`, `ver`, `build-num`). `scripts/` now holds
 >   only upstream's tooling, so `git merge upstream/main` never touches `bin/`. Wherever
 >   the text below says `scripts/<one of those>`, read `bin/`.
+> - **The Project facts table below is upstream's and is wrong here.** The bundle id
+>   is `com.altmansoftwaredesign.belvedere`, the product name is `Belvedere`, there is
+>   no Sparkle auto-updater, and distribution is a Homebrew cask
+>   (`inquinity/tap/belvedere`), not Amore. The scheme, Quick Look target and minimum
+>   macOS are still correct.
 > - **Fork tasks run through `just`** (`brew install just`; `just --list`). The recipes
 >   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
 >   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.

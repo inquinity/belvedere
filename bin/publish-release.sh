@@ -211,17 +211,32 @@ bump_cask() {
 
     # Decide from the tap repo's committed state, so a re-run after a successful
     # commit skips cleanly while a re-run after a failed commit still bumps.
-    if git -C "$tap_repo" show "HEAD:$cask_rel" 2>/dev/null \
-        | grep -q "^  version \"$version\"\$"; then
-        print_colored "$COLOR_YELLOW" "* Cask already at $version on HEAD -- not re-bumping"
+    #
+    # Both the version AND the checksum have to match to skip. Testing the
+    # version alone was wrong: re-cutting an existing version -- a rebuilt
+    # artifact under the same number -- left the cask pointing at the previous
+    # DMG's sha256, so every `brew install --cask` failed with a checksum
+    # mismatch while the release itself looked fine.
+    local committed
+    committed="$(git -C "$tap_repo" show "HEAD:$cask_rel" 2>/dev/null || true)"
+    if grep -q "^  version \"$version\"\$" <<<"$committed" \
+        && grep -q "^  sha256 \"$cask_sha\"\$" <<<"$committed"; then
+        print_colored "$COLOR_YELLOW" "* Cask already at $version with this checksum -- not re-bumping"
     else
-        print_colored "$COLOR_BRIGHTYELLOW" "* Bumping $CASK_TOKEN cask to $version in $tap_repo"
+        local message="$CASK_TOKEN $version"
+        if grep -q "^  version \"$version\"\$" <<<"$committed"; then
+            message="$CASK_TOKEN $version (rebuilt artifact)"
+            print_colored "$COLOR_BRIGHTYELLOW" \
+                "* Cask is at $version already, but the checksum changed -- re-pointing it"
+        else
+            print_colored "$COLOR_BRIGHTYELLOW" "* Bumping $CASK_TOKEN cask to $version in $tap_repo"
+        fi
         run sed -i '' -E \
             -e "s|^  version \".*\"\$|  version \"$version\"|" \
             -e "s|^  sha256 \".*\"\$|  sha256 \"$cask_sha\"|" \
             "$tap_repo/$cask_rel"
         run git -C "$tap_repo" add "$cask_rel"
-        run git -C "$tap_repo" commit -m "$CASK_TOKEN $version"
+        run git -C "$tap_repo" commit -m "$message"
     fi
 
     # Always attempt the push: a no-op when the tap is already in sync, and the

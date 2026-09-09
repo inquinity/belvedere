@@ -122,7 +122,24 @@ Check each sample in the surface it matters for:
   just on screen
 - **Editor** — open, type, save
 
-## 4. Release build
+## 4. The About box
+
+Two surfaces, and they must agree — the app menu's **About Belvedere** panel and
+**Settings → About**. `AboutCopy` is shared between them so they cannot drift,
+but the panel and the SwiftUI pane lay it out independently, so look at both.
+
+| Check | Why |
+|---|---|
+| Version reads `Version 1.1.0`, once | The panel supplies the word "Version" itself. Passing an already-prefixed string renders **"Version Version 1.1.0"** — it did, during this work |
+| No build number | Deliberate. `bin/build.sh` moves `CURRENT_PROJECT_VERSION` in lockstep with `MARKETING_VERSION`, so it carried no information the version did not |
+| Tagline and security line both present | The security line is a **claim about behaviour**. If the app ever connects on its own, or stops blocking remote content by default, the line is false and must change with the code |
+| The tagline breaks after "viewer," in the **menu panel** and runs on one line in **Settings → About** | Deliberate, not a bug. The panel is narrow enough to wrap mid-clause, so it uses its own localized string with the break in it (`taglineWrapped`); the pane is wide enough for the unbroken form |
+| The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
+| The repository link opens `github.com/inquinity/belvedere` | The only link in the box |
+| "Forked from pluk-inc/markdown-preview" is **not** clickable | Deliberate. It is attribution, not navigation — this is our app, and upstream is reachable from our repository. A repo slug is not a URL, so nothing on screen looks like a link that fails to behave as one |
+| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
+
+## 5. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
 

@@ -269,9 +269,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// AppKit's stock About panel formats the version as "1.1.0 (8)". This fork
-    /// shows "Version 1.1.0 build 8" instead, matching the in-app About pane
+    /// shows "Version 1.1.0" instead, matching the in-app About pane
     /// (AboutSettingsView). Passing an empty `.applicationVersion` suppresses the
     /// parenthetical build that AppKit would otherwise append.
+    ///
+    /// The copy below the version comes from AboutCopy, shared with that pane so
+    /// the two cannot drift.
     private func installAboutMenuItem() {
         guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
               let about = appMenu.items.first(where: {
@@ -282,12 +285,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showAboutPanel(_ sender: Any?) {
-        let info = Bundle.main.infoDictionary
-        let marketing = info?["CFBundleShortVersionString"] as? String ?? "—"
-        let build = info?["CFBundleVersion"] as? String ?? "—"
         NSApp.orderFrontStandardAboutPanel(options: [
-            .version: String(format: L("%@ build %@"), marketing, build),
+            .version: AboutCopy.versionNumber,
             .applicationVersion: "",
+            .credits: AboutCopy.creditsAttributedString(),
         ])
     }
 

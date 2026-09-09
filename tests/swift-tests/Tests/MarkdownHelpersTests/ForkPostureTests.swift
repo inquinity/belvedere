@@ -95,6 +95,31 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    /// The About box tells the user the app never connects on its own. That
+    /// claim rests on the two reporters above being stubs and the updater being
+    /// gone, so the claim and the code that makes it true are asserted together.
+    ///
+    /// If a merge ever restores telemetry, `testTelemetryReportersRemainStubs`
+    /// fails first. This test exists for the opposite direction: it fails if the
+    /// claim is quietly softened or deleted while the posture still holds, and
+    /// it names the file to edit if the posture ever legitimately changes.
+    func testAboutBoxStillMakesTheNoNetworkClaim() throws {
+        let source = try text(at: "md-preview/App/AboutCopy.swift")
+        XCTAssertTrue(
+            source.contains("never connects on its own."),
+            """
+            The About box no longer claims the app never connects on its own. \
+            If that is because the app gained an outbound connection, this test \
+            is the least of it. If the wording simply changed, update the string \
+            here and in both Localizable.strings files.
+            """
+        )
+        XCTAssertTrue(
+            source.contains("Remote content stays blocked until you allow it."),
+            "The About box no longer states that remote content is blocked by default."
+        )
+    }
+
     // MARK: - Identity
 
     func testBundleIdentityIsOursAndNotUpstreams() throws {

@@ -760,6 +760,34 @@ a per-host decision, which is a different axis and not part of either item.
 proposed upstream as the middle of three layers on #337; if they take it, it arrives
 through them, and if they decline it becomes a fork feature.
 
+## The About box states the fork's posture
+
+`md-preview/App/AboutCopy.swift` holds the copy for both About surfaces — the
+standard panel from the app menu and the in-app pane. Two lines there are not
+decoration:
+
+> Belvedere never connects on its own.
+> Remote content stays blocked until you allow it.
+
+Those are the two guarantees from *What upstream sends over the network*, split
+deliberately. The first is about the app (stubbed reporters, excised updater);
+the second is about document content (the content policies, plus click-to-load).
+Neither says the sandbox forbids networking, because it does not and cannot —
+`com.apple.security.network.client` has to stay on both targets.
+
+**This makes the About box part of the grep set** that `AGENTS.md` describes.
+The rule there names `README.md`, `samples/`, `tests/fixtures/` and `docs/`; a
+behavioural claim now also lives in Swift source. `ForkPostureTests`
+`testAboutBoxStillMakesTheNoNetworkClaim` fails if the claim is softened or
+deleted, and `testTelemetryReportersRemainStubs` fails if the posture behind it
+goes away, so the two cannot silently diverge.
+
+The build number is deliberately not shown. `bin/build.sh` bumps
+`CURRENT_PROJECT_VERSION` by exactly one whenever `MARKETING_VERSION` changes
+and never on its own, so across every release it is a bijection with the version
+— `1.0.0`→1 through `1.1.0`→8 — and told the reader nothing the version did not.
+`CFBundleVersion` stays in the plist, since macOS wants it.
+
 ## The Mermaid HUD regression (shipped in 1.0.4 and 1.0.5)
 
 The sanitizer hardening added `button` to `FORBID_TAGS`. `MarkdownHTML+Mermaid`
