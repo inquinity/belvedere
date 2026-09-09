@@ -890,6 +890,24 @@ unpublished build, `just install` (which also re-runs `qlmanage -r`), then
 / `bin/install.sh` over a brew-managed `/Applications/Belvedere.app` for any other
 reason just desyncs Homebrew and forces `--force` on the next `brew` operation.
 
+### Stray app bundles, and `just clean`
+
+Over time a maintainer machine collects several `Belvedere.app` copies, and Spotlight
+shows all of them:
+
+| Where | Keep? |
+|---|---|
+| `/Applications/Belvedere.app` | yes — the brew-managed install (the Caskroom entry is a symlink to it) |
+| `build/Belvedere.app` | no — `bin/build.sh` scratch; it now wipes `build/` at the start of every run |
+| `~/Library/Developer/Xcode/DerivedData/md-preview-*/…/Debug/Belvedere (Dev).app` | no — an Xcode debug build. `Belvedere (Dev)` is the Debug `PRODUCT_NAME` on purpose (`project.pbxproj`), so it never collides with the release app |
+| `~/Library/Developer/Xcode/DerivedData/md-preview-*/…/Release/Belvedere.app` | no — an Xcode release build; nothing tidies DerivedData on its own |
+
+`just clean` removes `build/` and this project's `DerivedData/md-preview-*`, leaving
+`dist/` (the release DMGs) alone. After it runs, Spotlight settles back to the one
+`/Applications` copy once it reindexes. A pre-rename `MDView.app` used to linger in
+`build/` for the same reason — the `rm -rf "$OUTPUT_DIR"` in `bin/build.sh` is what
+stops that now.
+
 ## License
 
 Upstream is MIT and this fork remains MIT. `LICENSE` is unmodified and upstream's
