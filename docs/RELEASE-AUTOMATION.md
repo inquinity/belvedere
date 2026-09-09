@@ -1,7 +1,8 @@
 # Release automation plan — `build.sh --release` → Homebrew tap
 
-Status: **proposed**, not built. This documents the manual flow used for 1.1.0 and
-the script that would replace steps 4–7 of it.
+Status: **implemented** as `bin/publish-release.sh` (dry-run by default). This documents
+the flow it automates — steps 4–7 of the manual sequence used for 1.1.0 — and why each
+decision was made. Its first live `--go` run is pending the next release.
 
 ## Baseline — what is manual today
 
@@ -115,8 +116,8 @@ stay as history.
 
 ## Status of the decisions above
 
-All six settled (2026-09-09): separate `bin/publish-release.sh`; it validates a human
-release commit rather than making one; `package_dmg` emits `Belvedere-<v>.dmg`;
-release notes are a required per-version file accumulated in `UNRELEASED.md`, kept in
-this repo; default run is a dry run needing `--go`. What remains is writing the script
-and making the `package_dmg` one-line change.
+All six settled (2026-09-09) and shipped in `bin/publish-release.sh` +
+`bin/build.sh`: separate `bin/publish-release.sh`; it validates a human release commit
+rather than making one; `package_dmg` emits `Belvedere-<v>.dmg`; release notes are a
+required per-version file accumulated in `UNRELEASED.md`, kept in this repo; default
+run is a dry run needing `--go`. Not yet exercised end to end with `--go`.
