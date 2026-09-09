@@ -1,25 +1,42 @@
-# Release automation plan — `build.sh --release` → Homebrew tap
+# Releasing Belvedere → the Homebrew tap
 
-Status: **implemented** as `bin/publish-release.sh` (dry-run by default). This documents
-the flow it automates — steps 4–7 of the manual sequence used for 1.1.0 — and why each
-decision was made. Its first live `--go` run is pending the next release.
+Both halves are implemented: `just release <seg>` cuts the release locally, and
+`bin/publish-release.sh` (via `just publish`) pushes it out. This documents the flow and
+why each decision was made. The `--go` publish has not yet been exercised end to end.
 
-## Baseline — what is manual today
+## The flow
 
-Everything after the DMG is hand-run:
+```sh
+# 1. Accumulate release notes as you work: add a bullet to
+#    docs/release-notes/UNRELEASED.md in the same commit as any user-visible change.
 
-| # | Step | Tool |
-|---|---|---|
-| 1 | Bump `Version.xcconfig`, build, sign, notarize, staple → `dist/Belvedere <v>.dmg` | `./bin/build.sh --release --update <seg>` |
-| 2 | Update docs where a claim goes stale (`FORK-NOTES.md` milestones, `README.md`) | manual |
-| 3 | `git commit -m "Release <v> build <n>"`, `git tag -a v<v>` | manual |
-| 4 | `git push origin main && git push origin v<v>` | manual |
-| 5 | Copy the DMG to a spaceless `Belvedere-<v>.dmg` | manual |
-| 6 | `gh release create v<v> <dmg> --repo inquinity/homebrew-tap` | manual |
-| 7 | Rewrite `Casks/belvedere.rb` `version` + `sha256`, commit, push (tap repo) | manual |
-| 8 | `brew update && brew upgrade --cask belvedere` to verify | manual |
+# 2. Cut the release. seg is major | minor | revision:
+just release minor
+#    -> bumps Version.xcconfig, builds + notarizes dist/Belvedere-<v>.dmg,
+#       renames UNRELEASED.md to <v>.md, commits "Release <v> build <n>",
+#       tags v<v>, then dry-runs the publish for you to review.
 
-Goal: steps 4–7 collapse into one re-runnable command. Steps 1–3 and 8 stay human.
+# 3. Publish:
+just publish --go
+#    -> pushes main + the tag, creates the GitHub Release on inquinity/homebrew-tap
+#       with the DMG attached, bumps the cask (version + sha256) and pushes it.
+
+# 4. Verify:
+brew update && brew upgrade --cask belvedere
+```
+
+`just release` refuses to run with a dirty working tree — commit or stash anything
+unrelated first, including docs whose claims the release makes stale.
+
+## What `bin/publish-release.sh` does under the hood
+
+| Step | Detail |
+|---|---|
+| push source | `git push origin main`; `git push origin v<v>` (skipped if already on origin) |
+| GitHub Release | `gh release create v<v> dist/Belvedere-<v>.dmg --repo inquinity/homebrew-tap --notes-file docs/release-notes/<v>.md` (`--draft` stages it without a cask bump) |
+| cask bump | rewrite the `version` + `sha256` lines in `<tap>/Casks/belvedere.rb`, commit `belvedere <v>`, push |
+
+Each step is safe to re-run after a mid-way failure. Nothing happens without `--go`.
 
 ## Key decisions
 
@@ -47,8 +64,9 @@ commit, and tag; the script does the mechanical outward steps.
 ### 3. Emit `Belvedere-<v>.dmg` (no space) from `package_dmg` directly
 
 One line in `build.sh` (`dmg_path="$DIST_DIR/$APP_NAME-$version.dmg"`, volume name
-unchanged) drops step 5. Requires updating the `dist/Belvedere 1.1.0.dmg` references
-in `FORK-NOTES.md`.
+unchanged) means `bin/publish-release.sh` uploads the DMG verbatim. `FORK-NOTES.md`'s
+`dist/Belvedere 1.1.0.dmg` mention is left as-is — that is the historical name of the
+1.1.0 artifact, built before this change.
 
 ### 4. Release notes come from a required per-version file, accumulated as work lands
 
@@ -59,9 +77,8 @@ merges clean). `gh --generate-notes` is noisy for this commit style. So:
   `brew`-installed user sees or does, the same commit adds a bullet here — this is the
   `README.md` / fixture rule from `AGENTS.md` ("documentation that describes behaviour
   is part of the behaviour") applied to release notes.
-- At release, `UNRELEASED.md` is renamed to **`docs/release-notes/<v>.md`** (a short
-  paragraph plus the bullets) and a fresh stub `UNRELEASED.md` is committed. This can be
-  a step in `bin/publish-release.sh` or done by hand in the release commit.
+- `just release <seg>` renames `UNRELEASED.md` to **`docs/release-notes/<v>.md`** and
+  commits a fresh stub as part of the release commit.
 - `bin/publish-release.sh` passes `docs/release-notes/<v>.md` as `--notes-file` and
   refuses to publish if it is missing.
 
@@ -75,7 +92,7 @@ Promote later once the build is checked on a second Mac (the QA step `FORK-NOTES
 still wants). The default run is a dry run that prints every command and mutates
 nothing; `--go` makes it act.
 
-## `bin/publish-release.sh` sketch
+## `bin/publish-release.sh` — preconditions and steps
 
 ```
 preconditions (fail fast):

@@ -10,10 +10,11 @@
 > - The **Installation** section is correct for this fork. **Crash reporting**,
 >   **Anonymous usage analytics**, and the Sparkle/Sentry parts of **Building from source**
 >   describe upstream — those integrations are stubbed or excised here.
-> - **Releasing** is `bin/build.sh --release` plus the Homebrew tap
->   ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)); see
+> - **Building and releasing** run through `just` (`brew install just`; `just --list`),
+>   whose recipes wrap the fork's scripts in `bin/` (not `scripts/`). Releasing is
+>   `just release <seg>` then `just publish --go` — see
 >   [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md). Upstream's Amore pipeline and
->   `scripts/release.sh` do not exist here. Fork-authored scripts live in `bin/`, not `scripts/`.
+>   `scripts/release.sh` do not exist here.
 > - The release/cask **badges** below and the **Special Sponsor** / **Acknowledgments**
 >   sections are upstream's.
 >
@@ -117,8 +118,9 @@ UTI: `net.daringfireball.markdown`
 
 ## Building from source
 
-> _This fork: clone `inquinity/belvedere` instead. Swift Package Manager no longer resolves
-> Sparkle or Sentry — both were removed. See the fork banner at the top._
+> _This fork: clone `inquinity/belvedere` instead, and build with `just build`
+> (`brew install just`). Swift Package Manager no longer resolves Sparkle or Sentry —
+> both were removed. See the fork banner at the top._
 
 ```sh
 git clone git@github.com:pluk-inc/markdown-preview.git

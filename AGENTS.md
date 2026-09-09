@@ -33,9 +33,12 @@
 > - Sync with `git merge upstream/main`. **Never rebase `main`** — it is published.
 > - **Fork-authored scripts live in `bin/`** (`build.sh`, `build-release.sh`,
 >   `install.sh`, `bundle.sh`, `check-upstream.sh`, `show-private-changes.sh`,
->   `make-icon.swift`). `scripts/` now holds only upstream's tooling, so
->   `git merge upstream/main` never touches `bin/`. Wherever the text below says
->   `scripts/<one of those>`, read `bin/`.
+>   `make-icon.swift`, `publish-release.sh`, `ver`, `build-num`). `scripts/` now holds
+>   only upstream's tooling, so `git merge upstream/main` never touches `bin/`. Wherever
+>   the text below says `scripts/<one of those>`, read `bin/`.
+> - **Fork tasks run through `just`** (`brew install just`; `just --list`). The recipes
+>   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
+>   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.
 >
 > Everything after this block is upstream's documentation, preserved as-is.
 
