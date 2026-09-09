@@ -106,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installFileExportMenuItems()
         installGoMenu()
         installSettingsMenuItem()
+        installAboutMenuItem()
         installViewMenuItemIcons()
     }
 
@@ -265,6 +266,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let insertIndex = aboutIndex.map { $0 + 1 } ?? 0
         appMenu.insertItem(.separator(), at: insertIndex)
         appMenu.insertItem(item, at: insertIndex + 1)
+    }
+
+    /// AppKit's stock About panel formats the version as "1.1.0 (8)". This fork
+    /// shows "Version 1.1.0 build 8" instead, matching the in-app About pane
+    /// (AboutSettingsView). Passing an empty `.applicationVersion` suppresses the
+    /// parenthetical build that AppKit would otherwise append.
+    private func installAboutMenuItem() {
+        guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
+              let about = appMenu.items.first(where: {
+                  $0.action == #selector(NSApplication.orderFrontStandardAboutPanel(_:))
+              }) else { return }
+        about.action = #selector(showAboutPanel(_:))
+        about.target = self
+    }
+
+    @objc func showAboutPanel(_ sender: Any?) {
+        let info = Bundle.main.infoDictionary
+        let marketing = info?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = info?["CFBundleVersion"] as? String ?? "—"
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .version: String(format: L("%@ build %@"), marketing, build),
+            .applicationVersion: "",
+        ])
     }
 
     @objc func showSettingsWindow(_ sender: Any?) {
