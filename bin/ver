@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Print MARKETING_VERSION from Version.xcconfig (e.g. "1.1.0").
+# The justfile and release tooling read the version through this.
+
+config="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Version.xcconfig"
+version="$(awk -F' *= *' '$1 == "MARKETING_VERSION" { print $2; exit }' "$config")"
+[[ -n "$version" ]] || { printf 'ver: MARKETING_VERSION not found in %s\n' "$config" >&2; exit 1; }
+printf '%s\n' "$version"
