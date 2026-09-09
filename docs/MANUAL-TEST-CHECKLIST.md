@@ -111,7 +111,18 @@ from "failed to connect", and it is worth doing when the CSP changes.
 | `samples/rtl-test.md` | Right-to-left text lays out correctly | |
 | `samples/toml-frontmatter.md` | Frontmatter handled, not dumped as body text | |
 
-## 2b. The About box
+## 3. Surfaces
+
+Check each sample in the surface it matters for:
+
+- **App window** — the main reader
+- **Quick Look** — select the file in Finder, press space. The copy button
+  must not overlap the document text (it had no clearance at all before 1.0.3)
+- **Print / PDF export** — Mermaid and maths must appear in the output, not
+  just on screen
+- **Editor** — open, type, save
+
+## 4. The About box
 
 Two surfaces, and they must agree — the app menu's **About Belvedere** panel and
 **Settings → About**. `AboutCopy` is shared between them so they cannot drift,
@@ -128,18 +139,7 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | "Forked from pluk-inc/markdown-preview" is **not** clickable | Deliberate. It is attribution, not navigation — this is our app, and upstream is reachable from our repository. A repo slug is not a URL, so nothing on screen looks like a link that fails to behave as one |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
 
-## 3. Surfaces
-
-Check each sample in the surface it matters for:
-
-- **App window** — the main reader
-- **Quick Look** — select the file in Finder, press space. The copy button
-  must not overlap the document text (it had no clearance at all before 1.0.3)
-- **Print / PDF export** — Mermaid and maths must appear in the output, not
-  just on screen
-- **Editor** — open, type, save
-
-## 4. Release build
+## 5. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
 
