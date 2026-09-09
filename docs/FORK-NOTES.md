@@ -169,7 +169,7 @@ Those are product decisions, not defects, and filing them would be noise.
 | **M3b** | *Conditional* | Quick Look CSP — the extension does need `network.client`, so the page blocks remote content instead | ✅ done |
 | **M4** | Containment | `md-asset:` confinement — submitted upstream as [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) and **carried on this fork ahead of that merge** (cherry-pick of `cb6ae07`) | ✅ shipping here; still open upstream — see below |
 | **M2b** | Rebranding | Replace the app icon | ✅ done — Split Signal / Geometric B, regenerate with `swift scripts/make-icon.swift --install-mdview` |
-| **M5** | Distribution | Notarize (✅ `dist/Belvedere 1.0.0.dmg`), verify on a second Mac (✅ passed), ship via corporate share or Dropbox (pending — the user's own action, not tool-driven) | **in progress** — one step left |
+| **M5** | Distribution | Notarize (✅ `dist/Belvedere 1.1.0.dmg`), verify on a second Mac (✅ passed on an earlier build), distribute via the public Homebrew tap (✅ `inquinity/homebrew-tap`, from 1.1.0); corporate share / Dropbox stays as a fallback | ✅ done |
 
 ## Backlog
 
@@ -177,7 +177,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 
 | # | Item | Notes |
 |---|---|---|
-| **F1** | Private Homebrew tap (`inquinity/homebrew-tap`) | Explicitly *not* part of M5 — M5 ships by corporate share / Dropbox. A tap is a separate, later distribution channel. |
+| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on the tap repo itself, so no token is needed; source stays private in `inquinity/belvedere`. First published version: 1.1.0. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
 | **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
 | **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. |
@@ -834,10 +834,14 @@ bug that the app window cannot have.
 
 ## Distribution
 
-No Sparkle means no automatic updates: new builds are handed out manually via the
-corporate share or Dropbox. See `docs/INTERNAL-INSTALL.md` for what recipients need to do
-— in particular, Quick Look does not register until the app has been moved to
-`/Applications` and launched once.
+No Sparkle means no automatic updates. Builds are published to a public Homebrew tap:
+`brew install --cask inquinity/tap/belvedere` (repo
+[`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)). The DMG that
+`scripts/build.sh --release` produces is uploaded as a GitHub Release on the tap repo,
+and the cask points at it; the tap is public so no token is needed to install. Handing
+the DMG out directly via the corporate share or Dropbox still works as a fallback. See
+`docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look
+does not register until the app has been moved to `/Applications` and launched once.
 
 ## License
 

@@ -22,13 +22,18 @@
 
 ## Installation
 
-Markdown Preview is available in the official [Homebrew cask repository](https://formulae.brew.sh/cask/markdown-preview):
+This fork ([`inquinity/belvedere`](https://github.com/inquinity/belvedere)) ships as
+**Belvedere** through a public Homebrew tap:
 
 ```sh
-brew install --cask markdown-preview
+brew install --cask inquinity/tap/belvedere
 ```
 
-Or grab the latest signed and notarized DMG from the [Releases](https://github.com/pluk-inc/markdown-preview/releases) page.
+Or grab the latest signed and notarized DMG from the tap's
+[Releases](https://github.com/inquinity/homebrew-tap/releases) page.
+
+> Upstream Markdown Preview is a separate app, available as `brew install --cask
+> markdown-preview` from the [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
 
 ## Screenshots
 
