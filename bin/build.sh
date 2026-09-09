@@ -180,7 +180,9 @@ sign_component() {
 package_dmg() {
     local app_path=$1 version=$2
     local staging_dir="$work_dir/dmg-staging"
-    local dmg_path="$DIST_DIR/$APP_NAME $version.dmg"
+    # No space in the filename: bin/publish-release.sh uploads this verbatim as
+    # the release asset, and the cask URL is cleaner without a %20.
+    local dmg_path="$DIST_DIR/$APP_NAME-$version.dmg"
 
     print_colored "$COLOR_BRIGHTYELLOW" "* Packaging a disk image"
     mkdir -p "$staging_dir" "$DIST_DIR"
