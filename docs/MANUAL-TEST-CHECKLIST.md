@@ -139,7 +139,22 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | "Forked from pluk-inc/markdown-preview" is **not** clickable | Deliberate. It is attribution, not navigation — this is our app, and upstream is reachable from our repository. A repo slug is not a URL, so nothing on screen looks like a link that fails to behave as one |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and fork credit have not been checked by a native reader** |
 
-## 5. Release build
+## 5. Saving and leaving edit mode
+
+From the Save-button work submitted upstream ([PR #379](https://github.com/pluk-inc/markdown-preview/pull/379)), carried here ahead of the merge.
+
+| Check | Why |
+|---|---|
+| The toolbar **Save** button shows the down-arrow icon and the word, dimmed with nothing to save, lit after the first keystroke | It is the unsaved-changes indicator. The icon alone is the Share icon flipped and sits beside Share, so the word is load-bearing |
+| Leaving edit mode (toolbar, ⌘E, Escape) with changes asks **Save / Revert… / Continue**; with no real change it asks nothing | Typing a character and deleting it leaves "Edited" showing, but there is nothing to decide, so no prompt |
+| Escape on that prompt means **Continue**: back to preview, draft kept, file on disk untouched | Escape is itself one of the ways out; pressing it twice must neither lose nor write anything |
+| After Continue, **⌘S** and File › Save… still write the draft | They used to be disabled there — the only way to write the draft was to close the window |
+| Revert… and File › **Revert to Saved** (⌘R) confirm first; on that sheet Return does nothing and Escape cancels | Deliberate: Cancel takes Escape and Revert is marked destructive, so Return can never discard edits |
+| **Save As…** opens a panel pre-filled with the current name and folder; the window follows the new file and the original is untouched | Offered with or without changes. An untitled document gets the same panel as Save |
+| Menu states: Save and Revert to Saved **off** with nothing changed; Save As… **on** for any open document | Revert also stays off for an untitled document — there is nothing on disk to go back to |
+| Settings › General › Editing › *Leave edit mode without asking to save* restores the silent exit | Off by default; takes effect on the next exit without reopening the window |
+
+## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
 

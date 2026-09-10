@@ -143,13 +143,14 @@ merged it stops being our diff to carry:
 
 | Finding | Form | Status |
 |---|---|---|
-| `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) open, awaiting review |
+| `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) open, awaiting review. **Needs an update:** upstream has since added a link context menu (`7ce6cd5`) that calls the resolver without a containment root. The PR does not cover it, so it still merges cleanly and would then fail to compile. Fixed on our `main` in the sync that brought it in |
 | Preview document has no Content-Security-Policy | Issue → PR | **filed** — [#339](https://github.com/pluk-inc/markdown-preview/issues/339), with both working policies and an offer to PR |
 | `ALLOWED_URI_REGEXP` permits `http`/`https` | Issue → PR, after the CSP lands | pending |
 | DOMPurify's KEEP_CONTENT lets form controls survive a forbidden `<form>` | PR | **changes requested** — [PR #369](https://github.com/pluk-inc/markdown-preview/pull/369). Reported publicly rather than by advisory: no exfiltration path, patch attached, and the analysis was already public in this fork's history. Both review findings were correct; see *The Mermaid HUD regression* below |
 | Documentation that describes behaviour goes stale silently | Practice → PR | **submitted** — [PR #368](https://github.com/pluk-inc/markdown-preview/pull/368), open. Their own `README.md` Mermaid claim is the motivating example: it concealed #338 for several releases |
 | App icon too similar to macOS Preview (upstream's own issue) | Artwork offer | **posted** — concept board added to [#276](https://github.com/pluk-inc/markdown-preview/issues/276) on 2026-09-04. Their issue, opened by a user and endorsed by the maintainer, who said he is considering a rename and a distinct identity. Awaiting a pick |
 | Mermaid diagrams do not render in Quick Look, though `README.md` says they do | Issue → PR | ✅ **merged** — [PR #343](https://github.com/pluk-inc/markdown-preview/pull/343) landed as `eddc0d0` and shipped in upstream 0.0.53; [#338](https://github.com/pluk-inc/markdown-preview/issues/338) closed. Their version replaced ours on the next sync |
+| No Save button; leaving edit mode silently keeps unsaved edits; Save As… and Revert to Saved always disabled | Feature request → PR | **submitted** — [issue #378](https://github.com/pluk-inc/markdown-preview/issues/378), [PR #379](https://github.com/pluk-inc/markdown-preview/pull/379), open. Merged into our `main` from the PR branch itself, after syncing with upstream, so the next sync sees the same commit on both sides |
 
 The `md-asset:` finding goes through GitHub's private vulnerability reporting (enabled
 on upstream), **not** a public issue: it describes an unfixed weakness in a shipping app
@@ -184,7 +185,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
 | **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
-| **F10** | ⌘R to reload the open file from disk | The menu item exists and is permanently disabled. Auto-reload already covers the common case; this is the manual override. See below. |
+| **F10** | ⌘R to reload the open file from disk | **Partly done:** Revert to Saved (⌘R) now discards unsaved changes after a confirmation, from the Save-button work. Still missing: re-reading a file with no local changes. See below. |
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
@@ -234,12 +235,19 @@ from "nobody looked", and the difference is invisible six months later.
 **F10 — ⌘R to reload the open file.** Requested as a missing feature; it is really a
 half-present one.
 
+**Update — partly done.** The Save-button work submitted upstream ([PR #379](https://github.com/pluk-inc/markdown-preview/pull/379), already on
+our `main`) took the first option described below: it implements `revertDocumentToSaved:` on
+the window controller, so ⌘R now asks for confirmation and discards unsaved changes whenever
+there are any. With nothing changed it stays disabled. What this item still lacks is
+re-reading a file that has *no* local changes — and retitling the menu item to *Reload from
+Disk* is no longer an option, because it now genuinely reverts.
+
 `MainMenu.xib` already carries a **Revert to Saved** item bound to ⌘R and wired to
-`revertDocumentToSaved:`. Checked in the running app, it is **permanently disabled**:
+`revertDocumentToSaved:`. Until the Save-button work it was **permanently disabled**:
 `MarkdownDocument` overrides `isDocumentEdited` to return `false` and `autosavesInPlace`
 to `false`, so AppKit's own validation greys the item out. There is nothing to revert
-*to*, as far as NSDocument is concerned. So the shortcut looks supported, does nothing,
-and gives no clue why.
+*to*, as far as NSDocument is concerned. So the shortcut looked supported, did nothing,
+and gave no clue why.
 
 **Most of the time nothing needs reloading, which is worth knowing before building this.**
 `FileWatcher` already watches the open document with a `DispatchSource` on an `O_EVTONLY`
