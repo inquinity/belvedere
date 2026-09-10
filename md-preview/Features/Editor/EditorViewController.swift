@@ -181,7 +181,11 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         // out below the lowest piece of chrome.
         var gap = contentView.bounds.height - window.contentLayoutRect.maxY
         if MainSplitViewController.usesNativeChromeAccessories {
-            return max(gap, view.safeAreaInsets.top)
+            // See ContentViewController.fullChromeTopInset: the safe area
+            // lags accessory changes by a layout pass, so measure the bars.
+            gap += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
+            gap += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
+            return max(0, gap)
         }
         for accessory in window.titlebarAccessoryViewControllers
         where accessory.layoutAttribute == .bottom && !accessory.isHidden
@@ -453,37 +457,36 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
            edit mode doesn't visually change the document. */
         :root {
             color-scheme: light dark;
-            --text: #1d1d1f;
-            --secondary: #6e6e73;
-            --link: #0066cc;
-            --quote-border: #d2d2d7;
-            --code-bg: #f5f5f7;
-            --grid: #d2d2d7;
-            /* GitHub Light — matches the preview's highlight.js theme. */
-            --hl-keyword: #d73a49;
-            --hl-string: #032f62;
-            --hl-comment: #6a737d;
-            --hl-number: #005cc5;
-            --hl-type: #6f42c1;
-            --hl-function: #6f42c1;
-            --hl-property: #005cc5;
+            /* Semantic system colors resolve per appearance on their own. */
+            --text: -apple-system-label;
+            --secondary: -apple-system-secondary-label;
+            --quote-border: -apple-system-quaternary-label;
+            --grid: -apple-system-separator;
+            --accent: -apple-system-control-accent;
+            --link: rgb(0, 104, 218);
+            --code-bg: #f9f9f9;
+            --code-border: #f0f0f0;
+            /* Same code palette as the preview stylesheet. */
+            --hl-keyword: #9b2393;
+            --hl-string: #c41a16;
+            --hl-comment: #5d6c79;
+            --hl-number: #1c00cf;
+            --hl-type: #3900a0;
+            --hl-function: #326d74;
+            --hl-property: #326d74;
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --text: #f5f5f7;
-                --secondary: #86868b;
-                --link: #2997ff;
-                --quote-border: #6e6e73;
-                --code-bg: #2A2828;
-                --grid: #424245;
-                /* GitHub Dark — matches the preview's highlight.js theme. */
-                --hl-keyword: #ff7b72;
-                --hl-string: #a5d6ff;
-                --hl-comment: #8b949e;
-                --hl-number: #79c0ff;
-                --hl-type: #d2a8ff;
-                --hl-function: #d2a8ff;
-                --hl-property: #79c0ff;
+                --link: rgb(65, 156, 255);
+                --code-bg: #262626;
+                --code-border: #323232;
+                --hl-keyword: #fc5fa3;
+                --hl-string: #fc6a5d;
+                --hl-comment: #6c7986;
+                --hl-number: #d0bf69;
+                --hl-type: #d0a8ff;
+                --hl-function: #67b7a4;
+                --hl-property: #67b7a4;
             }
         }
         html, body {
@@ -530,26 +533,19 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             box-sizing: border-box;
             caret-color: var(--text);
             cursor: text;
+            /* A flex column keeps WebKit from painting the native selection
+               across the gaps between lines, so a selection follows the text
+               like the preview. Lines carry padding, never margins, so the
+               layout is unchanged. */
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
         }
         #editor .cm-line {
             padding: 0;
         }
         #editor .cm-line[dir="rtl"] { text-align: right; }
         #editor .cm-line[dir="ltr"] { text-align: left; }
-        #editor .cm-selectionBackground,
-        #editor .cm-focused .cm-selectionBackground {
-            /* Match WebKit's native selection tint in read-only mode. */
-            background: Highlight !important;
-        }
-        /* CodeMirror draws its own caret via drawSelection (a bordered div),
-           so `caret-color` on .cm-content above never reaches it. The bundled
-           theme paints the caret literal black and only switches to a light
-           color when the EditorView is constructed with dark:true — which we
-           don't do (we theme through prefers-color-scheme). Tie the primary
-           caret to our palette so it's white in dark mode, black in light. */
-        #editor .cm-cursor-primary {
-            border-left-color: var(--text) !important;
-        }
 
         /* Headings — preview's scale, padding instead of margin so
            CodeMirror's per-line height measurement stays exact.
@@ -558,18 +554,18 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         #editor .cm-md-h1, #editor .cm-md-h2, #editor .cm-md-h3,
         #editor .cm-md-h4, #editor .cm-md-h5, #editor .cm-md-h6 {
             font-weight: 600;
-            line-height: 1.18;
-            padding-top: 1.6em;
+            line-height: 1.25;
+            padding-top: calc(0.6rem + 0.5em);
         }
-        #editor .cm-md-h1 { font-size: 1.802em; font-weight: 700; padding-top: 0.8em; }
+        #editor .cm-md-h1 { font-size: 2em; }
         /* Mirror the preview's first-child margin reset so the document
            starts at the same height in both modes. */
         #editor .cm-content > .cm-line:first-child { padding-top: 0; }
-        #editor .cm-md-h2 { font-size: 1.602em; line-height: 1.06; }
-        #editor .cm-md-h3 { font-size: 1.424em; line-height: 1.07; }
-        #editor .cm-md-h4 { font-size: 1.266em; line-height: 1.08; }
-        #editor .cm-md-h5 { font-size: 1.125em; line-height: 1.09; }
-        #editor .cm-md-h6 { font-size: 1em; line-height: 1.24; }
+        #editor .cm-md-h2 { font-size: 1.692em; }
+        #editor .cm-md-h3 { font-size: 1.308em; }
+        #editor .cm-md-h4 { font-size: 1.154em; }
+        #editor .cm-md-h5 { font-size: 1em; }
+        #editor .cm-md-h6 { font-size: 0.846em; }
         /* A visible source blank already owns the gap before the heading;
            retain the preview's small amount of extra breathing room. */
         #editor .cm-md-h1.cm-md-heading-after-blank,
@@ -599,11 +595,11 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         #editor .cm-md-heading-source-hidden {
             visibility: hidden;
         }
+        /* Pull only the first line back by the hidden prefix width, so the
+           visible text starts at the column edge and wrapped lines start
+           there too. A transform would shift every line of a long heading. */
         #editor .cm-md-heading-inactive {
-            transform: translateX(calc(-1 * var(--cm-md-heading-prefix-width, 0px)));
-        }
-        #editor .cm-line[dir="rtl"].cm-md-heading-inactive {
-            transform: translateX(var(--cm-md-heading-prefix-width, 0px));
+            text-indent: calc(-1 * var(--cm-md-heading-prefix-width, 0px));
         }
         /* Setext underline source remains editable, but Markdown consumes its
            physical line when rendering the heading. Collapse that line and
@@ -626,20 +622,32 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             white-space: pre;
         }
 
+        /* The bundle sets the depth-dependent start padding and one 4px
+           rule per nesting level as background images (positions inline).
+           The rule stops above the block gap the bundle adds when another
+           block follows the quotation without a blank line. */
         #editor .cm-md-quote {
-            border-inline-start: 4px solid var(--quote-border);
-            padding-inline-start: 1em;
+            padding-inline-end: 1em;
             color: var(--secondary);
+            background-repeat: no-repeat;
+            background-size: 4px calc(100% - var(--cm-md-block-gap, 0px));
         }
         .cm-md-strong { font-weight: 600; }
         .cm-md-emphasis { font-style: italic; }
         .cm-md-strikethrough { text-decoration: line-through; }
+        .cm-md-highlight {
+            background: rgba(255, 216, 77, 0.55);
+            border-radius: 2px;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
         .cm-md-inline-code {
             font-family: ui-monospace, "SF Mono", Menlo, monospace;
-            font-size: 0.88em;
+            font-size: 0.9em;
             background: var(--code-bg);
-            border-radius: 6px;
-            padding: 0.18em 0.42em;
+            border: 0.5px solid var(--code-border);
+            border-radius: 5px;
+            padding: 0.15em 0.3em;
         }
         .cm-md-link { color: var(--link); }
         .cm-md-url { color: var(--secondary); }
@@ -680,17 +688,17 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         /* Mirror the preview's list geometry. JavaScript adds an inline
            padding value derived from semantic list depth, rather than relying
            on proportional-font source spaces. The marker hangs inside the
-           final 1.6em step, so active and inactive item text stays aligned. */
+           final 2.1em step, so active and inactive item text stays aligned. */
         #editor .cm-md-list-item {
-            padding-inline-start: 1.6em;
-            text-indent: -1.6em;
+            padding-inline-start: 2.1em;
+            text-indent: -2.1em;
         }
         .cm-md-bullet {
             display: inline-block;
-            width: 1.6em;
+            width: 2.1em;
             text-indent: 0;
             text-align: end;
-            padding-inline-end: 0.45em;
+            padding-inline-end: 0.5em;
             box-sizing: border-box;
             /* The glyph keeps its box for alignment but renders transparent;
                the ::after circle below matches the preview's painted bullet. */
@@ -707,7 +715,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             transform: translateY(-50%);
             width: 0;
             height: 0;
-            border: 0.2em solid var(--text);
+            border: 0.2em solid var(--accent);
             border-radius: 50%;
         }
         /* Keep the active raw "- " marker in the same hanging box as the
@@ -715,12 +723,32 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
            item text or make a nested item appear to change indentation. */
         .cm-md-bullet-source {
             display: inline-block;
-            width: 1.6em;
+            width: 2.1em;
             text-indent: 0;
             text-align: end;
-            padding-inline-end: 0.45em;
+            padding-inline-end: 0.5em;
             box-sizing: border-box;
             color: var(--secondary);
+        }
+        /* Ordered markers share the bullet's hanging box: right-aligned,
+           tabular digits, accent color; the active source marker keeps the
+           same box so item text never moves. */
+        .cm-md-ordered,
+        .cm-md-ordered-source {
+            display: inline-block;
+            width: 2.1em;
+            text-indent: 0;
+            text-align: end;
+            padding-inline-end: 0.5em;
+            box-sizing: border-box;
+            font-variant-numeric: tabular-nums;
+        }
+        .cm-md-ordered { color: var(--accent); }
+        .cm-md-ordered-source { color: var(--secondary); }
+        /* Continuation lines of an item keep the depth padding but no hanging
+           indent, so they align with the item text like the preview. */
+        #editor .cm-md-list-continuation {
+            text-indent: 0 !important;
         }
         /* Preview list items after the first carry a margin-top. */
         #editor .cm-md-list-item-gap {
@@ -734,16 +762,14 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         }
         #editor .cm-md-codeblock {
             font-family: ui-monospace, "SF Mono", Menlo, monospace;
-            font-size: 0.88em;
-            line-height: 1.45;
+            font-size: 1em;
+            line-height: 1.3;
             position: relative;
-            padding: 0 14px;
+            padding: 0 16px;
         }
-        /* CodeMirror paints the selection on a z:-1 layer, below line
-           backgrounds. Paint the code card on a z:-2 pseudo instead of the
-           line itself: it escapes to the same stacking context, so the card
-           matches the preview's opaque --code-bg while the selection tint
-           still shows between card and text. */
+        /* The code card is painted on a z:-2 pseudo instead of the line
+           itself, so it matches the preview's opaque --code-bg and never
+           covers the native selection or the caret. */
         #editor .cm-md-codeblock::before {
             content: "";
             position: absolute;
@@ -752,21 +778,21 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             background: var(--code-bg);
         }
         #editor .cm-content > .cm-line.cm-md-codeblock-first {
-            padding-top: 10px;
+            padding-top: 16px;
             position: relative;
         }
         #editor .cm-md-codeblock-first::before {
-            border-radius: 15px 15px 0 0;
+            border-radius: 8px 8px 0 0;
         }
         #editor .cm-md-codeblock-last {
-            padding-bottom: 10px;
+            padding-bottom: 16px;
         }
         #editor .cm-md-codeblock-last::before {
-            border-radius: 0 0 15px 15px;
+            border-radius: 0 0 8px 8px;
         }
         /* A single content line owns both ends of the card. */
         #editor .cm-md-codeblock-first.cm-md-codeblock-last::before {
-            border-radius: 15px;
+            border-radius: 8px;
         }
         /* Reserve a header row so the language never competes with code,
            including wrapped lines and blocks at the start of a document. */
@@ -906,8 +932,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             background: color-mix(in srgb, Canvas 94%, var(--grid));
         }
         .cm-md-table-cell {
-            min-height: calc((MarkdownHTML.bodyFontSize)px * (MarkdownHTML.bodyLineHeight));
-            padding: 8px 10px;
+            min-height: calc(\(MarkdownHTML.bodyFontSize)px * \(MarkdownHTML.bodyLineHeight));
+            padding: 8px 12px;
             outline: none;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
@@ -921,16 +947,16 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             pointer-events: none;
         }
         .cm-md-table-cell:focus {
-            outline: 2px solid #007aff;
+            outline: 2px solid var(--accent);
             outline-offset: -2px;
-            background: color-mix(in srgb, #007aff 8%, transparent);
+            background: color-mix(in srgb, var(--accent) 8%, transparent);
         }
         .cm-md-table-cell.is-table-part-selected {
             --table-selection-top-edge: 0 0 transparent;
             --table-selection-right-edge: 0 0 transparent;
             --table-selection-bottom-edge: 0 0 transparent;
             --table-selection-left-edge: 0 0 transparent;
-            background: color-mix(in srgb, #007aff 14%, Canvas);
+            background: color-mix(in srgb, var(--accent) 14%, Canvas);
             box-shadow:
                 var(--table-selection-top-edge),
                 var(--table-selection-right-edge),
@@ -938,16 +964,16 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
                 var(--table-selection-left-edge);
         }
         .cm-md-table-cell.is-table-selection-top {
-            --table-selection-top-edge: inset 0 1px color-mix(in srgb, #007aff 52%, transparent);
+            --table-selection-top-edge: inset 0 1px color-mix(in srgb, var(--accent) 52%, transparent);
         }
         .cm-md-table-cell.is-table-selection-right {
-            --table-selection-right-edge: inset -1px 0 color-mix(in srgb, #007aff 52%, transparent);
+            --table-selection-right-edge: inset -1px 0 color-mix(in srgb, var(--accent) 52%, transparent);
         }
         .cm-md-table-cell.is-table-selection-bottom {
-            --table-selection-bottom-edge: inset 0 -1px color-mix(in srgb, #007aff 52%, transparent);
+            --table-selection-bottom-edge: inset 0 -1px color-mix(in srgb, var(--accent) 52%, transparent);
         }
         .cm-md-table-cell.is-table-selection-left {
-            --table-selection-left-edge: inset 1px 0 color-mix(in srgb, #007aff 52%, transparent);
+            --table-selection-left-edge: inset 1px 0 color-mix(in srgb, var(--accent) 52%, transparent);
         }
         /* Page scrolling lets WebKit own the native toolbar backdrop.
            The macOS 15 editor keeps its internal scroller. */

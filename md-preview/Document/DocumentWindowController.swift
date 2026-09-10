@@ -111,7 +111,10 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     /// Armed only while the themes popover is open.
     let themesPopoverEscapeMonitor = EscapeKeyMonitor()
     weak var searchField: NSSearchField?
-    weak var sidebarMenu: NSMenu?
+    /// The Table of Contents / Project Navigator picker in the toolbar.
+    weak var sidebarModeItem: NSToolbarItemGroup?
+    /// Timestamp of the last click handled by the sidebar mode picker.
+    var sidebarToolbarHandledEventTimestamp: TimeInterval?
     var findBar: FindBar?
     /// Container for the find bar. A content overlay like editBar — not a
     /// titlebar accessory — so showing it never pushes the tab bar down.
@@ -561,9 +564,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     final class EditAccessoryContainerView: NSView {
         private var fullscreenBackdrop: NSVisualEffectView?
 
+        /// Full screen on macOS 26 and later draws the toolbar on an opaque
+        /// native strip instead of frosting the page, so the rows below it
+        /// take the same titlebar material to read as one piece of chrome.
         func updateFullscreenBackground() {
             guard #available(macOS 26.0, *) else { return }
-            guard #unavailable(macOS 27.0) else { return }
             if window?.styleMask.contains(.fullScreen) == true {
                 if fullscreenBackdrop == nil {
                     let backdrop = NSVisualEffectView(frame: bounds)

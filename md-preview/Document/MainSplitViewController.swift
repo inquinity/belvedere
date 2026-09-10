@@ -202,6 +202,15 @@ final class MainSplitViewController: NSSplitViewController {
         !(splitViewItems.first?.isCollapsed ?? true)
     }
 
+    /// Target of the system `.toggleSidebar` toolbar item. The themed layout
+    /// uses a plain split view item, which the stock implementation ignores,
+    /// so both layouts go through the app's own toggle and the toolbar's
+    /// pane picker is kept in step.
+    override func toggleSidebar(_ sender: Any?) {
+        toggleSidebar()
+        (view.window?.windowController as? DocumentWindowController)?.syncSidebarToolbarState()
+    }
+
     @discardableResult
     func toggleSidebar() -> Bool {
         guard let sidebar = splitViewItems.first else { return false }
@@ -382,6 +391,10 @@ final class MainSplitViewController: NSSplitViewController {
         // The editor pads its page below the chrome; the bar is part of
         // that chrome now, so it must be measured alongside the titlebar.
         cachedEditorViewController?.formattingBar = bar
+        if Self.usesNativeChromeAccessories {
+            contentViewController?.formattingBar = bar
+            contentViewController?.chromeOverlaysDidChange()
+        }
     }
 
     func removeFormattingBar() {
@@ -394,6 +407,10 @@ final class MainSplitViewController: NSSplitViewController {
             layeredContentViewController?.removeFormattingBar()
         }
         cachedEditorViewController?.formattingBar = nil
+        if Self.usesNativeChromeAccessories {
+            contentViewController?.formattingBar = nil
+            contentViewController?.chromeOverlaysDidChange()
+        }
     }
 
     private weak var findOverlayView: NSView?
@@ -404,6 +421,15 @@ final class MainSplitViewController: NSSplitViewController {
         if #available(macOS 27.0, *) { return false }
         if #available(macOS 26.1, *) { return true }
         return false
+    }
+
+    /// Height a native chrome accessory (find bar, formatting bar) adds to
+    /// the obscured strip above the page, or 0 when it is absent or hidden.
+    /// fittingSize rather than the frame: the frame is unresolved between
+    /// install and the next layout pass, exactly when callers ask.
+    static func nativeAccessoryHeight(_ bar: NSView?, in window: NSWindow) -> CGFloat {
+        guard let bar, bar.window === window, !bar.isHidden else { return 0 }
+        return bar.fittingSize.height
     }
 
     private func installNativeChromeAccessory(_ bar: NSView) -> NSViewController? {
