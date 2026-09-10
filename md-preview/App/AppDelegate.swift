@@ -71,7 +71,7 @@ private extension AppearanceMode {
 }
 
 @main
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var settingsWindowController: SettingsWindowController?
     /// Non-zero while `withCoalescedPreviewReloads` is holding reloads back.
@@ -106,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installFileExportMenuItems()
         installGoMenu()
         installSettingsMenuItem()
+        NSApp.windowsMenu?.delegate = self
         installAboutMenuItem()
         installViewMenuItemIcons()
     }
@@ -254,18 +255,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                               keyEquivalent: ",")
         item.keyEquivalentModifierMask = [.command]
         item.target = self
-        if let image = NSImage(systemSymbolName: "gearshape",
-                               accessibilityDescription: item.title) {
-            image.isTemplate = true
-            item.image = image
-        }
-
         let aboutIndex = appMenu.items.firstIndex {
             $0.action == #selector(NSApplication.orderFrontStandardAboutPanel(_:))
         }
-        let insertIndex = aboutIndex.map { $0 + 1 } ?? 0
-        appMenu.insertItem(.separator(), at: insertIndex)
-        appMenu.insertItem(item, at: insertIndex + 1)
+        // MainMenu.xib already separates About from the settings and tools group.
+        let insertIndex = aboutIndex.map { $0 + 2 } ?? 0
+        appMenu.insertItem(item, at: insertIndex)
     }
 
     /// AppKit's stock About panel formats the version as "1.1.0 (8)". This fork
@@ -1233,4 +1228,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let contentWidthMenuTitles: Set<String> = ["Content Width", "内容宽度"]
     private static let showSidebarMenuTitles: Set<String> = ["Show Sidebar", "显示边栏"]
     private static let actualSizeMenuTitles: Set<String> = ["Actual Size", "实际大小"]
+}
+
+
+extension AppDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === NSApp.windowsMenu else { return }
+        let entries = menu.items.compactMap { item -> (NSMenuItem, URL)? in
+            guard let window = item.target as? NSWindow,
+                  let controller = window.windowController as? DocumentWindowController,
+                  let url = controller.currentFileURL else { return nil }
+            return (item, url)
+        }
+        for (item, url) in entries {
+            let duplicates = entries.filter { $0.1.lastPathComponent == url.lastPathComponent }
+            guard duplicates.count > 1 else {
+                item.title = url.lastPathComponent
+                continue
+            }
+            let parents = url.deletingLastPathComponent().pathComponents.filter { $0 != "/" }
+            var count = 1
+            while count < parents.count {
+                let suffix = parents.suffix(count).joined(separator: "/")
+                let ambiguous = duplicates.contains { other in
+                    other.1 != url && other.1.deletingLastPathComponent().pathComponents
+                        .suffix(count).joined(separator: "/") == suffix
+                }
+                if !ambiguous { break }
+                count += 1
+            }
+            item.title = "\(url.lastPathComponent) (\(parents.suffix(count).joined(separator: "/")))"
+        }
+    }
 }

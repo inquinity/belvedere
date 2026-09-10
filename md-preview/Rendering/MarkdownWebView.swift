@@ -201,6 +201,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     var contentDidReplace: (() -> Void)?
     var zoomDidChange: ((CGFloat) -> Void)?
     var fragmentLinkActivated: ((String) -> Void)?
+    var pointerDocumentYDidChange: ((CGFloat) -> Void)?
     var localMarkdownLinkActivated: ((URL) -> Void)?
     var taskCheckboxToggled: ((Int, Bool) -> Void)?
     var tableEditRequested: ((MarkdownTableEditRequest) -> Void)?
@@ -277,7 +278,31 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
     private static let disableContextMenuScript = WKUserScript(
         source: """
+        let pointerFrame = null;
+        let pointerY = 0;
+        const reportPointer = event => {
+            if (!window.mdPreviewPointerTracking || !event.target.closest('article.markdown-body')) return;
+            pointerY = event.clientY + window.scrollY;
+            if (pointerFrame !== null) return;
+            pointerFrame = requestAnimationFrame(() => {
+                pointerFrame = null;
+                if (!window.mdPreviewPointerTracking) return;
+                window.webkit.messageHandlers.mdPreviewHost.postMessage({
+                    kind: 'pointerPosition', value: pointerY
+                });
+            });
+        };
+        document.addEventListener('pointermove', reportPointer, {passive: true});
         document.addEventListener('contextmenu', event => {
+            const link = event.target.closest('a[href]');
+            if (link) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                window.webkit.messageHandlers.mdPreviewHost.postMessage({
+                    kind: 'linkContextMenu', url: link.href
+                });
+                return;
+            }
             const selection = window.getSelection();
             if (selection && selection.toString().trim().length > 0) return;
             event.preventDefault();
@@ -450,12 +475,13 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             webView.callAsyncJavaScript(
                 """
                 if (!window.MdPreview) return false;
-                window.MdPreview.update(articleHTML, { baseHref });
+                window.MdPreview.update(articleHTML, { baseHref, source });
                 return true;
                 """,
                 arguments: [
                     "articleHTML": rendered.articleHTML,
                     "baseHref": currentBaseHref,
+                    "source": rendered.markdown,
                 ],
                 in: nil,
                 in: .page
@@ -611,6 +637,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             let raw = ceil(CGFloat(truncating: value))
             lastReportedDocumentHeight = raw
             heightDidChange?(raw * webView.pageZoom)
+        case "pointerPosition":
+            guard let value = dict["value"] as? NSNumber else { return }
+            pointerDocumentYDidChange?(CGFloat(truncating: value))
+        case "linkContextMenu":
+            guard let raw = dict["url"] as? String, let url = URL(string: raw) else { return }
+            showLinkContextMenu(url)
         case "scrollPosition":
             guard let value = dict["value"] as? NSNumber else { return }
             lastReportedScrollY = CGFloat(truncating: value)
@@ -1548,6 +1580,14 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                  decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
         if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
+            activateLink(url)
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
+
+    private func activateLink(_ url: URL) {
             if let fragment = sameDocumentFragmentID(from: url) {
                 fragmentLinkActivated?(fragment)
             } else if url.scheme == MarkdownAssetScheme.scheme,
@@ -1573,10 +1613,59 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             } else if url.scheme != MarkdownAssetScheme.scheme {
                 NSWorkspace.shared.open(url)
             }
-            decisionHandler(.cancel)
-            return
+    }
+
+    private func showLinkContextMenu(_ source: URL) {
+        let target: URL
+        if source.scheme == MarkdownAssetScheme.scheme {
+            // Contained, like a click on the same link (activateLink): the
+            // target comes from document content, and Open Link in New
+            // Window would open it. A link outside the document's folder
+            // gets no menu, just as clicking it does nothing.
+            guard let assetBase = currentAssetBase,
+                  !source.path.hasPrefix(MarkdownAssetScheme.vendorPathPrefix),
+                  let file = MarkdownAssetResolution.fileURL(for: source,
+                                                             containedIn: assetBase) else { return }
+            target = Self.reattachingFragment(of: source, to: file)
+        } else {
+            guard ["https", "http", "mailto", "file"].contains(source.scheme?.lowercased() ?? "") else { return }
+            target = source
         }
-        decisionHandler(.allow)
+        let menu = NSMenu()
+        func add(_ title: String, _ action: Selector, url: URL) {
+            let item = NSMenuItem(title: NSLocalizedString(title, comment: "Link context menu"),
+                                  action: action, keyEquivalent: "")
+            item.target = self
+            item.representedObject = url
+            menu.addItem(item)
+        }
+        add("Open Link", #selector(openContextLink(_:)), url: source)
+        #if !QUICK_LOOK_EXTENSION
+        if target.isFileURL && Self.isMarkdownDocument(target) && sameDocumentFragmentID(from: source) == nil {
+            add("Open Link in New Window", #selector(openContextLinkInNewWindow(_:)), url: target)
+        }
+        #endif
+        add("Copy Link", #selector(copyContextLink(_:)), url: target)
+        guard let window else { return }
+        menu.popUp(positioning: nil, at: convert(window.mouseLocationOutsideOfEventStream, from: nil), in: self)
+    }
+
+    @objc private func openContextLink(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        activateLink(url)
+    }
+
+    #if !QUICK_LOOK_EXTENSION
+    @objc private func openContextLinkInNewWindow(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        (window?.windowController as? DocumentWindowController)?.openInNewWindow(url)
+    }
+    #endif
+
+    @objc private func copyContextLink(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.absoluteString, forType: .string)
     }
 
     private static func isMarkdownDocument(_ url: URL) -> Bool {

@@ -8,6 +8,7 @@ import SwiftUI
 // MARK: - General
 
 struct GeneralSettingsView: View {
+    @AppStorage("MarkdownPreview.outlineFollowsPointer") private var outlineFollowsPointer = false
     @Bindable private var model = SettingsModel.shared
 
     var body: some View {
@@ -19,6 +20,8 @@ struct GeneralSettingsView: View {
                     Text(L("Text size"))
                     Text(L("Size of rendered Markdown in document windows."))
                 }
+
+                Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
 
                 Picker(L("Content width"), selection: $model.contentWidth) {
                     ForEach(ContentWidthSetting.allCases, id: \.self) { setting in
@@ -35,6 +38,11 @@ struct GeneralSettingsView: View {
                 Toggle(isOn: $model.isAlwaysOnTop) {
                     Text(L("Always on Top"))
                     Text(L("Keeps every Markdown Preview window in front of other apps, including windows you open later. A window in full screen is left alone until it comes back out."))
+                }
+
+                Toggle(isOn: $model.opensMarkdownLinksInNewWindows) {
+                    Text(L("Open Markdown links in new windows"))
+                    Text(L("Clicking a link to another Markdown file opens it in a separate window. Turn this off to open it in the current window."))
                 }
 
                 Toggle(isOn: $model.opensDocumentsInTabs) {

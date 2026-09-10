@@ -33,9 +33,15 @@ extension DocumentWindowController {
     }
 
     private func openDocumentWindow(for fileURL: URL, completion: (() -> Void)? = nil) {
-        NSDocumentController.shared.openDocument(withContentsOf: fileURL,
-                                                 display: true) { [weak self] _, _, error in
+        let fragment = fileURL.fragment?.removingPercentEncoding
+        NSDocumentController.shared.openDocument(withContentsOf: Self.fileURLWithoutFragment(fileURL),
+                                                 display: true) { [weak self] document, _, error in
             completion?()
+            if let fragment,
+               let controller = document?.windowControllers.first as? DocumentWindowController,
+               let split = controller.documentWindow.contentViewController as? MainSplitViewController {
+                split.scrollToAnchorWhenReady(fragment)
+            }
             guard let self, let error else { return }
             NSAlert(error: error).beginSheetModal(for: self.documentWindow)
         }
@@ -60,7 +66,7 @@ extension DocumentWindowController {
             .openFolder(folderURL, selectedFileURL: currentFileURL)
         documentWindow.makeKeyAndOrderFront(nil)
         NSApp.activate()
-        syncSidebarMenuState()
+        syncSidebarToolbarState()
     }
 
     func contextMenuEditorItems(for fileURL: URL) -> [NSMenuItem] {

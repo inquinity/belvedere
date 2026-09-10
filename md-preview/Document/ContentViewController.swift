@@ -101,9 +101,19 @@ final class ContentViewController: NSViewController {
             // The fresh article is in the DOM; a same-height render never
             // fires heightDidChange, so this is the reliable signal.
             self?.applyPendingScrollAnchorIfNeeded()
+            self?.updatePointerTracking()
         }
+        NotificationCenter.default.addObserver(self, selector: #selector(updatePointerTracking),
+                                               name: UserDefaults.didChangeNotification, object: nil)
         webView.fragmentLinkActivated = { [weak self] fragment in
             self?.scrollToElement(id: fragment)
+        }
+        webView.pointerDocumentYDidChange = { [weak self] y in
+            guard let self,
+                  UserDefaults.standard.bool(forKey: "MarkdownPreview.outlineFollowsPointer") else { return }
+            self.pointerHeadingID = self.headingOffsetsCSS.lastIndex(where: { $0 <= y })
+            self.sticky = nil
+            self.notifyActiveHeading(self.pointerHeadingID)
         }
         webView.localMarkdownLinkActivated = { [weak self] url in
             self?.localMarkdownLinkActivated?(url)
@@ -236,7 +246,19 @@ final class ContentViewController: NSViewController {
 
     /// Drops scrollspy state before a doc swap so the previous doc's
     /// heading doesn't briefly stay marked.
+    @objc private func updatePointerTracking() {
+        let enabled = UserDefaults.standard.bool(forKey: "MarkdownPreview.outlineFollowsPointer")
+        webView.webView.evaluateJavaScript("window.mdPreviewPointerTracking = \(enabled ? "true" : "false");", completionHandler: nil)
+        if !enabled {
+            pointerHeadingID = nil
+            evaluateActiveHeading()
+        }
+    }
+
+    private var pointerHeadingID: Int?
+
     private func resetScrollspy() {
+        pointerHeadingID = nil
         headingOffsetsCSS = []
         sticky = nil
         notifyActiveHeading(nil)
@@ -423,6 +445,18 @@ final class ContentViewController: NSViewController {
         }
     }
 
+    /// The search row sits in the content host beneath the native toolbar.
+    weak var findOverlay: NSView?
+
+    /// The formatting row (macOS 26.1+ native accessory path only). The
+    /// preview is hidden while editing, but it shows again beneath the bar
+    /// during the exit crossfade and must keep the same page padding.
+    weak var formattingBar: NSView?
+
+    func chromeOverlaysDidChange() {
+        updateObscuredContentInsets()
+    }
+
     /// The whole obscured strip, including the native tab bar. AppKit
     /// exposes the tab bar as a bottom titlebar accessory; subtracting its
     /// height would let it consume the page's top padding.
@@ -430,7 +464,22 @@ final class ContentViewController: NSViewController {
         guard let window = view.window, let contentView = window.contentView else {
             return view.safeAreaInsets.top
         }
-        return max(0, contentView.bounds.height - window.contentLayoutRect.maxY)
+        var inset = contentView.bounds.height - window.contentLayoutRect.maxY
+        if MainSplitViewController.usesNativeChromeAccessories {
+            // Measured from the bars, not `view.safeAreaInsets`: the safe
+            // area follows an accessory show, hide, or removal only on the
+            // next layout pass, and this view may not get one — the frost
+            // then lagged one step behind the strip (missing while it was
+            // shown, still covering the page after it was gone).
+            inset += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
+            inset += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
+            return max(0, inset)
+        }
+        if #available(macOS 26.0, *),
+           let find = findOverlay, find.window === window, !find.isHidden {
+            inset += find.fittingSize.height - MainSplitViewController.tabBarOverlap(for: window)
+        }
+        return max(0, inset)
     }
 
     /// Pre-Tahoe there is no frost and no `obscuredContentInsets`, so the
@@ -447,14 +496,21 @@ final class ContentViewController: NSViewController {
     ///
     /// The window keeps .fullSizeContentView, so only the web view moves —
     /// the sidebar still spans full height, the way Finder and Preview do.
-    /// Keep this gate in step with `DocumentWindowController.usesThemedChrome`.
     private func pinWebViewBelowChrome() {
-        guard webViewChromeTopConstraint == nil,
-              let guide = view.window?.contentLayoutGuide as? NSLayoutGuide else { return }
-        webViewTopConstraint?.isActive = false
-        let top = webView.topAnchor.constraint(equalTo: guide.topAnchor)
-        top.isActive = true
-        webViewChromeTopConstraint = top
+        if webViewChromeTopConstraint == nil,
+           let guide = view.window?.contentLayoutGuide as? NSLayoutGuide {
+            webViewTopConstraint?.isActive = false
+            let top = webView.topAnchor.constraint(equalTo: guide.topAnchor)
+            top.isActive = true
+            webViewChromeTopConstraint = top
+        }
+        let findHeight: CGFloat
+        if let find = findOverlay, find.window === view.window, !find.isHidden {
+            findHeight = max(0, find.fittingSize.height - MainSplitViewController.tabBarOverlap(for: view.window))
+        } else {
+            findHeight = 0
+        }
+        webViewChromeTopConstraint?.constant = findHeight
     }
 
     private func updateObscuredContentInsets() {
@@ -556,6 +612,14 @@ final class ContentViewController: NSViewController {
         navigationTargetRetriesLeft = target == nil ? 0 : Self.navigationTargetMaxRetries
     }
 
+    /// Document opening can finish after display() has already started.
+    /// Arm the target immediately and retry until the new page has geometry.
+    func scrollToAnchorWhenReady(_ fragment: String) {
+        prepareToScrollAfterNavigation(to: .anchor(fragment))
+        shouldApplyNavigationTargetOnHeight = true
+        scheduleNavigationTargetAttempt()
+    }
+
     /// Immediate fragment scroll within the already-rendered document.
     func scrollToAnchor(_ fragment: String) {
         scrollToElement(id: fragment)
@@ -650,6 +714,11 @@ final class ContentViewController: NSViewController {
     }
 
     private func evaluateActiveHeading() {
+        if UserDefaults.standard.bool(forKey: "MarkdownPreview.outlineFollowsPointer"),
+           let pointerHeadingID, sticky == nil {
+            notifyActiveHeading(pointerHeadingID)
+            return
+        }
         if let pin = sticky {
             if DispatchTime.now() < pin.holdUntil { return }
             if !hasMovedFar(from: pin.anchor) { return }
