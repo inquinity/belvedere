@@ -76,6 +76,33 @@ So when you change what the reader sees, grep for what says otherwise:
 grep -rn "<the behaviour you changed>" README.md samples/ tests/fixtures/ docs/
 ```
 
+## Writing for other people — commits, PRs, issue replies
+
+This fork is **public**. Every commit message, PR description, and issue or PR
+comment is readable by anyone — upstream maintainers and strangers included. A
+fork commit whose message contains `#337` (or `pluk-inc#337`) gets auto-linked
+into the upstream PR's timeline permanently; those entries cannot be deleted.
+So in fork commits, point at upstream with a full URL or a non-linking form
+(`GH-337`), not a bare `#337`.
+
+**No fork-internal shorthand in anything that can travel.** Backlog IDs (`F4`,
+`F9`, `M4`), `FORK-NOTES`, `INTERNAL-INSTALL`, roadmap codenames — they mean
+nothing to upstream and nothing to us in six months. Write the actual subject:
+"the trusted-folders pane", not "F9".
+
+**Commit messages are for the person reading them in 6–12 months** with no
+memory of today — often you. Say what changed, why it changed, and what breaks
+if it's reverted. Don't say which backlog item it belongs to.
+
+**Keep issue and PR replies short and focused.** Write like a busy human who
+does not have time for War and Peace: lead with the answer or the decision, cut
+the throat-clearing and the restated context, don't survey every option you
+considered.
+
+**Short is not an excuse to drop load-bearing detail.** The security caveat, the
+exact repro condition, the reason a tradeoff went the way it did — those stay.
+Brevity means no wasted words, not less information.
+
 ## Project facts
 
 | Thing             | Value                                                       |
