@@ -8,13 +8,15 @@ why each decision was made. The `--go` publish has not yet been exercised end to
 
 ```sh
 # 1. Accumulate release notes as you work: add a bullet to
-#    docs/release-notes/UNRELEASED.md in the same commit as any user-visible change.
+#    docs/release-notes/UNRELEASED.md in the same commit as any user-visible change,
+#    and keep docs/release-notes/ON-TOP-OF-UPSTREAM.md true as the fork changes.
+#    Preview the composed notes at any time with: just notes
 
 # 2. Cut the release. seg is major | minor | revision:
 just release minor
-#    -> bumps Version.xcconfig, builds + notarizes dist/Belvedere-<v>.dmg,
-#       renames UNRELEASED.md to <v>.md, commits "Release <v> build <n>",
-#       tags v<v>, then dry-runs the publish for you to review.
+#    -> checks the notes compose, bumps Version.xcconfig, builds + notarizes
+#       dist/Belvedere-<v>.dmg, composes <v>.md and resets UNRELEASED.md to the stub,
+#       commits "Release <v> build <n>", tags v<v>, then dry-runs the publish.
 
 # 3. Publish:
 just publish --go
@@ -77,8 +79,26 @@ merges clean). `gh --generate-notes` is noisy for this commit style. So:
   `brew`-installed user sees or does, the same commit adds a bullet here — this is the
   `README.md` / fixture rule from `AGENTS.md` ("documentation that describes behaviour
   is part of the behaviour") applied to release notes.
-- `just release <seg>` renames `UNRELEASED.md` to **`docs/release-notes/<v>.md`** and
-  commits a fresh stub as part of the release commit.
+- **`docs/release-notes/ON-TOP-OF-UPSTREAM.md`** describes everything Belvedere changes
+  on top of Markdown Preview, for someone deciding whether to install it. It changes
+  with the fork, not per release: a new fork change, or a carried fix that upstream
+  has merged and released, updates it in the same commit.
+- `just release <seg>` runs **`bin/compose-release-notes.sh`**, which writes
+  **`docs/release-notes/<v>.md`** as: `# Belvedere <v>`; a generated **"Based on
+  Markdown Preview x.y.z"** line; *New in this release* from `UNRELEASED.md`; *Changes
+  on top of Markdown Preview x.y.z* from `ON-TOP-OF-UPSTREAM.md`; and a generated list
+  of upstream commits the build carries past that release. The release commit also
+  resets `UNRELEASED.md` to the stub.
+- The base comes from git, not from memory: the newest upstream commit `HEAD`
+  contains (`git merge-base HEAD upstream/main`), whose `Version.xcconfig` names the
+  upstream release. Commits between that release's tag and the base are listed by
+  subject, with upstream's `(#123)` dropped — on the tap's release page a bare `#123`
+  would link to the tap's own issue. So the line cannot go stale after a sync.
+- HTML comments in either file are dropped, which is where maintainer instructions
+  live. Composition fails — before the build, so no version is bumped — if
+  `UNRELEASED.md` still holds the empty stub, or has instructions outside a comment.
+  1.2.0's release page went out with its "# Unreleased" heading and instruction
+  paragraph; that is the failure this closes.
 - `bin/publish-release.sh` passes `docs/release-notes/<v>.md` as `--notes-file` and
   refuses to publish if it is missing.
 
@@ -101,7 +121,7 @@ preconditions (fail fast):
   Version.xcconfig MARKETING_VERSION == <v>
   dist/Belvedere-<v>.dmg exists; xcrun stapler validate passes
   tap repo checkout found (--tap-repo, or `brew --repository inquinity/homebrew-tap`) and clean
-  docs/release-notes/<v>.md exists (renamed from UNRELEASED.md in the release commit)
+  docs/release-notes/<v>.md exists (composed by bin/compose-release-notes.sh in the release commit)
 
 steps (each idempotent — safe to re-run after a mid-way failure):
   1. git push origin main
