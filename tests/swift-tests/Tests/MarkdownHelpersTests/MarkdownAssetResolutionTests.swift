@@ -176,6 +176,69 @@ final class MarkdownAssetResolutionTests: XCTestCase {
         )
     }
 
+    // MARK: - Resolution against an opened project folder
+    //
+    // The boundary is whatever the caller names — the document's folder for a
+    // file opened on its own, a folder the reader opened for documents inside
+    // it. `MarkdownAccessPolicy` decides which; these cover what the resolver
+    // then allows and refuses against the wider one.
+
+    private let projectRoot = URL(fileURLWithPath: "/Users/me/project", isDirectory: true)
+    private let projectDocs = URL(fileURLWithPath: "/Users/me/project/docs", isDirectory: true)
+
+    /// `docs/guide.md` reaching `../images/logo.png`, which is the layout the
+    /// document-folder-only boundary broke.
+    func testParentRelativeReferenceResolvesInsideAnOpenedProject() {
+        let base = URL(string: MarkdownAssetResolution.baseHref(forFolder: projectDocs))!
+        let reference = URL(string: "../images/logo.png", relativeTo: base)!.absoluteURL
+        XCTAssertEqual(
+            MarkdownAssetResolution.fileURL(for: reference, containedIn: projectRoot)?.path,
+            "/Users/me/project/images/logo.png"
+        )
+    }
+
+    /// The same reference without the opened folder: still refused.
+    func testParentRelativeReferenceIsRejectedWithoutTheProjectRoot() {
+        let base = URL(string: MarkdownAssetResolution.baseHref(forFolder: projectDocs))!
+        let reference = URL(string: "../images/logo.png", relativeTo: base)!.absoluteURL
+        XCTAssertNil(MarkdownAssetResolution.fileURL(for: reference, containedIn: projectDocs))
+    }
+
+    /// Climbing past the opened folder is refused, so the wider boundary does
+    /// not become an unbounded one.
+    func testEscapingTheOpenedProjectRootIsRejected() {
+        let base = URL(string: MarkdownAssetResolution.baseHref(forFolder: projectDocs))!
+        for escape in ["../../../etc/passwd", "../../.ssh/id_rsa", "../../other/notes.md"] {
+            let reference = URL(string: escape, relativeTo: base)!.absoluteURL
+            XCTAssertNil(
+                MarkdownAssetResolution.fileURL(for: reference, containedIn: projectRoot),
+                "\(escape) resolved but lies outside the opened folder"
+            )
+        }
+    }
+
+    /// Real filesystem: symlink containment holds against the opened folder
+    /// too, not only against a document's own folder.
+    func testSymlinkOutOfTheOpenedProjectRootIsRejected() throws {
+        let temporary = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("md-asset-project-\(UUID().uuidString)", isDirectory: true)
+        let root = temporary.appendingPathComponent("project", isDirectory: true)
+        let inside = root.appendingPathComponent("docs", isDirectory: true)
+        let outside = temporary.appendingPathComponent("outside", isDirectory: true)
+        try FileManager.default.createDirectory(at: inside, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+
+        let secret = outside.appendingPathComponent("secret.txt")
+        try Data("secret".utf8).write(to: secret)
+        let escape = root.appendingPathComponent("escape")
+        try FileManager.default.createSymbolicLink(at: escape, withDestinationURL: outside)
+
+        let asset = URL(string: MarkdownAssetResolution.baseHref(forFolder: root)
+            + "escape/secret.txt")!
+        XCTAssertNil(MarkdownAssetResolution.fileURL(for: asset, containedIn: root))
+    }
+
     // MARK: - Image storage helpers
 
     func testPicturesDirectoryUsesMarkdownStem() {
