@@ -1543,9 +1543,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     private func showLinkContextMenu(_ source: URL) {
         let target: URL
         if source.scheme == MarkdownAssetScheme.scheme {
-            guard currentAssetBase != nil,
+            guard let assetBase = currentAssetBase,
                   !source.path.hasPrefix(MarkdownAssetScheme.vendorPathPrefix),
-                  let file = MarkdownAssetResolution.fileURL(for: source) else { return }
+                  let file = MarkdownAssetResolution.fileURL(for: source,
+                                                             containedIn: assetBase) else { return }
             target = Self.reattachingFragment(of: source, to: file)
         } else {
             guard ["https", "http", "mailto", "file"].contains(source.scheme?.lowercased() ?? "") else { return }
