@@ -45,6 +45,8 @@
 > - **Fork tasks run through `just`** (`brew install just`; `just --list`). The recipes
 >   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
 >   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.
+> - **Review all incoming upstream changes for security** Use the `security-oss-app-reviewer` skill and focus on incoming changes.
+>
 >
 > Everything after this block is upstream's documentation, preserved as-is.
 
