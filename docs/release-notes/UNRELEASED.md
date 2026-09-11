@@ -4,6 +4,11 @@ Add a bullet here in the same commit as any change that alters what a
 `brew`-installed user sees or does. At release, this file is renamed to
 `<version>.md` and a fresh stub takes its place. See `docs/RELEASE-AUTOMATION.md`.
 
+Based on **Markdown Preview 0.0.56**, plus four upstream changes made after that
+release — they are listed at the end.
+
+## New in this release
+
 - A **Save** button in the toolbar, next to Edit, lit whenever the document has unsaved
   changes — in edit mode or after leaving it.
 - Leaving edit mode with unsaved changes now asks **Save / Revert… / Continue**. Continue,
@@ -15,7 +20,7 @@ Add a bullet here in the same commit as any change that alters what a
 - **⌘S** now works after leaving edit mode with unsaved changes. Before, the only way to
   write them was to close the window.
 
-From upstream Markdown Preview, through its 0.0.56 release and the changes after it:
+From upstream Markdown Preview, 0.0.54 through 0.0.56 and the changes after it:
 
 - The system type scale and semantic colours, code highlighting done at render time,
   and **Copy as Source**.
@@ -30,3 +35,54 @@ From upstream Markdown Preview, through its 0.0.56 release and the changes after
 - Optional highlighting of the outline section under the pointer.
 - Simpler application-menu grouping, and fixes to toolbar and search-bar backgrounds
   on macOS 15 and 26.
+
+## Changes on top of Markdown Preview 0.0.56
+
+Belvedere is Markdown Preview with its network connections removed and its handling
+of untrusted documents tightened. Reading, editing, printing, PDF export and Quick
+Look are upstream's work.
+
+**It never connects on its own**
+
+- No crash reporting and no usage analytics. The code that sent them is gone, so
+  Settings › Privacy states this instead of offering switches.
+- No automatic updates, and no *Check for Updates…*. New versions come through
+  Homebrew: `brew upgrade --cask belvedere`.
+
+**A document cannot reach the network, or files outside its folder**
+
+- Remote content — images, stylesheets, fonts, scripts — is blocked in the document
+  window, the editor and Quick Look. A remote image shows as a placeholder naming its
+  host, so opening a document never tells its author that you read it.
+- Images load only from the document's own folder. One outside it shows as a
+  placeholder with a **Load** button: one click, checked to be a real image first,
+  and not remembered. Quick Look names these without offering Load.
+- A link outside the document's folder does nothing when clicked, and has no context
+  menu.
+- A document cannot draw form controls — no text fields, dropdowns or other inputs
+  that could imitate a sign-in prompt. Task-list checkboxes still work.
+
+**Editing**
+
+- The Save button and the prompt when leaving edit mode, described above. Also
+  proposed to Markdown Preview; carried here ahead of that.
+
+**Its own app**
+
+- Named Belvedere, with its own icon and bundle identifier, so it installs alongside
+  Markdown Preview instead of replacing it.
+- The command-line tools installer is removed, along with the permission to control
+  Terminal that it needed.
+- The About box states the network posture above and credits Markdown Preview.
+- Signed with Belvedere's own Developer ID, notarized by Apple, and distributed
+  through the Homebrew tap `inquinity/tap/belvedere`.
+
+**Upstream changes after 0.0.56 included in this build**
+
+These are on Markdown Preview's `main` but not yet in one of its releases:
+
+- The system type scale and semantic colours, code highlighting at render time, and
+  Copy as Source.
+- Obsidian-style `==highlight==` syntax.
+- The new reading layout and right-to-left alignment.
+- The sidebar pane picker.
