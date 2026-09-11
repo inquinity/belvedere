@@ -58,22 +58,28 @@ version:
 publish *args:
     bin/publish-release.sh {{ args }}
 
-# Cut a release: bump, build DMG, roll notes, commit, tag, dry-run publish (seg: major|minor|revision).
-release seg: _require-clean (build-dmg seg)
+# Preview the next release's notes as `just release` will compose them. Pass --version <v> for its heading.
+notes *args:
+    @bin/compose-release-notes.sh {{ args }}
+
+# Cut a release: bump, build DMG, compose notes, commit, tag, dry-run publish (seg: major|minor|revision).
+release seg: _require-clean _require-notes (build-dmg seg)
     #!/usr/bin/env bash
     set -euo pipefail
     v="$(bin/ver)"; n="$(bin/build-num)"
     notes="docs/release-notes/$v.md"
-    [[ -f docs/release-notes/UNRELEASED.md ]] \
-        || { echo "release: docs/release-notes/UNRELEASED.md is missing" >&2; exit 1; }
-    mv docs/release-notes/UNRELEASED.md "$notes"
-    printf '# Unreleased\n\nAdd a bullet here in the same commit as any change that alters what a\n`brew`-installed user sees or does. See docs/RELEASE-AUTOMATION.md.\n\n_(nothing yet)_\n' \
-        > docs/release-notes/UNRELEASED.md
+    bin/compose-release-notes.sh --version "$v" > "$notes.tmp"
+    mv "$notes.tmp" "$notes"
+    bin/compose-release-notes.sh --stub > docs/release-notes/UNRELEASED.md
     git add Version.xcconfig "$notes" docs/release-notes/UNRELEASED.md
     git commit -m "Release $v build $n"
     git tag -a "v$v" -m "Belvedere $v"
     printf '\nTagged v%s. Review the dry run below, then: just publish --go\n\n' "$v"
     bin/publish-release.sh
+
+# (internal) fail before the long build if the notes cannot be composed
+_require-notes:
+    @bin/compose-release-notes.sh > /dev/null
 
 # (internal) fail unless the working tree is clean
 _require-clean:
