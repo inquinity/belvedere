@@ -106,6 +106,17 @@ considered.
 exact repro condition, the reason a tradeoff went the way it did — those stay.
 Brevity means no wasted words, not less information.
 
+### Commit messages in this repository
+
+Follow the global Conventional Commits rules, with these exceptions:
+
+- Merges into `main` keep `Fork: …` / `Sync: …`. `git log --merges --grep='^Fork:'`
+  is the record of what this fork changes (see docs/FORK-NOTES.md).
+- Release commits are exactly `Release <v> build <n>`; `bin/publish-release.sh`
+  refuses anything else.
+- `contrib/*` commits follow upstream's style: a plain imperative subject, no
+  type prefix. They are squashed into upstream under the PR title.
+
 ## Project facts
 
 | Thing             | Value                                                       |
