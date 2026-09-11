@@ -187,6 +187,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
 | **F10** | ⌘R to reload the open file from disk | **Partly done:** Revert to Saved (⌘R) now discards unsaved changes after a confirmation, from the Save-button work. Still missing: re-reading a file with no local changes. See below. |
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
+| **F12** | Absolute `file://` links bypass folder containment | `activateLink` in `MarkdownWebView.swift` hands any non-asset-scheme URL straight to `NSWorkspace.shared.open(url)` on click, with no containment check — unlike relative (asset-scheme) links, which are confined to the document's folder. A document can carry an absolute `file://` link to anywhere on disk, and clicking it opens or launches that file. Pre-existing (from the original source reorg, not new), surfaced during code review of the Save-button work. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
