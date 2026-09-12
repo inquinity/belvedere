@@ -92,8 +92,9 @@ nonisolated final class RemoteImageFetcher: Sendable {
 /// equally `URL` or `Date`, though `String` and `Data` are fine. The trigger is
 /// `nonisolated(nonsending)` semantics, which this target gets from
 /// `SWIFT_APPROACHABLE_CONCURRENCY = YES`; without that setting the same code
-/// compiles. Filed with Apple; the two spellings are equivalent, and only one
-/// of them builds.
+/// compiles. Reported as https://github.com/swiftlang/swift/issues/92207 — when
+/// that closes, the `async` spelling becomes available again. The two are
+/// equivalent, and today only one of them builds.
 private final class BoundedImageDownload: NSObject, URLSessionDataDelegate, @unchecked Sendable {
 
     private let maxBytes: Int
