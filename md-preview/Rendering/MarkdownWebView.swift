@@ -5,6 +5,7 @@
 
 import Cocoa
 import os
+import UniformTypeIdentifiers
 import WebKit
 
 /// Presents table operations with a real AppKit context menu. The web views
@@ -1553,7 +1554,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         switch MarkdownAccessPolicy.linkAction(for: url,
                                                documentFolder: currentAssetBase,
                                                containmentRoot: currentBoundary,
-                                               isMarkdown: Self.isMarkdownDocumentFile) {
+                                               isMarkdown: Self.isMarkdownDocumentFile,
+                                               isExecutable: Self.isExecutableTarget) {
         case .ignore:
             // `/__vendor/` is a reserved namespace served from the app bundle
             // by the scheme handler — never a filesystem path, so clicks on
@@ -1566,6 +1568,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             NSWorkspace.shared.open(file)
         case .openExternally(let target):
             NSWorkspace.shared.open(target)
+        case .confirmRevealExecutable(let file):
+            confirmRevealingExecutable(file)
         case .confirmOpenOutside(let file):
             confirmFollowingLinkOutsideBoundary(to: file, reveals: false) { [weak self] in
                 self?.localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: file))
@@ -1619,6 +1623,30 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
             proceed()
+        }
+        #endif
+    }
+
+    /// A program named by document content is shown, never started.
+    private func confirmRevealingExecutable(_ target: URL) {
+        #if !QUICK_LOOK_EXTENSION
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = String(
+            format: NSLocalizedString("“%@” would be run, not opened.",
+                                      comment: "Executable link alert title"),
+            target.lastPathComponent
+        )
+        alert.informativeText = NSLocalizedString(
+            "This document links to a program or installer. It will be shown in Finder instead.",
+            comment: "Executable link alert message"
+        )
+        alert.addButton(withTitle: NSLocalizedString("Show in Finder", comment: "Blocked link alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Blocked link alert button"))
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            NSWorkspace.shared.activateFileViewerSelecting([target])
         }
         #endif
     }
@@ -1698,6 +1726,25 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
     private static func isMarkdownDocument(_ url: URL) -> Bool {
         ["md", "markdown", "mdown", "mkdn", "mkd"].contains(url.pathExtension.lowercased())
+    }
+
+    /// Something the system would run or install rather than open: an app or
+    /// other bundle, a Unix executable, an installer package, a disk image.
+    /// For these "open" means execute, and a Markdown file has no reason to
+    /// start one — so they are shown in Finder instead, even inside the
+    /// boundary, where an ordinary document would simply open.
+    private static func isExecutableTarget(_ url: URL) -> Bool {
+        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
+            let runs: [UTType] = [.application, .applicationBundle, .unixExecutable, .diskImage]
+            if runs.contains(where: type.conforms(to:)) { return true }
+            if type.identifier == "com.apple.installer-package-archive" { return true }
+        }
+        // No registered type, or unreadable: the execute bit is what makes a
+        // plain file runnable.
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        return exists && !isDirectory.boolValue
+            && FileManager.default.isExecutableFile(atPath: url.path)
     }
 
     /// A Markdown *file*, not merely something named like one.

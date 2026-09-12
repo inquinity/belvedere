@@ -56,6 +56,9 @@ nonisolated enum MarkdownAccessPolicy {
         /// Not a filesystem target at all — http, https, mailto. No boundary
         /// applies, and the reader's click is the whole of the decision.
         case openExternally(URL)
+        /// Inside the boundary, but something the system would run or install
+        /// rather than open. Shown in Finder after confirming, never started.
+        case confirmRevealExecutable(URL)
         /// A Markdown file outside the boundary: confirm, then open it in the
         /// viewer, where it is rendered under its own boundary.
         case confirmOpenOutside(URL)
@@ -77,7 +80,8 @@ nonisolated enum MarkdownAccessPolicy {
     static func linkAction(for url: URL,
                            documentFolder: URL?,
                            containmentRoot: URL?,
-                           isMarkdown: (URL) -> Bool) -> LinkAction {
+                           isMarkdown: (URL) -> Bool,
+                           isExecutable: (URL) -> Bool) -> LinkAction {
         switch url.scheme?.lowercased() {
         case MarkdownAssetResolution.scheme:
             // A relative reference, resolved by the page against its <base>.
@@ -91,7 +95,10 @@ nonisolated enum MarkdownAccessPolicy {
             guard let target = MarkdownAssetResolution.candidateFileURL(for: url) else {
                 return .ignore
             }
-            return action(for: target, containmentRoot: containmentRoot, isMarkdown: isMarkdown)
+            return action(for: target,
+                          containmentRoot: containmentRoot,
+                          isMarkdown: isMarkdown,
+                          isExecutable: isExecutable)
 
         case "file":
             // An absolute `file:` URL names a path outright, so it never goes
@@ -102,7 +109,10 @@ nonisolated enum MarkdownAccessPolicy {
             guard url.host?.isEmpty ?? true else { return .ignore }
             let target = url.standardizedFileURL
             guard target.path.count > 1 else { return .ignore }
-            return action(for: target, containmentRoot: containmentRoot, isMarkdown: isMarkdown)
+            return action(for: target,
+                          containmentRoot: containmentRoot,
+                          isMarkdown: isMarkdown,
+                          isExecutable: isExecutable)
 
         case .some:
             // http, https, mailto and the rest name no file, so no boundary
@@ -118,10 +128,16 @@ nonisolated enum MarkdownAccessPolicy {
     /// named it.
     private static func action(for target: URL,
                                containmentRoot: URL?,
-                               isMarkdown: (URL) -> Bool) -> LinkAction {
+                               isMarkdown: (URL) -> Bool,
+                               isExecutable: (URL) -> Bool) -> LinkAction {
         if let containmentRoot,
            MarkdownAssetResolution.isContained(target, in: containmentRoot) {
-            return isMarkdown(target) ? .openInViewer(target) : .openWithSystem(target)
+            if isMarkdown(target) { return .openInViewer(target) }
+            // Handing a document to the system is what a link to a PDF or an
+            // image is for. Something the system would run or install is not a
+            // document, and no Markdown file has reason to start one — for
+            // those, "open" means execute — so it is shown instead.
+            return isExecutable(target) ? .confirmRevealExecutable(target) : .openWithSystem(target)
         }
         return isMarkdown(target) ? .confirmOpenOutside(target) : .confirmRevealOutside(target)
     }

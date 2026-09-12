@@ -80,7 +80,8 @@ final class MarkdownAccessPolicyTests: XCTestCase {
             for: URL(string: "md-asset://\(assetPath)")!,
             documentFolder: documentFolder,
             containmentRoot: boundary,
-            isMarkdown: { ["md", "markdown"].contains($0.pathExtension.lowercased()) }
+            isMarkdown: { ["md", "markdown"].contains($0.pathExtension.lowercased()) },
+            isExecutable: { _ in false }
         )
     }
 
@@ -145,7 +146,8 @@ final class MarkdownAccessPolicyTests: XCTestCase {
             for: URL(string: "md-asset:///Users/me/project/docs/trap.md")!,
             documentFolder: docs,
             containmentRoot: project,
-            isMarkdown: { _ in false }
+            isMarkdown: { _ in false },
+            isExecutable: { _ in false }
         )
         XCTAssertEqual(
             inside,
@@ -156,7 +158,8 @@ final class MarkdownAccessPolicyTests: XCTestCase {
             for: URL(string: "md-asset:///Users/me/other/trap.md")!,
             documentFolder: docs,
             containmentRoot: project,
-            isMarkdown: { _ in false }
+            isMarkdown: { _ in false },
+            isExecutable: { _ in false }
         )
         XCTAssertEqual(
             outside,
@@ -180,7 +183,8 @@ final class MarkdownAccessPolicyTests: XCTestCase {
                 for: web,
                 documentFolder: docs,
                 containmentRoot: project,
-                isMarkdown: { _ in true }
+                isMarkdown: { _ in true },
+                isExecutable: { _ in false }
             ),
             .openExternally(web)
         )
@@ -200,7 +204,8 @@ final class MarkdownAccessPolicyTests: XCTestCase {
             for: URL(fileURLWithPath: path),
             documentFolder: documentFolder,
             containmentRoot: boundary,
-            isMarkdown: { _ in markdown }
+            isMarkdown: { _ in markdown },
+            isExecutable: { _ in false }
         )
     }
 
@@ -243,9 +248,52 @@ final class MarkdownAccessPolicyTests: XCTestCase {
                 for: URL(string: "file://example.com/etc/passwd")!,
                 documentFolder: docs,
                 containmentRoot: project,
-                isMarkdown: { _ in false }
+                isMarkdown: { _ in false },
+                isExecutable: { _ in false }
             ),
             .ignore
+        )
+    }
+
+    // MARK: - Programs are shown, not started
+
+    /// Inside the boundary an ordinary document is handed to the system —
+    /// that is what a link to a PDF is for. A program is not a document.
+    func testExecutableInsideTheBoundaryIsRevealedRatherThanRun() {
+        let app = URL(fileURLWithPath: "/Users/me/project/tools/setup.command")
+        XCTAssertEqual(
+            MarkdownAccessPolicy.linkAction(for: app,
+                                            documentFolder: docs,
+                                            containmentRoot: project,
+                                            isMarkdown: { _ in false },
+                                            isExecutable: { _ in true }),
+            .confirmRevealExecutable(app)
+        )
+    }
+
+    func testOrdinaryDocumentInsideTheBoundaryStillOpens() {
+        let pdf = URL(fileURLWithPath: "/Users/me/project/spec.pdf")
+        XCTAssertEqual(
+            MarkdownAccessPolicy.linkAction(for: pdf,
+                                            documentFolder: docs,
+                                            containmentRoot: project,
+                                            isMarkdown: { _ in false },
+                                            isExecutable: { _ in false }),
+            .openWithSystem(pdf)
+        )
+    }
+
+    /// Outside the boundary it was already reveal-only, so being executable
+    /// changes nothing there.
+    func testExecutableOutsideTheBoundaryIsStillJustRevealed() {
+        let app = URL(fileURLWithPath: "/Applications/Calculator.app")
+        XCTAssertEqual(
+            MarkdownAccessPolicy.linkAction(for: app,
+                                            documentFolder: docs,
+                                            containmentRoot: project,
+                                            isMarkdown: { _ in false },
+                                            isExecutable: { _ in true }),
+            .confirmRevealOutside(app)
         )
     }
 }

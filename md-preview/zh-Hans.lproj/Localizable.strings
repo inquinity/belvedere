@@ -312,3 +312,7 @@
 "Folder Access" = "文件夹访问范围";
 "This document reads images and links from the folder you opened. Anything outside it is blocked." = "此文稿从你打开的文件夹中读取图像和链接，该文件夹以外的内容会被阻止。";
 "This document reads images and links from its own folder. Open a project folder to widen this." = "此文稿仅从自身所在的文件夹读取图像和链接。打开项目文件夹可扩大范围。";
+
+/* A link to something the system would run */
+"“%@” would be run, not opened." = "“%@”会被运行，而不是打开。";
+"This document links to a program or installer. It will be shown in Finder instead." = "此文稿链接到一个程序或安装包。该文件将在“访达”中显示，而不会被打开。";
