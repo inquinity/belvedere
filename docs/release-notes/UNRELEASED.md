@@ -8,4 +8,5 @@ bin/compose-release-notes.sh builds <version>.md from both files; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- Settings › Privacy now describes a blocked remote image the way it actually
+  appears — a placeholder naming the host — instead of calling it broken.

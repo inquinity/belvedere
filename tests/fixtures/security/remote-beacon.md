@@ -20,17 +20,19 @@ fetches scripts and images over the `md-asset:` scheme. A single shared policy
 would have to permit the union of both, which is weaker than either.
 
 DOMPurify still keeps these `<img>` elements in the DOM — `ALLOWED_URI_REGEXP`
-permits `http`/`https` — so they appear as broken images rather than vanishing.
+permits `http`/`https` — so they appear as labelled placeholders rather than
+vanishing.
 The load is what is refused. Tightening that regexp is the belt to this braces
 and is on the upstream contribution track.
 
-**Reading this by eye:** every reference below must fail to load. Broken-image
-placeholders are the passing result — the element survives sanitisation, only
-the network request is refused.
+**Reading this by eye:** every reference below must fail to load. A placeholder
+reading **Remote image blocked — example.invalid** is the passing result: the
+element survives sanitisation, only the network request is refused.
 
 ## Image beacons
 
-> **EXPECT:** two broken-image placeholders.
+> **EXPECT:** two placeholders, each reading
+> **Remote image blocked — example.invalid**.
 > **FAIL IF:** either image renders. `example.invalid` cannot resolve, so a
 > loaded image would mean something rewrote the URL — but the real point is
 > that no request should leave the machine at all. To check that properly,
@@ -42,7 +44,7 @@ the network request is refused.
 
 ## Referenced via inline HTML
 
-> **EXPECT:** a broken-image placeholder.
+> **EXPECT:** one placeholder reading **Remote image blocked — example.invalid**.
 > **FAIL IF:** it renders. Raw HTML is a second route to the same beacon and
 > is covered by the CSP rather than by the sanitiser.
 

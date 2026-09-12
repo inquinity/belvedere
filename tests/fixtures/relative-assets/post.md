@@ -8,7 +8,7 @@ inlines images as `data:`/`cid:`.
 ## Sibling file in subfolder
 
 > **EXPECT:** an image renders directly below.
-> **FAIL IF:** broken-image placeholder. Containment (M4) confines resolution
+> **FAIL IF:** a placeholder appears instead of the image. Containment (M4) confines resolution
 > to this document's folder, and this file is inside it — a break here means
 > containment is refusing legitimate assets.
 
@@ -17,7 +17,7 @@ inlines images as `data:`/`cid:`.
 ## Sibling file with URL-encoded spaces
 
 > **EXPECT:** an image renders directly below.
-> **FAIL IF:** broken-image placeholder. The path is `images dir/two words.png`
+> **FAIL IF:** a placeholder appears instead of the image. The path is `images dir/two words.png`
 > percent-encoded; this is the case most likely to break under a change to
 > path handling, because it fails only when decoding is wrong.
 
@@ -25,7 +25,7 @@ inlines images as `data:`/`cid:`.
 
 ## Absolute http URL — must NOT load
 
-> **EXPECT:** a broken-image placeholder.
+> **EXPECT:** a placeholder reading **Remote image blocked — www.apple.com**.
 > **FAIL IF:** the Apple logo renders. Remote images are blocked by CSP on
 > both surfaces so that opening a document never tells its author you read it.
 >

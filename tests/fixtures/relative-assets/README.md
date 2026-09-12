@@ -31,7 +31,8 @@ Expectations:
   renders blank without it — so the block is enforced by the page's
   Content-Security-Policy rather than by the sandbox. A gap where this image
   used to appear is the correct result. See `docs/FORK-NOTES.md`.
-- `images/missing.png` shows the broken-image glyph; the preview does not
+- `images/missing.png` shows a placeholder reading `missing.png — file missing`,
+  with no Load button: nothing blocked it, it simply is not there. The preview does not
   crash.
 
 If sandbox denials show up in Console.app filtered by `quick-look`, the

@@ -61,7 +61,7 @@ Quick Look will not pick up a new build until the app has been in
 | File | What it proves |
 |---|---|
 | `tests/fixtures/security/inline-html.md` | Sanitisation. **Most sections collapse to nothing, and that is the pass.** Judge the *control*, not the words: a stripped element leaves its text behind, so the credential section may show an inert "Sign in" with no button under it. A **text field you can click into**, or a button that behaves like one, means stop and do not ship. Also check the task list still toggles — clicking a checkbox writes back to the file. |
-| `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a broken-image placeholder. Any file contents on screen is a document reading files it has no right to. |
+| `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a placeholder naming the file, with a **Load** button — these sit outside the document's folder, so the reader is offered the choice. Clicking Load must report a failure, never show contents: any file contents on screen is a document reading files it has no right to. |
 | `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Every image broken, page still styled normally. |
 | `tests/fixtures/relative-assets/post.md` | The other half: containment must not break *legitimate* relative images. Two must render, two must not. |
 
@@ -88,8 +88,8 @@ So the question to ask of this fixture is never "is the section empty" but
 
 ### Proving no request left the machine
 
-Broken images are consistent with the request being blocked *and* with the host
-simply not resolving. To confirm the block itself, watch the network while
+A blocked placeholder is consistent with the request being refused *and* with the
+host simply not resolving. To confirm the block itself, watch the network while
 opening `remote-beacon.md`:
 
 ```bash
