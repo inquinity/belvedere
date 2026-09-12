@@ -24,13 +24,15 @@ Expectations:
   loading without a click would mean the boundary is not holding, and a failure
   after the click would mean the remedy is broken.
 - ~~The remote https image renders (network entitlement already granted).~~
-  **Changed in this fork: the remote image must NOT render.**
+  **Changed in this fork: the remote image must NOT render on its own.**
   `QuickLookContentPolicy` denies remote origins in the preview page, so a
   document cannot disclose that it was opened when a reader merely presses
   space in Finder. The extension still holds the network entitlement — it
   renders blank without it — so the block is enforced by the page's
-  Content-Security-Policy rather than by the sandbox. A gap where this image
-  used to appear is the correct result. See `docs/FORK-NOTES.md`.
+  Content-Security-Policy rather than by the sandbox. In Quick Look a
+  placeholder naming the host, with no button, is the correct result. In the
+  app window the placeholder offers **Load**, and clicking it fetches that one
+  image; nothing is fetched until then. See `docs/FORK-NOTES.md`.
 - `images/missing.png` shows a placeholder reading `missing.png — file missing`,
   with no Load button: nothing blocked it, it simply is not there. The preview does not
   crash.

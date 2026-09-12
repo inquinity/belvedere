@@ -564,6 +564,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
 
 
+    #if !QUICK_LOOK_EXTENSION
+    /// Built the first time a reader grants a remote image, so a window that
+    /// never grants one never creates a URL session at all.
+    private lazy var remoteImageFetcher = RemoteImageFetcher()
+    #endif
+
     /// Explains why an in-folder reference failed to render.
     ///
     /// No grant is involved: the page only asks for references inside the
@@ -597,10 +603,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// result goes back as a `data:` URL, which `img-src` already allows, so
     /// no policy is relaxed to make the click work.
     ///
-    /// Remote URLs are not fetched here. Doing so would turn one click into a
-    /// network request carrying the reader's IP to whoever authored the
-    /// document, which is the disclosure the CSP exists to prevent — a
-    /// deliberate remote fetch needs its own decision, not this one.
+    /// A remote URL is fetched, and only here. Nothing about a document being
+    /// open reaches the network: the CSP still refuses the page's own request,
+    /// the placeholder is what the reader sees, and the click is the decision.
+    /// One click fetches one image, and nothing is remembered — the next
+    /// remote image, from the same host or another, asks again. Quick Look
+    /// grants nothing and so never gets here.
     fileprivate func loadDeferredAsset(token: String, src: String) {
         func resolve(_ dataURL: String?, _ refusal: String?) {
             let value = dataURL.map { "'\($0)'" } ?? "null"
@@ -611,6 +619,20 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         }
 
         guard let url = URL(string: src) else { return resolve(nil, "unavailable") }
+
+        if RemoteImageRequestPolicy.isEligible(url) {
+            #if QUICK_LOOK_EXTENSION
+            return resolve(nil, "unavailable")
+            #else
+            Task {
+                switch await self.remoteImageFetcher.image(at: url) {
+                case let .loaded(dataURL): resolve(dataURL, nil)
+                case let .refused(reason): resolve(nil, reason.rawValue)
+                }
+            }
+            return
+            #endif
+        }
 
         // The page sends the URL resolved against its base href; containment
         // refused it, and the click is the grant, so it is resolved here

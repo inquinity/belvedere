@@ -224,6 +224,7 @@ nonisolated extension MarkdownHTML {
             if (reason === 'notAnImage') return 'load failed: not an image';
             if (reason === 'tooLarge') return 'load failed: too large';
             if (reason === 'unreadable') return 'load failed: cannot read file';
+            if (reason === 'unreachable') return 'load failed: no answer from the host';
             // Not a failure at all — the file is fine and was refused. Saying
             // "load failed" for it sends the reader hunting a broken file.
             if (reason === 'outsideFolder') {
@@ -286,7 +287,11 @@ nonisolated extension MarkdownHTML {
             // URL to reason from.
             const stated = img.getAttribute('data-mdp-refused');
             label.textContent = remote
-                ? 'Remote image blocked — ' + deferredLabel(src)
+                // Not "blocked" where it can be loaded: nothing was fetched,
+                // and one click fetches it. Quick Look grants nothing, so
+                // there the wording stays final.
+                ? (canGrant ? 'Remote image — ' : 'Remote image blocked — ')
+                    + deferredLabel(src)
                 : stated
                     ? deferredLabel(raw) + ' — ' + describeFailure(stated)
                 : !canGrant
@@ -300,13 +305,14 @@ nonisolated extension MarkdownHTML {
             label.title = raw;
             box.appendChild(label);
 
-            // No Load button for remote content. Fetching it would send the
-            // reader's IP to whoever authored the document, which is the
-            // disclosure the CSP exists to prevent, and the host refuses it —
-            // so offering a button that always fails would be worse than
-            // offering none. A deliberate remote fetch needs its own decision;
-            // see docs/FORK-NOTES.md (F4).
-            if (!remote && !inside && canGrant) {
+            // A Load button for anything the reader can still ask for: a
+            // file outside the document's folder, or a remote image the CSP
+            // refused. The refusal is what makes the button meaningful —
+            // nothing was fetched on open, so the click is the first and only
+            // thing that reaches the network, and it reaches it for one image.
+            // An in-folder reference is not offered one: it was never blocked,
+            // so the button would only repeat the read that just failed.
+            if (!inside && canGrant) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'mdp-deferred-load';
@@ -383,6 +389,10 @@ nonisolated extension MarkdownHTML {
             const article = document.querySelector('.markdown-body');
             if (!article) return;
             let banner = article.querySelector('.mdp-deferred-banner');
+            // Local only, deliberately. "Load all" is one click standing in
+            // for many, which is reasonable for files the reader already has;
+            // it is not reasonable for requests to hosts they have not looked
+            // at. Remote images stay one click each.
             const pending = [...deferredAssets.values()]
                 .filter((e) => !e.refused && !e.remote && !e.inside);
             if (!canGrant || pending.length < 2) { if (banner) banner.remove(); return; }
@@ -405,7 +415,7 @@ nonisolated extension MarkdownHTML {
                 article.insertBefore(banner, article.firstChild);
             }
             banner.querySelector('.mdp-deferred-banner-text').textContent =
-                pending.length + ' images blocked';
+                pending.length + ' images outside this folder';
         }
 
         function deferBlockedImages(root = document) {

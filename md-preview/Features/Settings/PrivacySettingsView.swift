@@ -20,18 +20,18 @@ struct PrivacySettingsView: View {
         Form {
             Section {
                 LabeledContent(L("Network activity")) {
-                    Text(L("None")).foregroundStyle(.secondary)
+                    Text(L("Only when you ask")).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text(L("Crash reporting, usage analytics and automatic updates have all been removed, so nothing in this app contacts a server on its own. The sandbox entitlement that permits outbound connections is still present because WKWebView will not render without it — so the guarantee comes from the code that was removed, not from the sandbox."))
+                Text(L("Crash reporting, usage analytics and automatic updates have all been removed, so nothing in this app contacts a server on its own. The only outbound request it makes is one you ask for by clicking Load on a remote image. The sandbox entitlement that permits outbound connections is still present because WKWebView will not render without it — so the guarantee comes from the code that was removed, not from the sandbox."))
             }
 
             Section {
                 LabeledContent(L("Remote images")) {
-                    Text(L("Blocked")).foregroundStyle(.secondary)
+                    Text(L("Blocked until you load them")).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text(L("A Markdown document that references an image by http or https URL shows a placeholder naming the blocked host rather than fetching it, so opening or previewing a document never tells its author that you read it. This applies to the document window, the editor and Quick Look."))
+                Text(L("A Markdown document that references an image by http or https URL shows a placeholder naming the host rather than fetching it, so opening or previewing a document never tells its author that you read it. In the document window you can click Load on a placeholder to fetch that one image: the request carries no cookies and is not remembered, so the next one asks again, and Load all covers local files only. Quick Look names these images without offering to load them."))
             }
         }
         .formStyle(.grouped)

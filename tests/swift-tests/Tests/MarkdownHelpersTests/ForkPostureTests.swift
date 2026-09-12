@@ -120,6 +120,55 @@ final class ForkPostureTests: XCTestCase {
         )
     }
 
+    /// The one place this app connects, and the one way to reach it.
+    ///
+    /// "Never connects on its own" is a claim about code, not about intent. It
+    /// holds while the app has exactly one URL session, that session belongs to
+    /// the granted image fetch, and nothing builds it except the click that
+    /// grants the image. A second session anywhere — a font, an update check, a
+    /// "helpful" prefetch — falsifies the About box the moment it is added.
+    func testTheOnlyURLSessionBelongsToTheGrantedImageFetch() throws {
+        let owners = try swiftSources().filter { url in
+            guard let source = try? String(contentsOf: url, encoding: .utf8) else { return false }
+            return source.contains("URLSession(configuration:")
+        }
+        XCTAssertEqual(
+            owners.map(\.lastPathComponent).sorted(), ["RemoteImageFetcher.swift"],
+            """
+            A URL session appeared outside the granted image fetch. Whatever it \
+            is for, the About box now says something untrue: check \
+            docs/FORK-NOTES.md (F4) before deciding this test is wrong.
+            """
+        )
+    }
+
+    /// Quick Look grants nothing, so it does not get the code that fetches.
+    ///
+    /// The extension previews whatever Finder has selected, with no window to
+    /// ask in and no prompt to answer, so a remote image there could only be
+    /// fetched without consent. Rather than rely on the button never appearing,
+    /// the fetch is not compiled into that target at all.
+    func testQuickLookDoesNotCompileTheFetcher() throws {
+        let project = try text(at: "md-preview.xcodeproj/project.pbxproj")
+        XCTAssertFalse(
+            project.contains("Rendering/RemoteImageFetcher.swift"),
+            """
+            RemoteImageFetcher.swift is listed in the quick-look target's \
+            membership exceptions, so the extension now compiles the network \
+            fetch. It has no way to ask the reader for consent.
+            """
+        )
+        let webView = try text(at: "md-preview/Rendering/MarkdownWebView.swift")
+        XCTAssertTrue(
+            webView.contains("#if QUICK_LOOK_EXTENSION\n            return resolve(nil, \"unavailable\")"),
+            """
+            The deferred-asset path no longer refuses remote URLs in Quick Look \
+            before reaching the fetcher. Without that branch the extension does \
+            not build, and if it did, it would fetch without consent.
+            """
+        )
+    }
+
     // MARK: - Identity
 
     func testBundleIdentityIsOursAndNotUpstreams() throws {

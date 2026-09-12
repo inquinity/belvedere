@@ -25,13 +25,19 @@ inlines images as `data:`/`cid:`.
 
 ## Absolute http URL — must NOT load
 
-> **EXPECT:** a placeholder reading **Remote image blocked — www.apple.com**.
-> **FAIL IF:** the Apple logo renders. Remote images are blocked by CSP on
-> both surfaces so that opening a document never tells its author you read it.
+> **EXPECT in the app window:** a placeholder reading **Remote image —
+> www.apple.com** with a **Load** button. Clicking it fetches that one image and
+> nothing else — that is the reader asking, and it is the only thing here that
+> reaches the network.
+> **EXPECT in Quick Look:** **Remote image blocked — www.apple.com**, no button.
+> **FAIL IF:** the Apple logo renders before anyone clicks. Remote images are
+> blocked by CSP on both surfaces so that opening a document never tells its
+> author you read it.
 >
 > This expectation was **inverted in M3b/F2**: the fixture previously said this
-> image "must keep working". Blocking it is the deliberate cost of closing the
-> tracking-pixel hole, and README badges are the visible casualty.
+> image "must keep working". Blocking it on open is the deliberate cost of
+> closing the tracking-pixel hole; click-to-load gives README badges back to
+> anyone who wants them, one at a time.
 
 ![remote](https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png?202210171354)
 

@@ -29,9 +29,11 @@ Look are upstream's work.
 - Remote content — images, stylesheets, fonts, scripts — is blocked in the document
   window, the editor and Quick Look. A remote image shows as a placeholder naming its
   host, so opening a document never tells its author that you read it.
-- Images load only from the document's own folder. One outside it shows as a
-  placeholder with a **Load** button: one click, checked to be a real image first,
-  and not remembered. Quick Look names these without offering Load.
+- Images load only from the document's own folder, or when you ask for them. A file
+  outside the folder, or a remote image, shows as a placeholder with a **Load**
+  button: one click, checked to be a real image first, and not remembered — a remote
+  fetch carries no cookies and grants nothing to that host next time. **Load all**
+  covers local files only. Quick Look names these without offering Load.
 - A link outside the document's folder does nothing when clicked, and has no context
   menu.
 - A link to a program — an app, a script, an installer, a disk image — is shown in

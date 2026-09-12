@@ -95,9 +95,12 @@ final class DeferredImageRenderingTests: XCTestCase {
         )
     }
 
-    /// The local one offers a Load button; the remote one must not.
+    /// Both blocked images offer Load: a file outside the folder, and a
+    /// remote one. What the reader is agreeing to differs — a read versus a
+    /// request — but in both cases the click is the only thing that acts, and
+    /// it acts once.
     @MainActor
-    func testOnlyLocalPlaceholdersOfferLoad() async throws {
+    func testBlockedPlaceholdersOfferLoad() async throws {
         let webView = try await harness()
         try await update(doc, in: webView)
         _ = try await waitForPlaceholders(webView, atLeast: 2)
@@ -113,8 +116,8 @@ final class DeferredImageRenderingTests: XCTestCase {
         let d = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Int] ?? [:]
 
         XCTAssertEqual(d["remote"], 1, "the remote image should be deferred and labelled \(raw)")
-        XCTAssertEqual(d["remoteButtons"], 0,
-                       "a remote placeholder offered Load, which could only ever fail \(raw)")
+        XCTAssertEqual(d["remoteButtons"], 1,
+                       "the remote placeholder must offer Load — the click is the grant \(raw)")
         XCTAssertEqual(d["localButtons"], 1,
                        "the local placeholder must offer Load — that is the remedy \(raw)")
     }
@@ -312,8 +315,9 @@ final class DeferredImageRenderingTests: XCTestCase {
     }
 
     /// The document-level offer. It exists because a reader thinks in
-    /// documents rather than folders, so it must count what it can actually
-    /// act on — not remote references, which have no remedy.
+    /// documents rather than folders, and it covers local files only: bulk
+    /// consent to reach a list of hosts is not the same decision as bulk
+    /// consent to read files already on the disk.
     @MainActor
     func testLoadAllOffersAndRequestsOnlyTheLoadableOnes() async throws {
         let webView = try await harness()
@@ -335,8 +339,8 @@ final class DeferredImageRenderingTests: XCTestCase {
         })()
         """) as? String ?? "{}"
         XCTAssertTrue(before.contains("\"shown\":true"), "two loadable images should raise the banner \(before)")
-        XCTAssertTrue(before.contains("2 images blocked"),
-                      "the count must exclude the remote one, which has no remedy \(before)")
+        XCTAssertTrue(before.contains("2 images outside this folder"),
+                      "the count must exclude the remote one, which is not loaded in bulk \(before)")
 
         _ = try await webView.evaluateJavaScript(
             "document.querySelector('.mdp-deferred-banner button').click(); true"
@@ -350,9 +354,10 @@ final class DeferredImageRenderingTests: XCTestCase {
                       "Load all must request every loadable image \(posted)")
         XCTAssertFalse(posted.contains("example.invalid"),
                        """
-                       Load all requested a remote image. Fetching one would \
-                       disclose the reader to the document's author, which is \
-                       what the CSP prevents. \(posted)
+                       Load all requested a remote image. One click standing in \
+                       for many is reasonable for files the reader already has, \
+                       and not for requests to hosts they have not looked at: a \
+                       remote image is granted one at a time. \(posted)
                        """)
     }
 

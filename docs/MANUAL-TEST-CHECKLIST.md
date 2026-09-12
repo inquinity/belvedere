@@ -62,7 +62,7 @@ Quick Look will not pick up a new build until the app has been in
 |---|---|
 | `tests/fixtures/security/inline-html.md` | Sanitisation. **Most sections collapse to nothing, and that is the pass.** Judge the *control*, not the words: a stripped element leaves its text behind, so the credential section may show an inert "Sign in" with no button under it. A **text field you can click into**, or a button that behaves like one, means stop and do not ship. Also check the task list still toggles — clicking a checkbox writes back to the file. |
 | `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a placeholder naming the file, with a **Load** button — these sit outside the document's folder, so the reader is offered the choice. Clicking Load must report a failure, never show contents: any file contents on screen is a document reading files it has no right to. |
-| `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Every image broken, page still styled normally. |
+| `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Nothing loads on open: every image is a placeholder naming the host, page still styled normally. In the app window each offers **Load** — that is the reader asking, and it is the only thing that reaches the network. Quick Look offers no button. **Load all** must not appear for these; it covers local files only. |
 | `tests/fixtures/relative-assets/post.md` | The other half: containment must not break *legitimate* relative images. Two must render, two must not. |
 
 Open each in **both** the app window and Quick Look. They resolve assets by
@@ -90,7 +90,8 @@ So the question to ask of this fixture is never "is the section empty" but
 
 A blocked placeholder is consistent with the request being refused *and* with the
 host simply not resolving. To confirm the block itself, watch the network while
-opening `remote-beacon.md`:
+opening `remote-beacon.md` — and do not click **Load**, which is a request you
+made and should appear:
 
 ```bash
 sudo tcpdump -n -i any 'tcp port 80 or tcp port 443' | grep -i example
@@ -98,6 +99,37 @@ sudo tcpdump -n -i any 'tcp port 80 or tcp port 443' | grep -i example
 
 Nothing should appear. This is the check that actually distinguishes "blocked"
 from "failed to connect", and it is worth doing when the CSP changes.
+
+### Checking click-to-load for remote images
+
+The other half needs a host that answers, which `example.invalid` never does.
+Serve one locally instead, so the whole check stays on the machine:
+
+```bash
+mkdir -p /tmp/mdshots && cd /tmp/mdshots && python3 -m http.server 8731 --bind 127.0.0.1
+```
+
+Point a document at `http://127.0.0.1:8731/<an image you put there>` and open it
+in the app window. Expected, and each line is a separate claim:
+
+- On open: a placeholder, and **no request in the server log**.
+- One click on **Load**: the image appears, and the log shows **exactly one**
+  GET. Click a second remote placeholder and it asks again — grants are never
+  remembered, not even for the same host.
+- A URL on a host that does not resolve: `load failed: no answer from the host`,
+  and the button is removed.
+- A response that is not really an image: `load failed: not an image`. Serving
+  it as `Content-Type: image/png` must not change that — the bytes are what is
+  checked.
+- A redirect to a `file:` URL must be refused without reading the file, and a
+  redirect chain must stop after three hops. Both need a server that redirects;
+  `docs/FORK-NOTES.md` (F4) records what was verified and how.
+- An oversized response — one that declares 100 MB, and one that declares no
+  length and never stops — must both come back `load failed: too large`, the
+  second with the server reporting a broken pipe. Watch the app's memory in
+  Activity Monitor while it runs: it must stay flat.
+- In **Quick Look**, the same document shows the same placeholders with **no**
+  Load button at all.
 
 ## 2. Upstream samples
 

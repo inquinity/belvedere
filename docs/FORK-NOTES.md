@@ -421,11 +421,11 @@ reference that is not an image is surfaced rather than hidden — a document poi
 `<img>` at `/etc/passwd` is not a broken layout, it is probing, and no other viewer tells
 you that.
 
-**Shipped, with one half deliberately unfinished.** A local file outside the boundary now
-renders as a placeholder naming it, with a Load button that asks the host, which verifies
-the bytes really are a raster image before answering with a `data:` URL. Verified end to
-end in the running app: a real PNG loads on click, and a text file renamed `.png` comes
-back "not an image" with the dead action removed.
+**Shipped for both kinds of block.** A local file outside the boundary, and a remote
+image, each render as a placeholder naming what was withheld, with a Load button that asks
+the host. The host verifies the bytes really are a raster image before answering with a
+`data:` URL. Verified end to end in the running app: a real PNG loads on click, and a text
+file renamed `.png` comes back "not an image" with the dead action removed.
 
 **Quick Look says why, and the reason comes from the inliner.** The first labels there
 were misleading: a file sitting one folder up, present and perfectly readable, was
@@ -476,11 +476,57 @@ reported afterwards as `load failed: not an image`. Phrasing it as the outcome o
 action matters: "not an image" alone reads as a property of the file rather than as the
 result of the click just made.
 
-**Remote images are labelled but not loadable.** They get a placeholder saying so and no
-button, because fetching one would send the reader's IP to whoever authored the document —
-the disclosure the CSP exists to prevent. Offering a button that always fails would be
-worse than offering none. Remote click-to-load needs its own decision about what a fetch
-may carry, and has not been made.
+**Remote images are click-to-load too, and the decision the second half needed is
+this one.** Fetching a remote image tells its host that this reader opened this document,
+which is the disclosure the CSP exists to prevent — so nothing is fetched on open, the
+page itself still reaches nothing (`img-src` remains `md-asset: data:`), and the click is
+the whole of the consent. What the click then buys is deliberately small:
+
+- **One image per click, and no memory of it.** "Trust this host" is the obvious feature
+  and the wrong unit. A large code-hosting host speaks for thousands of unrelated authors,
+  so allowing it once would allow all of them, in every document, for ever. Trust belongs
+  to a folder the reader chose (F3); a hostname a document named is not a choice the
+  reader made. **Load all** is therefore local-only — one click standing in for many is
+  reasonable for files already on the disk, not for requests to hosts nobody has looked
+  at.
+- **The request carries as little as it can.** A fresh ephemeral `URLSession` per window,
+  created only when a reader first grants something: no cookies, no cache, no credentials,
+  no referrer. The `User-Agent` is `Belvedere/<version>` — naming ourselves honestly,
+  rather than volunteering a browser's identity we do not have.
+- **`http` and `https` only, host required, and a redirect is held to the same rule.** A
+  302 is a second URL the reader never saw; without that check it could hand the fetch to
+  `file:` and turn a remote grant into a local read. Chains stop at three, and the
+  transfer at ten seconds and 16 MB — the same ceiling a local grant gets.
+- **The size cap is enforced on the stream, not on the finished body.**
+  `Content-Length` is a claim made by the server that would be lying, so it is checked
+  first only because refusing early is cheaper when it is honest; the running total is
+  what actually stops the transfer. A host that declares nothing and sends forever is cut
+  off at the ceiling, and nothing bigger is ever held in memory.
+- **Quick Look does not compile the fetcher at all.** It has no window to ask in, so a
+  fetch there could only happen without consent. `ForkPostureTests` pins both halves: the
+  extension's source list must not name the file, and the app's one and only URL session
+  must be this one.
+
+Verified on screen against a local server: one click produced exactly one request; a
+redirect to `file:///etc/passwd` was refused without reading it; a redirect chain stopped
+after three; a response claiming `Content-Type: image/png` that was not one came back
+`load failed: not an image`; a dead host came back `load failed: no answer from the host`;
+and both oversize shapes — a declared 100 MB and an endless chunked body with no length at
+all — came back `load failed: too large`, the second with the connection dropped mid-send
+and the app's memory flat.
+
+One case is worth knowing about because it looks like a bug and is not: a server that
+*understates* `Content-Length` and then sends more gets truncated by CFNetwork at the
+length it promised. The reader sees a broken image rather than a refusal, because the
+bytes that arrived really were what the server said it was sending. Nothing is disclosed
+and nothing is over-read; the server simply lied to itself.
+
+**What this does to the posture claim.** The About box says Belvedere *never connects on
+its own*, and that is still exactly true — "on its own" is the load-bearing half. The
+claim that had to change is the internal one: it is no longer "there is no code here that
+connects", it is "nothing connects without a click, one image at a time". The line
+"Remote content stays blocked until you allow it." was aspirational when written, because
+there was no way to allow it. It is now literal.
 
 **Bugs shipped past a green test suite before this worked**, all of the same kind: every
 test asserted that dangerous things were *absent*, so zero placeholders satisfied all of
@@ -496,7 +542,8 @@ added there was redundant, and a later mutation test proved it — removing it c
 nothing. Two of the reports of "still broken" during that work were caused by a stale
 binary being installed from a second DerivedData directory left behind by the folder
 rename, not by the code. `DeferredImageRenderingTests` now
-asserts the feature is *present* — placeholders appear, only local ones offer Load, they
+asserts the feature is *present* — placeholders appear, every blocked reference offers
+Load while an in-folder failure does not, they
 survive a morph update, a click asks the host exactly once with a non-relative URL, and a
 refusal is shown in place.
 
@@ -783,8 +830,9 @@ effect on the next render.
 
 **The seam worth remembering:** trust is about folders, and remote images are about hosts.
 F4's placeholder is shared between them, but a trusted folder says nothing about
-`example.com`. Remote content stays click-to-load only unless someone deliberately designs
-a per-host decision, which is a different axis and not part of either item.
+`example.com`. Remote content is click-to-load and stays that way: a per-host grant was
+considered and rejected, because one hostname can stand for thousands of unrelated
+authors (see F4). Folders are a unit a reader can actually mean; hosts are not.
 
 **Sequencing.** F4 first, since it stands alone and needs no policy. Then this. Trust is
 proposed upstream as the middle of three layers on #337; if they take it, it arrives

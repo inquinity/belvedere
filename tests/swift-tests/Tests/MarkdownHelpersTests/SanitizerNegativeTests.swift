@@ -108,12 +108,16 @@ final class SanitizerNegativeTests: XCTestCase {
     /// Remote `<img>` elements survive sanitization: `ALLOWED_URI_REGEXP`
     /// permits `http`/`https`, so DOMPurify keeps them in the DOM.
     ///
-    /// That is no longer a disclosure risk, because nothing fetches them —
-    /// `PreviewContentPolicy` omits both schemes from `img-src`, so the load is
-    /// refused by the page. The element is present and broken rather than
-    /// absent, which is why this test still passes and still matters: it pins
-    /// the sanitizer's behaviour, so if the CSP were ever dropped the exposure
-    /// would return silently.
+    /// That is no longer a disclosure risk, because nothing fetches them on
+    /// open — `PreviewContentPolicy` omits both schemes from `img-src`, so the
+    /// load is refused by the page. The element is present and broken rather
+    /// than absent, which is why this test still passes and still matters: it
+    /// pins the sanitizer's behaviour, so if the CSP were ever dropped the
+    /// exposure would return silently.
+    ///
+    /// The reader can still ask for one, which is what the Load button on each
+    /// placeholder is for. That request comes from the host, one image per
+    /// click; the page itself reaches nothing, either way.
     ///
     /// Tightening `ALLOWED_URI_REGEXP` to drop `http`/`https` is the belt to
     /// this braces, and is on the upstream contribution track.
@@ -137,12 +141,19 @@ final class SanitizerNegativeTests: XCTestCase {
             """
         )
         XCTAssertEqual(
-            survivors.deferredLoadButtons, 0,
+            survivors.remoteImages, 0,
             """
-            A remote placeholder offered a Load button. Fetching remote content \
-            would send the reader's IP to the document's author, which is the \
-            disclosure the CSP exists to prevent, and the host refuses it — so \
-            the button could only ever fail. \(survivors.raw)
+            A remote <img> is still in the rendered page. Opening the document \
+            must not fetch anything: every remote reference becomes a \
+            placeholder, and the reader's click is what fetches it. \(survivors.raw)
+            """
+        )
+        XCTAssertEqual(
+            survivors.deferredLoadButtons, survivors.deferredRemote,
+            """
+            A remote placeholder came without a Load button. The refusal on \
+            open is the point; leaving the reader no way to ask for the image \
+            afterwards is not. \(survivors.raw)
             """
         )
         // Whatever else changes, a remote stylesheet must never survive.

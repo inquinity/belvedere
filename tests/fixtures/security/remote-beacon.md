@@ -25,15 +25,23 @@ vanishing.
 The load is what is refused. Tightening that regexp is the belt to this braces
 and is on the upstream contribution track.
 
-**Reading this by eye:** every reference below must fail to load. A placeholder
-reading **Remote image blocked — example.invalid** is the passing result: the
-element survives sanitisation, only the network request is refused.
+**Reading this by eye:** nothing below may load on open. A placeholder reading
+**Remote image — example.invalid** with a **Load** button is the passing result
+in the app window: the element survives sanitisation, the page's own request is
+refused, and fetching is left to a click. Quick Look grants nothing, so there it
+reads **Remote image blocked — example.invalid** with no button.
+
+Do not click Load here while checking the block — the fixture's whole purpose is
+that opening the document sends nothing, and a click is you asking, not the
+document telling. If you do click, `example.invalid` does not resolve, so the
+placeholder reports **load failed: no answer from the host**.
 
 ## Image beacons
 
-> **EXPECT:** two placeholders, each reading
-> **Remote image blocked — example.invalid**.
-> **FAIL IF:** either image renders. `example.invalid` cannot resolve, so a
+> **EXPECT:** two placeholders, each naming `example.invalid` — **Remote image —**
+> in the app window, where each offers **Load**, and **Remote image blocked —**
+> in Quick Look, where nothing does.
+> **FAIL IF:** either image renders without a click. `example.invalid` cannot resolve, so a
 > loaded image would mean something rewrote the URL — but the real point is
 > that no request should leave the machine at all. To check that properly,
 > see the Little Snitch / `tcpdump` step in docs/MANUAL-TEST-CHECKLIST.md.
@@ -44,9 +52,9 @@ element survives sanitisation, only the network request is refused.
 
 ## Referenced via inline HTML
 
-> **EXPECT:** one placeholder reading **Remote image blocked — example.invalid**.
-> **FAIL IF:** it renders. Raw HTML is a second route to the same beacon and
-> is covered by the CSP rather than by the sanitiser.
+> **EXPECT:** one placeholder naming `example.invalid`, worded as above.
+> **FAIL IF:** it renders without a click. Raw HTML is a second route to the
+> same beacon and is covered by the CSP rather than by the sanitiser.
 
 <img src="https://example.invalid/inline.png?via=raw-html">
 

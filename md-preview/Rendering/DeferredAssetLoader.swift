@@ -25,7 +25,7 @@ import Foundation
 ///   when the document closes; see `docs/FORK-NOTES.md` (F4). Durable grants
 ///   are trusted folders (F3), which are a different decision made about a
 ///   folder rather than about an image.
-enum DeferredAssetLoader {
+nonisolated enum DeferredAssetLoader {
 
     static let defaultMaxBytes = 16 * 1024 * 1024
 
@@ -47,8 +47,8 @@ enum DeferredAssetLoader {
             return url.path
         }
         if url.isFileURL { return url.path }
-        // http/https are not fetched: doing so would send the reader's IP to
-        // whoever authored the document, which is what the CSP prevents.
+        // http/https are not files. A granted remote image is fetched by
+        // RemoteImageFetcher instead, which the caller reaches first.
         return nil
     }
 
@@ -57,6 +57,9 @@ enum DeferredAssetLoader {
         case notAnImage
         case tooLarge
         case unreadable
+        /// A granted remote image whose host did not answer, answered with an
+        /// error, or redirected somewhere the request policy refused.
+        case unreachable
     }
 
     enum Outcome: Equatable {
