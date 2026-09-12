@@ -86,8 +86,14 @@ nonisolated final class RemoteImageFetcher: Sendable {
 /// the body arrives is cheaper for everyone when it is honest.
 ///
 /// The redirect delegate method is written in its completion-handler form on
-/// purpose: the `async` spelling of it crashes SILGen in Swift 6.3.3 while
-/// emitting the Objective-C thunk. The two are equivalent; only one compiles.
+/// purpose: the `async` spelling crashes the compiler. Swift 6.3.3 (Xcode 26.6)
+/// hits a SILGen assertion emitting the Objective-C thunk for an `@objc` async
+/// method that returns a bridged Foundation value type — `URLRequest` here, and
+/// equally `URL` or `Date`, though `String` and `Data` are fine. The trigger is
+/// `nonisolated(nonsending)` semantics, which this target gets from
+/// `SWIFT_APPROACHABLE_CONCURRENCY = YES`; without that setting the same code
+/// compiles. Filed with Apple; the two spellings are equivalent, and only one
+/// of them builds.
 private final class BoundedImageDownload: NSObject, URLSessionDataDelegate, @unchecked Sendable {
 
     private let maxBytes: Int
