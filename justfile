@@ -79,7 +79,7 @@ release seg: _require-clean _require-notes (build-dmg seg)
 
 # (internal) fail before the long build if the notes cannot be composed
 _require-notes:
-    @bin/compose-release-notes.sh > /dev/null
+    @bin/compose-release-notes.sh --check
 
 # (internal) fail unless the working tree is clean
 _require-clean:

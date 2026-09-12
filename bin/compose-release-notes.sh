@@ -48,6 +48,7 @@ unreleased_file="$NOTES_DIR/UNRELEASED.md"
 delta_file="$NOTES_DIR/ON-TOP-OF-UPSTREAM.md"
 upstream_ref="${UPSTREAM_REF:-upstream/main}"
 print_stub=false
+check_only=false
 
 usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: compose-release-notes.sh [--version V] [options]${COLOR_RESET}"
@@ -62,6 +63,8 @@ usage() {
     printf '%s\n' '      --delta FILE       "Changes on top of". Default: docs/release-notes/ON-TOP-OF-UPSTREAM.md'
     printf '%s\n' '      --upstream-ref REF Upstream branch to measure against. Default: upstream/main'
     printf '%s\n' '      --stub             Print the empty UNRELEASED.md stub instead, and exit.'
+    printf '%s\n' '      --check            Validate only: silent on success, and the notes are'
+    printf '%s\n' '                         not printed. Used by `just release` before it builds.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
     printf '%s\n' '  UPSTREAM_REF   Same as --upstream-ref.'
@@ -95,6 +98,7 @@ parse_arguments() {
         case "$1" in
             -h|--help) usage; exit 0 ;;
             --stub) print_stub=true; shift ;;
+            --check) check_only=true; shift ;;
             --version|--unreleased|--delta|--upstream-ref)
                 [[ $# -ge 2 && -n "$2" ]] || die "missing value for $1"
                 case "$1" in
@@ -204,6 +208,13 @@ main() {
     later_count=0
     [[ -n "$later_changes" ]] && later_count="$(printf '%s\n' "$later_changes" | wc -l | tr -d ' ')"
 
+    # Validation only: the notes go nowhere and success says nothing, so a
+    # release does not print a half-composed preview — headed "next release",
+    # since no version exists yet — just before composing the real thing.
+    if [[ "$check_only" == "true" ]]; then
+        exec >/dev/null
+    fi
+
     printf '# Belvedere %s\n\n' "$version"
     printf 'Based on **Markdown Preview %s**' "$upstream_version"
     case "$later_count" in
@@ -218,6 +229,8 @@ main() {
         printf '%s\n\n%s\n' "These are on Markdown Preview's \`main\` but not yet in one of its releases:" \
             "$later_changes"
     fi
+
+    [[ "$check_only" == "true" ]] && return 0
 
     print_colored "$COLOR_GREEN" \
         "composed notes for $version on Markdown Preview $upstream_version (+$later_count later upstream commits)"
