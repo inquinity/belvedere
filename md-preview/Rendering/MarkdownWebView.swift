@@ -5,6 +5,7 @@
 
 import Cocoa
 import os
+import UniformTypeIdentifiers
 import WebKit
 
 /// Presents table operations with a real AppKit context menu. The web views
@@ -1607,6 +1608,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                 if Self.isMarkdownDocument(resolved) {
                     // fileURL(for:) works on the path alone and drops `#section`.
                     localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: resolved))
+                } else if Self.isExecutableTarget(resolved) {
+                    // Containment says this file is inside the document's
+                    // folder; it does not say the document may start it.
+                    confirmRevealingExecutable(resolved)
                 } else {
                     NSWorkspace.shared.open(resolved)
                 }
@@ -1666,6 +1671,46 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         guard let url = sender.representedObject as? URL else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
+    }
+
+    /// Something the system would run or install rather than open: an app or
+    /// other bundle, a Unix executable, an installer package, a disk image.
+    /// For these "open" means execute, and a Markdown file has no reason to
+    /// start one — the document chose the path, not the reader.
+    private static func isExecutableTarget(_ url: URL) -> Bool {
+        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
+            let runs: [UTType] = [.application, .applicationBundle, .unixExecutable, .diskImage]
+            if runs.contains(where: type.conforms(to:)) { return true }
+            if type.identifier == "com.apple.installer-package-archive" { return true }
+        }
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        return exists && !isDirectory.boolValue
+            && FileManager.default.isExecutableFile(atPath: url.path)
+    }
+
+    /// A program named by document content is shown, never started.
+    private func confirmRevealingExecutable(_ target: URL) {
+        #if !QUICK_LOOK_EXTENSION
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = String(
+            format: NSLocalizedString("“%@” would be run, not opened.",
+                                      comment: "Executable link alert title"),
+            target.lastPathComponent
+        )
+        alert.informativeText = NSLocalizedString(
+            "This document links to a program or installer. It will be shown in Finder instead.",
+            comment: "Executable link alert message"
+        )
+        alert.addButton(withTitle: NSLocalizedString("Show in Finder", comment: "Executable link alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Executable link alert button"))
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            NSWorkspace.shared.activateFileViewerSelecting([target])
+        }
+        #endif
     }
 
     private static func isMarkdownDocument(_ url: URL) -> Bool {
