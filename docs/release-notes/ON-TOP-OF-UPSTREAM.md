@@ -34,6 +34,9 @@ Look are upstream's work.
   and not remembered. Quick Look names these without offering Load.
 - A link outside the document's folder does nothing when clicked, and has no context
   menu.
+- A link to a program — an app, a script, an installer, a disk image — is shown in
+  Finder rather than started, even when it sits inside the document's own folder.
+  Links to ordinary documents open as usual.
 - A document cannot draw form controls — no text fields, dropdowns or other inputs
   that could imitate a sign-in prompt. Task-list checkboxes still work.
 
