@@ -1550,10 +1550,6 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             fragmentLinkActivated?(fragment)
             return
         }
-        guard url.scheme == MarkdownAssetScheme.scheme else {
-            NSWorkspace.shared.open(url)
-            return
-        }
         switch MarkdownAccessPolicy.linkAction(for: url,
                                                documentFolder: currentAssetBase,
                                                containmentRoot: currentBoundary,
@@ -1568,6 +1564,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: file))
         case .openWithSystem(let file):
             NSWorkspace.shared.open(file)
+        case .openExternally(let target):
+            NSWorkspace.shared.open(target)
         case .confirmOpenOutside(let file):
             confirmFollowingLinkOutsideBoundary(to: file, reveals: false) { [weak self] in
                 self?.localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: file))

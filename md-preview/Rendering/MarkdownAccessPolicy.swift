@@ -53,6 +53,9 @@ nonisolated enum MarkdownAccessPolicy {
         case openInViewer(URL)
         /// Another file type inside the boundary: hand it to the system.
         case openWithSystem(URL)
+        /// Not a filesystem target at all — http, https, mailto. No boundary
+        /// applies, and the reader's click is the whole of the decision.
+        case openExternally(URL)
         /// A Markdown file outside the boundary: confirm, then open it in the
         /// viewer, where it is rendered under its own boundary.
         case confirmOpenOutside(URL)
@@ -71,25 +74,53 @@ nonisolated enum MarkdownAccessPolicy {
     ///
     /// `isMarkdown` is supplied by the caller so this stays free of the
     /// document-type list, which lives with the view.
-    static func linkAction(for assetURL: URL,
+    static func linkAction(for url: URL,
                            documentFolder: URL?,
                            containmentRoot: URL?,
                            isMarkdown: (URL) -> Bool) -> LinkAction {
-        guard assetURL.scheme == MarkdownAssetResolution.scheme,
-              !assetURL.path.hasPrefix(MarkdownAssetResolution.vendorPathPrefix)
-        else { return .ignore }
+        switch url.scheme?.lowercased() {
+        case MarkdownAssetResolution.scheme:
+            // A relative reference, resolved by the page against its <base>.
+            guard !url.path.hasPrefix(MarkdownAssetResolution.vendorPathPrefix) else {
+                return .ignore
+            }
+            // No folder: an unsaved document. Relative references have nothing
+            // to resolve against, which is a reason to say so, not to ignore
+            // the click.
+            guard documentFolder != nil else { return .saveDocumentFirst }
+            guard let target = MarkdownAssetResolution.candidateFileURL(for: url) else {
+                return .ignore
+            }
+            return action(for: target, containmentRoot: containmentRoot, isMarkdown: isMarkdown)
 
-        // No folder: an unsaved document. Relative references have nothing to
-        // resolve against, which is a reason to say so, not to ignore the
-        // click.
-        guard documentFolder != nil else { return .saveDocumentFirst }
+        case "file":
+            // An absolute `file:` URL names a path outright, so it never goes
+            // near the page's <base>. The boundary has to be applied here or
+            // it does not apply at all — which is how such a link used to
+            // reach NSWorkspace with no check, opening or launching anything
+            // the document named.
+            guard url.host?.isEmpty ?? true else { return .ignore }
+            let target = url.standardizedFileURL
+            guard target.path.count > 1 else { return .ignore }
+            return action(for: target, containmentRoot: containmentRoot, isMarkdown: isMarkdown)
 
-        guard let target = MarkdownAssetResolution.candidateFileURL(for: assetURL) else {
+        case .some:
+            // http, https, mailto and the rest name no file, so no boundary
+            // bears on them.
+            return .openExternally(url)
+
+        case .none:
             return .ignore
         }
+    }
 
+    /// The decision once a link has been reduced to a path, whichever scheme
+    /// named it.
+    private static func action(for target: URL,
+                               containmentRoot: URL?,
+                               isMarkdown: (URL) -> Bool) -> LinkAction {
         if let containmentRoot,
-           MarkdownAssetResolution.fileURL(for: assetURL, containedIn: containmentRoot) != nil {
+           MarkdownAssetResolution.isContained(target, in: containmentRoot) {
             return isMarkdown(target) ? .openInViewer(target) : .openWithSystem(target)
         }
         return isMarkdown(target) ? .confirmOpenOutside(target) : .confirmRevealOutside(target)

@@ -174,12 +174,76 @@ final class MarkdownAccessPolicyTests: XCTestCase {
     }
 
     func testLinksWithAnotherSchemeAreNotThisPolicysBusiness() {
+        let web = URL(string: "https://example.com/a.md")!
         XCTAssertEqual(
             MarkdownAccessPolicy.linkAction(
-                for: URL(string: "https://example.com/a.md")!,
+                for: web,
                 documentFolder: docs,
                 containmentRoot: project,
                 isMarkdown: { _ in true }
+            ),
+            .openExternally(web)
+        )
+    }
+
+    // MARK: - Absolute file: links
+    //
+    // These name a path outright and never reach the page's <base>, so the
+    // boundary applies here or nowhere. Such a link used to go straight to
+    // NSWorkspace: a document could open — or launch — anything on disk.
+
+    private func fileAction(_ path: String,
+                            documentFolder: URL?,
+                            boundary: URL?,
+                            markdown: Bool = false) -> MarkdownAccessPolicy.LinkAction {
+        MarkdownAccessPolicy.linkAction(
+            for: URL(fileURLWithPath: path),
+            documentFolder: documentFolder,
+            containmentRoot: boundary,
+            isMarkdown: { _ in markdown }
+        )
+    }
+
+    func testAbsoluteFileLinkInsideTheBoundaryActsLikeARelativeOne() {
+        XCTAssertEqual(
+            fileAction("/Users/me/project/README.md", documentFolder: docs, boundary: project, markdown: true),
+            .openInViewer(URL(fileURLWithPath: "/Users/me/project/README.md"))
+        )
+    }
+
+    func testAbsoluteFileLinkOutsideTheBoundaryIsRevealedNotOpened() {
+        XCTAssertEqual(
+            fileAction("/etc/passwd", documentFolder: docs, boundary: project),
+            .confirmRevealOutside(URL(fileURLWithPath: "/etc/passwd"))
+        )
+    }
+
+    /// The case that motivates the whole rule: an application bundle named by
+    /// document content is shown, never launched.
+    func testAbsoluteFileLinkToAnApplicationIsOnlyEverRevealed() {
+        XCTAssertEqual(
+            fileAction("/Applications/Calculator.app", documentFolder: docs, boundary: project),
+            .confirmRevealOutside(URL(fileURLWithPath: "/Applications/Calculator.app"))
+        )
+    }
+
+    /// An unsaved document has no folder, but an absolute link needs none —
+    /// it still has to clear the boundary, which is nothing at all.
+    func testAbsoluteFileLinkInAnUnsavedDocumentStillFacesTheBoundary() {
+        XCTAssertEqual(
+            fileAction("/etc/passwd", documentFolder: nil, boundary: nil),
+            .confirmRevealOutside(URL(fileURLWithPath: "/etc/passwd"))
+        )
+    }
+
+    /// `file://host/path` must not alias a local path.
+    func testFileURLCarryingAHostIsIgnored() {
+        XCTAssertEqual(
+            MarkdownAccessPolicy.linkAction(
+                for: URL(string: "file://example.com/etc/passwd")!,
+                documentFolder: docs,
+                containmentRoot: project,
+                isMarkdown: { _ in false }
             ),
             .ignore
         )
