@@ -162,6 +162,24 @@ with real users.
 Nothing about removing telemetry, Sparkle, or the CLI installer is offered upstream.
 Those are product decisions, not defects, and filing them would be noise.
 
+### Chinese strings are unverified, deliberately
+
+The fork adds around a dozen `zh-Hans` keys — the Save button and its exit
+prompt, the blocked-link and executable sheets, the folder-access row. They were
+written without a native reader, and nobody here reads Chinese. Upstream is told
+so in the pull requests that carry them
+([#337](https://github.com/pluk-inc/markdown-preview/pull/337),
+[#379](https://github.com/pluk-inc/markdown-preview/pull/379)); the later PRs add
+no strings, so there is nothing to disclose there.
+
+Paying a translator to check strings nobody may read is the wrong order of
+operations: this stays as it is until someone reports that a string reads badly.
+Recorded so the state is a decision rather than an oversight.
+
+One real gap found on 2026-09-11 while correcting the copy: the Settings ›
+Privacy footer has **no** `zh-Hans` entry at all, so it falls back to English
+there. Same disposition — worth fixing whenever the pane is next touched.
+
 ## Roadmap
 
 | # | Milestone | Contents | Status |
