@@ -8,4 +8,7 @@ bin/compose-release-notes.sh builds <version>.md from both files; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **A link to a program is shown, not run.** Clicking a link to an app, a script,
+  an installer or a disk image now reveals it in Finder after telling you why,
+  instead of starting it. Links to ordinary documents — a PDF, an image — open as
+  before.
