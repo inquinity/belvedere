@@ -650,7 +650,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
     //
     // The cost is that ⌘A/⌘C need that click first. Key events reach this
     // extension only while its view holds focus in the host, so until the
-    // user clicks, those chords go to Finder and act on the file list.
+    // user clicks, those chords never reach the preview and copy nothing
+    // from it. Apple's text and PDF previews behave the same way.
     // Claiming focus on load (#288) is what made them work immediately, and
     // it is also what took the arrow keys away. The Copy button still copies
     // the Markdown source without any click into the page.

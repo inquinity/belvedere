@@ -11,8 +11,9 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Arrow keys and space work in Quick Look again.** The preview no longer takes
   keyboard focus, so the keys move the Finder selection and space dismisses the
   preview instead of scrolling the document. The trade: to select and copy the
-  rendered text with ⌘A / ⌘C, click into the preview first — until then those keys
-  act on Finder. The **Copy** button still copies the Markdown without that click.
+  rendered text with ⌘A / ⌘C, click into the preview first — until then they copy
+  nothing, as in Apple's own text and PDF previews. The **Copy** button still copies
+  the Markdown without that click.
 - **Remote images can now be loaded with a click.** Nothing is fetched when a
   document opens, so opening one still never tells its author that you read it.
   A placeholder names the host, and **Load** fetches that one image — no

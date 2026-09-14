@@ -28,9 +28,10 @@ Also check, with this file previewed and **no click** into the preview:
 - <kbd>Space</kbd> still closes the Quick Look panel.
 - Scrolling with the mouse wheel or trackpad still scrolls the preview.
 - The **Copy** button copies this file's Markdown source.
-- <kbd>⌘A</kbd> / <kbd>⌘C</kbd> act on **Finder**, not the preview — they select
-  and copy files. That is expected: keyboard focus stays with Finder until you
-  click into the preview.
+- <kbd>⌘A</kbd> / <kbd>⌘C</kbd> copy nothing from the preview: the clipboard is
+  unchanged, and the system may beep. That is expected — keyboard focus stays
+  with Finder until you click into the preview — and it is what Apple's own text
+  and PDF previews do too.
 
 Then **click into the preview** and check:
 
