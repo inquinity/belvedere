@@ -703,7 +703,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             width: 2.1em;
             text-indent: 0;
             text-align: end;
-            padding-inline-end: 0.5em;
+            padding-inline-end: 0.75em;
             box-sizing: border-box;
             /* The glyph keeps its box for alignment but renders transparent;
                the ::after circle below matches the preview's painted bullet. */
@@ -713,9 +713,9 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         .cm-md-bullet::after {
             content: "";
             position: absolute;
-            /* Match the preview's 0.5em gap between the circle and the
+            /* Match the preview's 0.75em gap between the circle and the
                item text. */
-            inset-inline-end: 0.5em;
+            inset-inline-end: 0.75em;
             top: 50%;
             transform: translateY(-50%);
             width: 0;
@@ -731,7 +731,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             width: 2.1em;
             text-indent: 0;
             text-align: end;
-            padding-inline-end: 0.5em;
+            padding-inline-end: 0.75em;
             box-sizing: border-box;
             color: var(--secondary);
         }

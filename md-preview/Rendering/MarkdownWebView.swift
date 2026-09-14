@@ -1725,7 +1725,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     }
 
     private static func isMarkdownDocument(_ url: URL) -> Bool {
-        ["md", "markdown", "mdown", "mkdn", "mkd"].contains(url.pathExtension.lowercased())
+        ["md", "markdown", "mdown", "mkdn", "mkd", "mdx"].contains(url.pathExtension.lowercased())
     }
 
     /// Something the system would run or install rather than open: an app or
