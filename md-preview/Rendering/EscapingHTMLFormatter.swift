@@ -987,6 +987,11 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
     private let sourceLines: [String]
     private let parsedSourceLines: [String]
 
+    private let detectsBareURLs: Bool
+
+    private static let linkDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+    private var markdownLinkDepth = 0
+    private var rawHTMLLinkExclusions: [String] = []
     private var inTableHead = false
     private var tableColumnAlignments: [Table.ColumnAlignment?]?
     private var tableSourceRows: [[String]]?
@@ -1011,6 +1016,8 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
         self.options = options
         self.sourceLineOffset = sourceLineOffset
         self.highlightsCode = highlightsCode
+        // Escapes/entities can decode into a URL even without a literal scheme.
+        self.detectsBareURLs = Self.mayContainHTTP(parsedMarkdown, includesMarkdownEscapes: true)
         self.sourceLines = sourceMarkdown.components(separatedBy: "\n")
         self.parsedSourceLines = parsedMarkdown.components(separatedBy: "\n")
     }
@@ -1592,6 +1599,21 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
     }
 
     mutating func visitInlineHTML(_ inlineHTML: InlineHTML) {
+        // Inline HTML arrives as separate opening/closing nodes. Keep raw
+        // anchors and code literal even when their contents are Markdown Text.
+        guard detectsBareURLs else {
+            result += inlineHTML.rawHTML
+            return
+        }
+        let tag = inlineHTML.rawHTML.lowercased()
+        for name in ["a", "code", "pre", "script", "style", "textarea"] {
+            if tag.range(of: "^<" + name + "(?:\\s|>)", options: .regularExpression) != nil {
+                rawHTMLLinkExclusions.append(name)
+            } else if tag.range(of: "^</" + name + "\\s*>", options: .regularExpression) != nil,
+                      let index = rawHTMLLinkExclusions.lastIndex(of: name) {
+                rawHTMLLinkExclusions.removeSubrange(index...)
+            }
+        }
         result += inlineHTML.rawHTML
     }
 
@@ -1611,20 +1633,67 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
             result += " href=\"\(escapeAttribute(destination))\""
         }
         result += ">"
+        markdownLinkDepth += 1
         descendInto(link)
+        markdownLinkDepth -= 1
         result += "</a>"
     }
 
     mutating func visitText(_ text: Text) {
         if let prefix = sourceListPrefixToStrip,
            text.string.hasPrefix(prefix) {
-            result += escapeTextWithHighlights(
+            result += renderText(
                 String(text.string.dropFirst(prefix.count))
             )
             sourceListPrefixToStrip = nil
         } else {
-            result += escapeTextWithHighlights(text.string)
+            result += renderText(text.string)
         }
+    }
+
+    /// ASCII-only candidate check: no Foundation bridging, Unicode case folding,
+    /// or temporary lowercase strings. Detection still determines URL boundaries.
+    private static func mayContainHTTP(_ string: String, includesMarkdownEscapes: Bool = false) -> Bool {
+        var matched = 0
+        for byte in string.utf8 {
+            if includesMarkdownEscapes && (byte == 38 || byte == 92) { return true }
+            let folded = byte | 0x20
+            switch (matched, folded) {
+            case (_, 104): matched = 1 // h
+            case (1, 116): matched = 2 // t
+            case (2, 116): matched = 3 // t
+            case (3, 112): return true // p
+            default: matched = 0
+            }
+        }
+        return false
+    }
+
+    private func renderText(_ string: String) -> String {
+        guard detectsBareURLs, markdownLinkDepth == 0, rawHTMLLinkExclusions.isEmpty,
+              Self.mayContainHTTP(string),
+              let detector = Self.linkDetector else {
+            return escapeTextWithHighlights(string)
+        }
+        var html = ""
+        var cursor = string.startIndex
+        // Highlight sentinels are not prose. Mask them without changing UTF-16
+        // offsets so detection stops at the highlight boundary.
+        let detectionText = string
+            .replacingOccurrences(of: MarkdownHighlightSource.openingToken, with: "  ")
+            .replacingOccurrences(of: MarkdownHighlightSource.closingToken, with: "  ")
+        for match in detector.matches(in: detectionText, range: NSRange(detectionText.startIndex..., in: detectionText)) {
+            guard let range = Range(match.range, in: string),
+                  let url = match.url,
+                  ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+                  string[range].lowercased().hasPrefix("http://")
+                    || string[range].lowercased().hasPrefix("https://") else { continue }
+            html += escapeTextWithHighlights(String(string[cursor..<range.lowerBound]))
+            html += "<a href=\"\(escapeAttribute(url.absoluteString))\">\(escapeText(String(string[range])))</a>"
+            cursor = range.upperBound
+        }
+        html += escapeTextWithHighlights(String(string[cursor...]))
+        return html
     }
 
     mutating func visitStrikethrough(_ strikethrough: Strikethrough) {
