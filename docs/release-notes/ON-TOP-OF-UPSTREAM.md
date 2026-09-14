@@ -50,8 +50,6 @@ Proposed to Markdown Preview and carried here until it merges them:
   with unsaved changes asks **Save / Revert… / Continue**, with a setting to keep the
   old silent exit; **Save As…** and **Revert to Saved** work, and ⌘S works after
   leaving edit mode.
-- Mermaid diagrams draw in the document window. On Markdown Preview's current `main`
-  they collapse to an empty gap.
 
 **Its own app**
 

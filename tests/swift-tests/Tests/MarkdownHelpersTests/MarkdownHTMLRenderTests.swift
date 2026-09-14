@@ -8,6 +8,31 @@ final class MarkdownHTMLRenderTests: XCTestCase {
         TestVendor.installHighlighterGrammar()
     }
 
+    @MainActor
+    func testBareURLsBecomeNavigableDOMLinksInBothRenderModes() async throws {
+        for vendorLoading: MarkdownHTML.VendorLoading in [.inline, .lazy] {
+            let html = MarkdownHTML.makeHTML(
+                from: "* https://apple.com/\n* https://github.com/",
+                vendorLoading: vendorLoading
+            )
+            let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 640, height: 300))
+            // The SPM test bundle has no resources; load the real sanitizer
+            // from the checkout so this exercises the production bootstrap.
+            let purifier = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
+            let page = html.replacingOccurrences(of: "<head>", with: "<head><script>\(purifier)</script>")
+            webView.loadHTMLString(page, baseURL: nil)
+            let deadline = Date().addingTimeInterval(10)
+            while webView.isLoading && Date() < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            XCTAssertFalse(webView.isLoading)
+            let links = try await webView.evaluateJavaScript("""
+                Array.from(document.querySelectorAll('article li a')).map(a => a.href)
+                """) as? [String]
+            XCTAssertEqual(links, ["https://apple.com/", "https://github.com/"])
+        }
+    }
+
     func testLocalMarkdownImagesRemainReadOnlyInPreview() {
         let rendered = MarkdownHTML.render(
             markdown: "![1](notes-pictures/1.png)",
@@ -512,6 +537,68 @@ final class MarkdownHTMLRenderTests: XCTestCase {
         XCTAssertEqual(metrics["display"] as? String, "flex")
         XCTAssertEqual(metrics["direction"] as? String, "column")
         XCTAssertEqual(try XCTUnwrap(metrics["h1"] as? Double), MarkdownHTML.bodyFontSize * 2, accuracy: 0.1)
+    }
+
+    @MainActor
+    func testUnorderedListMarkersStayClearOfTextForEveryDocumentFont() async throws {
+        let article = EscapingHTMLFormatter.format("""
+        <details>
+        <summary>Expanded details</summary>
+
+        - [Every list marker needs visible clearance.](example.md)
+
+        </details>
+        """)
+
+        for font in DocumentFontSetting.allCases {
+            let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 900, height: 400))
+            webView.loadHTMLString("""
+            <!doctype html><meta charset="utf-8">
+            <style>\(MarkdownHTML.stylesheet)</style>
+            <style>:root { --mdp-doc-font: \(font.fontFamily); }</style>
+            <article class="markdown-body">\(article)</article>
+            """, baseURL: nil)
+            for _ in 0..<200 where webView.isLoading {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            XCTAssertFalse(webView.isLoading, font.rawValue)
+
+            let result = try await webView.evaluateJavaScript("""
+            (() => {
+                const details = document.querySelector('details');
+                details.querySelector('summary').click();
+                const item = document.querySelector('ul > li');
+                const text = item.querySelector('a').firstChild;
+                const firstCharacter = document.createRange();
+                firstCharacter.setStart(text, 0);
+                firstCharacter.setEnd(text, 1);
+                const itemBox = item.getBoundingClientRect();
+                const textBox = firstCharacter.getBoundingClientRect();
+                const marker = getComputedStyle(item, '::before');
+                const markerRight = itemBox.left + parseFloat(marker.left)
+                    + parseFloat(marker.borderLeftWidth) + parseFloat(marker.width)
+                    + parseFloat(marker.borderRightWidth);
+                return {
+                    open: details.open,
+                    fontSize: parseFloat(getComputedStyle(item).fontSize),
+                    gap: textBox.left - markerRight,
+                    left: marker.left,
+                    inlineStart: marker.insetInlineStart,
+                    width: marker.width,
+                    border: marker.borderLeftWidth
+                };
+            })()
+            """)
+            let metrics = try XCTUnwrap(result as? [String: Any], font.rawValue)
+            XCTAssertEqual(metrics["open"] as? Bool, true, font.rawValue)
+            let fontSize = try XCTUnwrap(metrics["fontSize"] as? Double, font.rawValue)
+            let gap = try XCTUnwrap(metrics["gap"] as? Double, "\(font.rawValue): \(metrics)")
+            XCTAssertGreaterThanOrEqual(
+                gap,
+                fontSize * 0.75,
+                "\(font.rawValue): \(metrics)"
+            )
+        }
     }
 
     func testCodeCopyButtonFallsBackToQuickLookPasteboardHandler() {

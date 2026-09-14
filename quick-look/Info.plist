@@ -20,6 +20,7 @@
 				<string>com.altmansoftwaredesign.belvedere.mdwn</string>
 				<string>com.altmansoftwaredesign.belvedere.mdtxt</string>
 				<string>com.altmansoftwaredesign.belvedere.mdtext</string>
+				<string>com.altmansoftwaredesign.belvedere.mdx</string>
 			</array>
 			<key>QLSupportsSearchableItems</key>
 			<false/>

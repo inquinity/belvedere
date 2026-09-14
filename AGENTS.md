@@ -20,16 +20,18 @@
 >   would break signing here. The surrounding warning still applies: never let Xcode
 >   silently rewrite it to some *other* team.
 > - **`Version.xcconfig` is bumped by `bin/build.sh --update`**, not by
->   `scripts/release.sh`, which no longer exists. The fork versions on its own `1.0.x`
->   line, independent of upstream's `0.0.x`.
+>   `scripts/release.sh`, which no longer exists, and not by hand in a "release PR".
+>   The fork versions on its own `1.x` line, independent of upstream's `0.0.x`; on an
+>   upstream merge, always keep ours.
 > - **Sparkle is excised**, so the EdDSA key, the notary-profile pairing, `SUPublicEDKey`
->   and the `SUFeedURL` "Known issue" below are all moot here. The Sparkle
+>   and the `SUFeedURL` under "Release references" below are all moot here. The Sparkle
 >   `mach-lookup` entitlements are gone too. The read-only filesystem exception is not
 >   moot — see F3 in the fork notes.
+> - **"Codex development workflow" below describes upstream's maintainer** — their
+>   Codex model pin, their shell, their PR habits. None of it is a rule for this fork.
 > - The fork carries **deliberately dead code** — an orphaned CLI installer and stubbed
 >   telemetry reporters. This is load-bearing for cheap upstream merges. Do not remove it.
-> - **The "No git remote yet" known issue below is stale here.** This fork has `origin`
->   (inquinity) and `upstream` (pluk-inc).
+> - This fork has two remotes: `origin` (inquinity) and `upstream` (pluk-inc).
 > - Sync with `git merge upstream/main`. **Never rebase `main`** — it is published.
 > - **Fork-authored scripts live in `bin/`** (`build.sh`, `build-release.sh`,
 >   `install.sh`, `bundle.sh`, `check-upstream.sh`, `show-private-changes.sh`,
@@ -128,9 +130,18 @@ Follow the global Conventional Commits rules, with these exceptions:
 | Min macOS         | 15.0                                                        |
 | Sandboxed         | yes — uses Sparkle XPC services for updates                 |
 | Auto-updater      | Sparkle 2.x (Swift package)                                 |
-| Distribution      | Amore (managed) with custom domain `storage.md-preview.app` |
+| Distribution      | Amore (managed); appcast at `release.md-preview.app` |
 
 Version is managed centrally in `Version.xcconfig` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`). Both the app and the quick-look extension inherit from it.
+
+## Codex development workflow
+
+- `.codex/config.toml` pins `gpt-6-astra` with `medium` reasoning for trusted project sessions. Explicit session overrides can take precedence. This config controls the coding agent; the app's Open in LLM action delegates to external apps.
+- Open PRs ready for review, never as drafts. Never use a `codex/` branch prefix.
+- The maintainer uses Nushell and has `gh` authentication available. Match shell syntax to the actual execution shell.
+- Complete work authorized by the user's request, making reasonable routine implementation choices. A request for a plan authorizes planning only.
+- Apply skills within their stated scope. If an instruction blocks authorized work, identify the exact file and instruction rather than inferring an extra approval requirement.
+- Keep verification proportional: config and documentation changes need validation and diff review; Swift changes need relevant tests and an app build; visible behavior changes need runtime verification.
 
 ## Documentation that describes behaviour is part of the behaviour
 
@@ -182,16 +193,20 @@ grep -rn "<the behaviour you changed>" README.md samples/ tests/fixtures/ docs/
   filesystem exception) are narrowly scoped, notarization-review-sensitive
   capabilities. Don't broaden or "clean up" them without understanding why
   they're there (see the inline comments in each file).
-- `Version.xcconfig` (`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION`) is
-  bumped only by `scripts/release.sh` — don't hand-edit it.
+- A release PR must update **both** `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION` in `Version.xcconfig`, together with the matching
+  `CHANGELOG.md` entry. Edit the version file directly during PR preparation.
+  `scripts/release.sh` builds and publishes; run it only when release execution
+  is requested, not merely to create the PR.
 
 ## Releasing
 
 See the `release-process` skill for branch/PR naming, exactly what `scripts/release.sh` and `scripts/rollback-release.sh` do, and the Amore config already wired for this project.
 
-## Known issues
-- **`SUFeedURL` mismatch**. Info.plist points to `https://storage.md-preview.app/appcast.xml` but Amore actually publishes to `https://storage.md-preview.app/v1/apps/doc.md-preview/appcast.xml`. This matters for **any release run that isn't `--draft`** — the default run, `--beta`, and `--skip-github` all publish to Amore's live appcast, which — due to the mismatch above — is not yet the URL already-installed copies poll; `--draft` is the only mode that doesn't publish. Fix Info.plist before any of those ship to real users — already-installed copies will check the wrong URL forever. Either change `SUFeedURL` to the `/v1/apps/...` path, or configure a CDN rewrite at `storage.md-preview.app` to map `/appcast.xml` → the real path.
-- **No git remote yet**. `git remote -v` is empty. Run `gh repo create` before relying on the GitHub release portion of `scripts/release.sh` (it auto-skips when no remote exists).
+## Release references
+
+- `Info.plist` currently sets `SUFeedURL` to `https://release.md-preview.app/v1/apps/doc.md-preview/appcast.xml`. Check the current plist and Amore configuration before releasing; do not assume an old hostname or mismatch still applies.
+- The canonical GitHub repository is `pluk-inc/markdown-preview`. Older remotes may redirect from `pluk-inc/md-preview.app`; check `git remote -v` and `gh repo view` before publishing.
 
 ## Common Xcode tasks
 ```bash
