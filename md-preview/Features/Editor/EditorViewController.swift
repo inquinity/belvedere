@@ -76,9 +76,11 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         hasLoadedEditorPage = false
         pageSupportsMermaid = includesMermaid
         webView.loadHTMLString(
-            Self.editorHTML(markdown: markdown,
-                            includesMermaid: includesMermaid,
-                            assetBaseURL: assetBaseURL),
+            PreviewContentPolicy.applying(to: Self.editorHTML(
+                markdown: markdown,
+                includesMermaid: includesMermaid,
+                assetBaseURL: assetBaseURL
+            )),
             baseURL: nil
         )
     }

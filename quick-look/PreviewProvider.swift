@@ -80,7 +80,7 @@ class PreviewProvider: QLPreviewProvider, QLPreviewingController {
         ) { replyToUpdate in
             replyToUpdate.stringEncoding = .utf8
             replyToUpdate.attachments = replyAttachments
-            return Data(rewrite.html.utf8)
+            return Data(QuickLookContentPolicy.applying(to: rewrite.html).utf8)
         }
     }
 }

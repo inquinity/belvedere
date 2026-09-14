@@ -630,7 +630,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
         copyButton.isEnabled = false
         webView.clearCursorRegions()
         currentNavigation = webView.loadHTMLString(
-            InlineLocalAssets.dataURLHTML(from: rewrite),
+            QuickLookContentPolicy.applying(to: InlineLocalAssets.dataURLHTML(from: rewrite)),
             // Admitted local images are already data URLs. A directory base
             // would let WebKit fetch rejected or over-budget relative images.
             baseURL: nil

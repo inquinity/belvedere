@@ -351,7 +351,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             mermaid: rendered.containsMermaid,
             code: rendered.containsCode
         )
-        webView.loadHTMLString(rendered.html, baseURL: nil)
+        webView.loadHTMLString(PreviewContentPolicy.applying(to: rendered.html), baseURL: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -496,13 +496,13 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
         #if DEBUG
         let loadStartedAt = DispatchTime.now().uptimeNanoseconds
-        webView.loadHTMLString(rendered.html, baseURL: nil)
+        webView.loadHTMLString(PreviewContentPolicy.applying(to: rendered.html), baseURL: nil)
         let loadReturnedAt = DispatchTime.now().uptimeNanoseconds
         Logger.perf.debug(
             "[mdp-perf-swift] loadHTMLString call +\(Self.debugMilliseconds(from: loadStartedAt, to: loadReturnedAt), privacy: .public)ms"
         )
         #else
-        webView.loadHTMLString(rendered.html, baseURL: nil)
+        webView.loadHTMLString(PreviewContentPolicy.applying(to: rendered.html), baseURL: nil)
         #endif
         loadedFingerprint = fingerprint
         isPageReady = false
