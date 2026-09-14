@@ -413,7 +413,19 @@ nonisolated enum MarkdownHTML {
         // execute, images don't fetch, and event-handler attributes never fire.
         // The bootstrap then reads template.innerHTML, runs it through
         // DOMPurify, and assigns the sanitized result to article.innerHTML.
-        let safeBody = bodyHTML.replacingOccurrences(of: "</template", with: "<\\/template")
+        //
+        // That inertness lasts exactly as long as the element does, so a
+        // document must not be able to close it early. Raw HTML reaches here
+        // unescaped, and end tags are case-insensitive: matching only the
+        // lowercase spelling let `</TEMPLATE>` terminate the element, putting
+        // everything after it straight into the live document, where the
+        // parser fires event-handler attributes before the sanitizer has seen
+        // them. Match the terminator the way the HTML parser does.
+        let safeBody = bodyHTML.replacingOccurrences(
+            of: "</template",
+            with: "<\\/template",
+            options: [.caseInsensitive]
+        )
         // The Markdown source rides along for copy-as-source. `</` is escaped
         // inside the string literal so a fence containing `</script>` cannot
         // end the element.
