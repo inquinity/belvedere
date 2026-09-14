@@ -6,8 +6,9 @@ import XCTest
 /// once the Finder selection reaches a Markdown file the user can no longer
 /// arrow to the next one (pluk-inc/markdown-preview#292). A prior change
 /// (pluk-inc/markdown-preview#288) claimed first responder to make ⌘A/⌘C
-/// work without a click; those chords are now served by
-/// `QuickLookWebView.performKeyEquivalent` instead, which does not need it.
+/// work without a click. That is the trade this policy declines: those
+/// chords now need a click into the preview first, because the host only
+/// forwards key events to the extension while it has focus.
 final class QuickLookFirstResponderPolicyTests: XCTestCase {
 
     func testPreviewDoesNotClaimFirstResponderOnLoad() {

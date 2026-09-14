@@ -26,8 +26,17 @@ extension made its web view first responder on load; it no longer does.
 Also check, with this file previewed and **no click** into the preview:
 
 - <kbd>Space</kbd> still closes the Quick Look panel.
-- <kbd>⌘A</kbd> then <kbd>⌘C</kbd> copies the rendered text (not the Finder
-  file list) — served by `performKeyEquivalent`, not by focus.
+- Scrolling with the mouse wheel or trackpad still scrolls the preview.
+- The **Copy** button copies this file's Markdown source.
+- <kbd>⌘A</kbd> / <kbd>⌘C</kbd> act on **Finder**, not the preview — they select
+  and copy files. That is expected: keyboard focus stays with Finder until you
+  click into the preview.
+
+Then **click into the preview** and check:
+
+- <kbd>⌘A</kbd> then <kbd>⌘C</kbd> copies the rendered text.
+- After that click the preview has focus, so <kbd>↓</kbd> / <kbd>↑</kbd> scroll it,
+  as in any focused view. Click a file in Finder to give navigation back.
 
 ---
 
