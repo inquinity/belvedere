@@ -19,3 +19,6 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   load them.
 - Settings › Privacy now describes a blocked remote image the way it actually
   appears — a placeholder naming the host — instead of calling it broken.
+- The toolbar **Save** button is no longer added to new toolbars, and is icon-only
+  like the others. Add it from *View › Customize Toolbar…*; a toolbar that already
+  has it keeps it.

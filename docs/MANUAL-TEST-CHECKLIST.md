@@ -177,7 +177,7 @@ From the Save-button work submitted upstream ([PR #379](https://github.com/pluk-
 
 | Check | Why |
 |---|---|
-| The toolbar **Save** button shows the down-arrow icon and the word, dimmed with nothing to save, lit after the first keystroke | It is the unsaved-changes indicator. The icon alone is the Share icon flipped and sits beside Share, so the word is load-bearing |
+| A fresh toolbar has **no** Save button; *View → Customize Toolbar…* offers one. Once added it is icon-only, dimmed with nothing to save, lit after the first keystroke | Upstream wants the default toolbar minimal and every item icon-only. A toolbar that already has Save from an earlier version keeps it |
 | Leaving edit mode (toolbar, ⌘E, Escape) with changes asks **Save / Revert… / Continue**; with no real change it asks nothing | Typing a character and deleting it leaves "Edited" showing, but there is nothing to decide, so no prompt |
 | Escape on that prompt means **Continue**: back to preview, draft kept, file on disk untouched | Escape is itself one of the ways out; pressing it twice must neither lose nor write anything |
 | After Continue, **⌘S** and File › Save… still write the draft | They used to be disabled there — the only way to write the draft was to close the window |

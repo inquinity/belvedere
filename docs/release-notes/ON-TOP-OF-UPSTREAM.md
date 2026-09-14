@@ -46,10 +46,10 @@ Look are upstream's work.
 
 Proposed to Markdown Preview and carried here until it merges them:
 
-- A **Save** button, lit whenever the document has unsaved changes. Leaving edit mode
-  with unsaved changes asks **Save / Revert… / Continue**, with a setting to keep the
-  old silent exit; **Save As…** and **Revert to Saved** work, and ⌘S works after
-  leaving edit mode.
+- A **Save** toolbar button you can add in *View › Customize Toolbar…*, lit whenever
+  the document has unsaved changes. Leaving edit mode with unsaved changes asks
+  **Save / Revert… / Continue**, with a setting to keep the old silent exit;
+  **Save As…** and **Revert to Saved** work, and ⌘S works after leaving edit mode.
 
 **Its own app**
 
