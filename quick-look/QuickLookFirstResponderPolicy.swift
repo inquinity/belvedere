@@ -19,8 +19,9 @@ import Foundation
 ///
 /// The accepted cost: ⌘A / ⌘C work only after the user clicks into the
 /// preview. The host forwards key events to the extension only while the
-/// extension's view has focus, so before that click the chords go to the host
-/// and act on its file list. `QuickLookWebView.performKeyEquivalent` serves
+/// extension's view has focus, so before that click the chords never reach the
+/// preview and copy nothing from it — as with Apple's own text and PDF
+/// previews. `QuickLookWebView.performKeyEquivalent` serves
 /// them once focus has moved. Claiming focus on load would make them work
 /// immediately and break file navigation again; the Copy button remains the
 /// no-click way to copy, and copies the Markdown source.
