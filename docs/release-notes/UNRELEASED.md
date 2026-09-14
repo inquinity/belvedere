@@ -23,6 +23,13 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - Settings › Privacy now describes a blocked remote image the way it actually
   appears — a placeholder naming the host — instead of calling it broken.
 - The toolbar **Save** button is icon-only, like the other toolbar buttons.
+- **Security fix.** A crafted Markdown document could close the internal element
+  that holds unsanitised content early — by spelling its end tag in uppercase —
+  and run script in the preview before the sanitiser saw it, on open or Quick Look
+  preview. Belvedere's content policy already blocked such a document from reaching
+  the network; the script could still alter the open file through the preview's
+  edit bridge. The document body is now escaped so the element cannot be closed,
+  whatever the tag's case.
 - **New from Markdown Preview 0.0.57:** bare `http://` and `https://` addresses are
   clickable; `.mdx` files open as Markdown, with their JSX, imports and expressions
   shown as text rather than compiled; clicking a folder row in the project navigator
