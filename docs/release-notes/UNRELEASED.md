@@ -23,3 +23,8 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - Settings › Privacy now describes a blocked remote image the way it actually
   appears — a placeholder naming the host — instead of calling it broken.
 - The toolbar **Save** button is icon-only, like the other toolbar buttons.
+- **New from Markdown Preview 0.0.57:** bare `http://` and `https://` addresses are
+  clickable; `.mdx` files open as Markdown, with their JSX, imports and expressions
+  shown as text rather than compiled; clicking a folder row in the project navigator
+  expands or collapses it; bullet markers keep their spacing; and the full-screen
+  toolbar keeps a custom theme colour.
