@@ -66,10 +66,11 @@ extension DocumentWindowController {
             .space,
             .inspector,
             .share,
+            .editDocument,
             // Belvedere only: Markdown Preview leaves Save out of its default
             // toolbar and offers it in Customize Toolbar. See docs/FORK-NOTES.md.
+            // After Edit rather than beside Share, whose icon it mirrors.
             .saveDocument,
-            .editDocument,
             .search
         ]
         if #unavailable(macOS 26.0) {
@@ -266,7 +267,7 @@ extension DocumentWindowController {
         return item
     }
 
-    /// In Belvedere's default toolbar, beside Edit; Markdown Preview offers it
+    /// In Belvedere's default toolbar, after Edit; Markdown Preview offers it
     /// only in Customize Toolbar. Enabled only while there is something to
     /// save, so it doubles as the unsaved-changes indicator. It saves
     /// through saveDocument(_:), the same path as ⌘S, including after edit
