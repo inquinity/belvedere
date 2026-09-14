@@ -66,7 +66,6 @@ extension DocumentWindowController {
             .space,
             .inspector,
             .share,
-            .saveDocument,
             .editDocument,
             .search
         ]
@@ -264,29 +263,24 @@ extension DocumentWindowController {
         return item
     }
 
-    /// Always present, enabled only while there is something to save, so it
-    /// doubles as the unsaved-changes indicator. It saves through
-    /// saveDocument(_:), the same path as ⌘S, including after edit mode has
-    /// been left with the changes kept.
+    /// Not in the default toolbar -- it is offered in Customize Toolbar for
+    /// people who want it. Enabled only while there is something to save, so
+    /// once added it doubles as the unsaved-changes indicator. It saves
+    /// through saveDocument(_:), the same path as ⌘S, including after edit
+    /// mode has been left with the changes kept.
     ///
-    /// Icon and word together, matching File › Save… in the menu. The icon on
-    /// its own, square.and.arrow.down, is the Share icon with its arrow flipped
-    /// and sits right next to Share; the word is what makes it unambiguous. A
-    /// custom view, like the Edit item, because a bordered image item shows
-    /// the image or the title, never both.
+    /// Icon-only like the other toolbar items; the label still appears in the
+    /// customization palette and in the toolbar's Icon and Text mode.
     private func makeSaveItem(willBeInsertedIntoToolbar: Bool) -> NSToolbarItem {
         let item = NSToolbarItem(itemIdentifier: .saveDocument)
         let save = NSLocalizedString("Save", comment: "Save toolbar item label")
         item.label = save
         item.paletteLabel = save
-        let image = NSImage(systemSymbolName: "square.and.arrow.down",
-                            accessibilityDescription: nil) ?? NSImage()
-        image.isTemplate = true
-        let button = NSButton(title: save, image: image,
-                              target: self, action: #selector(saveDocument(_:)))
-        button.imagePosition = .imageLeading
-        button.isBordered = true
-        item.view = button
+        item.image = NSImage(systemSymbolName: "square.and.arrow.down",
+                             accessibilityDescription: save)
+        item.isBordered = true
+        item.target = self
+        item.action = #selector(saveDocument(_:))
         // State comes from updateSaveToolbarItem(), not from validation.
         item.autovalidates = false
         if willBeInsertedIntoToolbar {
@@ -308,9 +302,6 @@ extension DocumentWindowController {
             : NSLocalizedString("No unsaved changes", comment: "Save toolbar item tooltip when disabled")
         item.isEnabled = enabled
         item.toolTip = tip
-        // A view-based item's control carries its own state.
-        (item.view as? NSButton)?.isEnabled = enabled
-        item.view?.toolTip = tip
     }
 
     private func makePrintItem() -> NSToolbarItem {
@@ -529,23 +520,6 @@ extension DocumentWindowController {
     /// who rearranges things in Customize Toolbar afterwards keeps their
     /// layout on the next launch.
     private static let didReplaceZoomItemKey = "Toolbar.DidReplaceZoomWithThemesAndSettings"
-
-    /// One-time insertion for toolbars restored from an autosaved
-    /// configuration that predates the Save item -- without it, everyone who
-    /// already has the app would never see the button. Guarded by a defaults
-    /// flag, like the zoom swap below, so a reader who removes it in Customize
-    /// Toolbar keeps it removed.
-    private static let didInsertSaveItemKey = "Toolbar.DidInsertSaveItem"
-
-    func insertSaveToolbarItemIfNeeded(in toolbar: NSToolbar) {
-        let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: Self.didInsertSaveItemKey) else { return }
-        defaults.set(true, forKey: Self.didInsertSaveItemKey)
-        guard !toolbar.items.contains(where: { $0.itemIdentifier == .saveDocument }) else { return }
-        let index = toolbar.items.firstIndex(where: { $0.itemIdentifier == .editDocument })
-            ?? toolbar.items.count
-        toolbar.insertItem(withItemIdentifier: .saveDocument, at: index)
-    }
 
     func replaceZoomToolbarItemIfNeeded(in toolbar: NSToolbar) {
         let defaults = UserDefaults.standard

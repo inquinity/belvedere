@@ -227,7 +227,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         documentWindow.toolbar = toolbar
         documentWindow.toolbarStyle = .automatic
         replaceZoomToolbarItemIfNeeded(in: toolbar)
-        insertSaveToolbarItemIfNeeded(in: toolbar)
 
         installFindBar()
         applyWindowBackgroundTheme()
