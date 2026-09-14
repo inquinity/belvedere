@@ -33,6 +33,18 @@
 >   telemetry reporters. This is load-bearing for cheap upstream merges. Do not remove it.
 > - This fork has two remotes: `origin` (inquinity) and `upstream` (pluk-inc).
 > - Sync with `git merge upstream/main`. **Never rebase `main`** — it is published.
+> - **Upstream issues and PRs are worked on a `contrib/<topic>` branch cut from
+>   `upstream/main` (or the open PR's existing branch), never on `main`** — see the branch
+>   model in docs/FORK-NOTES.md. Everything behind a claim in the PR, issue or reply uses a
+>   **Markdown Preview build of that branch**, not Belvedere: building, running, installing,
+>   manual testing, screenshots. Belvedere carries the same fix plus the fork's hardening,
+>   so a result seen there says nothing about what upstream will merge. Carry the fix into
+>   `main` afterwards, with a `Fork:` merge.
+> - **For Quick Look, check the preview's "Open with" button before trusting a result.**
+>   With Belvedere installed, both extensions claim `.md`, and macOS picks one.
+> - **Upstream's build sends crash reports to Sentry and checks for updates with
+>   Sparkle.** For a local test install, blank `SentryDSN` and `SUFeedURL` and set
+>   `SUEnableAutomaticChecks` to false, in a local commit that is never pushed.
 > - **Fork-authored scripts live in `bin/`** (`build.sh`, `build-release.sh`,
 >   `install.sh`, `bundle.sh`, `check-upstream.sh`, `show-private-changes.sh`,
 >   `make-icon.swift`, `publish-release.sh`, `compose-release-notes.sh`, `ver`,
