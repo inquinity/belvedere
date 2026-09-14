@@ -17,9 +17,13 @@ import Foundation
 /// (pluk-inc/markdown-preview#292). Apple's own text and PDF previews never
 /// seize focus either; the user clicks into the preview to interact with it.
 ///
-/// ⌘A / ⌘C still work without a click: `QuickLookWebView.performKeyEquivalent`
-/// claims those chords through the key window's view hierarchy, which does
-/// not depend on first-responder status.
+/// The accepted cost: ⌘A / ⌘C work only after the user clicks into the
+/// preview. The host forwards key events to the extension only while the
+/// extension's view has focus, so before that click the chords go to the host
+/// and act on its file list. `QuickLookWebView.performKeyEquivalent` serves
+/// them once focus has moved. Claiming focus on load would make them work
+/// immediately and break file navigation again; the Copy button remains the
+/// no-click way to copy, and copies the Markdown source.
 nonisolated enum QuickLookFirstResponderPolicy {
     /// Reason string pinned by the tests so a future change that flips the
     /// value has to confront why it is `false`.
