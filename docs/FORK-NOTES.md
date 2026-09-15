@@ -208,7 +208,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
 | **F10** | ⌘R to reload the open file from disk | **Partly done:** Revert to Saved (⌘R) now discards unsaved changes after a confirmation, from the Save-button work. Still missing: re-reading a file with no local changes. See below. |
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
-| **F12** | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). |
+| **F12** | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). **Updated:** since the #337 rework landed on `main`, a clicked link is no longer gated by containment at all — the click is the decision, matching upstream. The executable/installer check above is what still stands between a link and `NSWorkspace.shared.open`, and now applies to every link, not only ones containment used to let through. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
@@ -910,7 +910,7 @@ loading mode behind B1. Collected here so it is one lookup rather than three.
 | Local images | rewritten to `data:` / `cid:` | served over `md-asset:` |
 | CSP `img-src` | `data: cid:` | `md-asset: data:` |
 | CSP `script-src` | `'unsafe-inline'` | `'unsafe-inline' md-asset:` |
-| Containment | document folder, always | document folder; trust proposed (F3) |
+| Containment | document folder, always | document folder, or an opened folder containing it; trust proposed (F3) |
 | Editing, tabs, PDF export | none | yes |
 
 Identical in both: `default-src 'none'`, remote images blocked, and the same DOMPurify

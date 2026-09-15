@@ -16,11 +16,15 @@ import Markdown
 /// climbs — before they ever reach the app. An `md-asset` URL's path
 /// therefore *is* an absolute path, supplied by document content.
 ///
-/// Because document content controls that path, resolution is confined to the
-/// document's own folder (`fileURL(for:containedIn:)`). The app holds a
+/// Because document content controls that path, resolution is confined to a
+/// folder the caller names (`fileURL(for:containedIn:)`). The app holds a
 /// read-only sandbox exception for the whole filesystem, so without that check
 /// an `<img>` in an untrusted document reads any file the user can read, with
 /// no interaction at all.
+///
+/// Which folder that is comes from `MarkdownAccessPolicy`: the document's own
+/// folder, or a folder the reader explicitly opened, for documents inside it.
+/// Quick Look always gets the document's folder.
 ///
 /// **Do not widen the boundary to the parent folder to restore `../` support.**
 /// It sounds like a small concession and is not one: the boundary would then
@@ -38,6 +42,12 @@ import Markdown
 nonisolated enum MarkdownAssetResolution {
 
     static let scheme = "md-asset"
+
+    /// URL path prefix reserved for app-bundled vendor scripts. Lives here,
+    /// with the rest of the scheme's path vocabulary, so the pure code that
+    /// has to recognise it — link decisions — need not reach into the WebKit
+    /// scheme handler, which re-exports this as `vendorPathPrefix`.
+    static let vendorPathPrefix = "/__vendor/"
 
     /// Base href used when the document has no file location (unsaved
     /// documents, the vendor warmup page): relative references cannot
@@ -72,14 +82,29 @@ nonisolated enum MarkdownAssetResolution {
     /// caller must state the boundary it is resolving against, so a new call
     /// site cannot silently reintroduce unbounded resolution.
     static func fileURL(for assetURL: URL, containedIn documentFolder: URL) -> URL? {
+        guard let candidate = candidateFileURL(for: assetURL),
+              isContained(candidate, in: documentFolder) else { return nil }
+        return candidate
+    }
+
+    /// The file an `md-asset:` URL names, **with no containment check**.
+    ///
+    /// `fileURL(for:containedIn:)` above uses this and applies the boundary,
+    /// for asset loads the document triggered on its own. The other caller is
+    /// link resolution: a clicked link is a deliberate act by the reader, not
+    /// document content acting on its own, so it is not bounded — the reader
+    /// decides what happens next by clicking or not.
+    ///
+    /// Never feed the result into the `md-asset:` scheme handler or anything
+    /// else that reads the file's bytes into the page. Handing it to
+    /// `NSWorkspace`, or opening it as a new document the reader asked for, is
+    /// the sanctioned use; both start from a click, not from rendering.
+    static func candidateFileURL(for assetURL: URL) -> URL? {
         guard assetURL.scheme == scheme else { return nil }
         if let host = assetURL.host, !host.isEmpty { return nil }
         let path = assetURL.path
         guard path.count > 1, path.hasPrefix("/") else { return nil }
-
-        let candidate = URL(fileURLWithPath: path).standardizedFileURL
-        guard isContained(candidate, in: documentFolder) else { return nil }
-        return candidate
+        return URL(fileURLWithPath: path).standardizedFileURL
     }
 
     /// Whether `candidate` is `folder` itself or something beneath it.
@@ -91,7 +116,9 @@ nonisolated enum MarkdownAssetResolution {
     /// The trailing separator in the prefix test is load-bearing. Without it
     /// `/Users/me/notes` also matches `/Users/me/notes-private/secrets.png`,
     /// which is a sibling directory, not a descendant.
-    private static func isContained(_ candidate: URL, in folder: URL) -> Bool {
+    /// Internal rather than private: `MarkdownAccessPolicy` asks the same
+    /// question about folders when it decides which boundary applies.
+    static func isContained(_ candidate: URL, in folder: URL) -> Bool {
         let candidatePath = candidate.standardizedFileURL.resolvingSymlinksInPath().path
         let folderPath = folder.standardizedFileURL.resolvingSymlinksInPath().path
         return candidatePath == folderPath || candidatePath.hasPrefix(folderPath + "/")

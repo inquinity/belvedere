@@ -29,16 +29,20 @@ Look are upstream's work.
 - Remote content — images, stylesheets, fonts, scripts — is blocked in the document
   window, the editor and Quick Look. A remote image shows as a placeholder naming its
   host, so opening a document never tells its author that you read it.
-- Images load only from the document's own folder, or when you ask for them. A file
-  outside the folder, or a remote image, shows as a placeholder with a **Load**
-  button: one click, checked to be a real image first, and not remembered — a remote
-  fetch carries no cookies and grants nothing to that host next time. **Load all**
-  covers local files only. Quick Look names these without offering Load.
-- A link outside the document's folder does nothing when clicked, and has no context
-  menu.
+- Images load from the document's own folder, or — if you open the project folder
+  it lives in — from that folder instead; the Inspector's **Folder Access** row
+  names which one is in effect. A file outside that boundary, or a remote image,
+  shows as a placeholder with a **Load** button: one click, checked to be a real
+  image first, and not remembered — a remote fetch carries no cookies and grants
+  nothing to that host next time. **Load all** covers local files only. Quick Look
+  has no opened folder to widen into, so it always uses the document's own, and
+  names blocked files without offering Load.
+- Clicking a link is never blocked by the folder boundary — matching Markdown
+  Preview, the click is the decision, and its destination opens like any other file.
 - A link to a program — an app, a script, an installer, a disk image — is shown in
-  Finder rather than started, even when it sits inside the document's own folder.
-  Links to ordinary documents open as usual.
+  Finder rather than started, wherever it points, including inside the document's
+  own folder or the opened project folder. Links to ordinary documents open as
+  usual.
 - A document cannot draw form controls — no text fields, dropdowns or other inputs
   that could imitate a sign-in prompt. Task-list checkboxes still work.
 
