@@ -205,6 +205,36 @@ Know its limits before trusting a clean run:
   `periphery scan` run ever starts failing outright rather than reporting
   findings.
 
+## A fresh clone needs its own .git/info/exclude entries
+
+`dist/` and `build/` (Belvedere's own release output — see `bin/build.sh`)
+are in `main`'s `.gitignore`, but a `contrib/*` branch is cut from
+`upstream/main`, which has no reason to know either path exists. On a
+`contrib/*` branch they are therefore untracked but **not ignored** — so a
+broad `git add -A` run in a working directory that still has old release
+artifacts sitting in `dist/` from prior work on `main` will silently stage
+them, and they go wherever that branch goes.
+
+That happened: five `Belvedere-*.dmg` files, packaged and notarized DMGs
+totalling tens of megabytes, landed in a PR to the upstream repository
+before anyone noticed. The maintainer closed the PR for an unrelated reason
+and, separately, flagged it: *"the Belvedere DMGs appear unrelated and
+should be excluded from future submissions."* Nothing sensitive was in
+them, but they had no business in someone else's repository, and reviewing
+a diff that size for something so simple is its own kind of waste.
+
+The fix is `.git/info/exclude`, not `.gitignore`: unlike a tracked
+ignore file, it applies to every branch in this clone regardless of which
+one is checked out, so it closes the gap for good rather than depending on
+which branch happened to be active when something was staged. It does
+**not** survive a fresh clone — add it again there before doing any
+`contrib/*` work, the same way `git config rerere.enabled true` needs
+re-enabling (see the branch model in docs/FORK-NOTES.md):
+
+```bash
+printf 'build/\ndist/\n' >> .git/info/exclude
+```
+
 ## Project facts
 
 | Thing             | Value                                                       |
