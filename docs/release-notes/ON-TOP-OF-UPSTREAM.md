@@ -30,10 +30,10 @@ Look are upstream's work.
   window, the editor and Quick Look. A remote image shows as a placeholder naming its
   host, so opening a document never tells its author that you read it.
 - Images load from the document's own folder, or — if you open the project folder
-  it lives in — from that folder instead; the Inspector's **Folder Access** row
-  names which one is in effect. A file outside that boundary, or a remote image,
-  shows as a placeholder with a **Load** button: one click, checked to be a real
-  image first, and not remembered — a remote fetch carries no cookies and grants
+  it lives in — from that folder instead; the sidebar's root names which one is
+  in effect. A file outside that boundary, or a remote image, shows as a
+  placeholder with a **Load** button: one click, checked to be a real image
+  first, and not remembered — a remote fetch carries no cookies and grants
   nothing to that host next time. **Load all** covers local files only. Quick Look
   has no opened folder to widen into, so it always uses the document's own, and
   names blocked files without offering Load.

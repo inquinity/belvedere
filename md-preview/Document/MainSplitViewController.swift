@@ -98,11 +98,7 @@ final class MainSplitViewController: NSSplitViewController {
             containmentRoot: containmentRoot
         )
         sidebarViewController?.display(markdown: markdown, fileName: fileName, fileURL: url)
-        var metadata = DocumentMetadata.make(url: url, markdown: markdown)
-        metadata.folderAccess = (containmentRoot ?? assetBaseURL).map {
-            DocumentMetadata.FolderAccess(folder: $0, isOpenedFolder: $0 != assetBaseURL)
-        }
-        inspectorViewController?.display(metadata: metadata)
+        inspectorViewController?.display(metadata: DocumentMetadata.make(url: url, markdown: markdown))
     }
 
     /// URL-only refresh after a rename. Skips the content re-render so
