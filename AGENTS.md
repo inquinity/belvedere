@@ -60,6 +60,11 @@
 >   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
 >   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.
 > - **Review all incoming upstream changes for security** Use the `security-oss-app-reviewer` skill and focus on incoming changes.
+> - **Announce completion audibly.** When finishing a long task in this repo,
+>   run `say "<project or folder> <session> is ready for your review"` via
+>   the CLI — fill in the actual project/folder name and a short description
+>   of what the session did, e.g. `say "Belvedere containment port is ready
+>   for your review"`.
 >
 >
 > Everything after this block is upstream's documentation, preserved as-is.
