@@ -16,3 +16,9 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   Markdown Preview, the click is the decision. A link to a program, script,
   installer or disk image is still shown in Finder rather than started,
   wherever it points.
+- **New from Markdown Preview 0.0.58:** a leftover control from a stripped
+  `<form>` — a button, input, or image sitting directly in the document —
+  keeps its natural width instead of stretching across the column; images
+  align with surrounding text and use normal paragraph spacing in both
+  reading and editing; and the sidebar stops shrinking before its pane
+  picker would overflow.
