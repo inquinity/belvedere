@@ -215,6 +215,22 @@ nonisolated extension MarkdownHTML {
             flex-direction: column;
             align-items: stretch;
         }
+        /* Stretching suits block content, but an inline-level element sitting
+           at the top level gets stretched too, and a <button> drawn edge to
+           edge reads as a real control rather than the inert leftover it is:
+           DOMPurify removes a <form> and keeps its children, so a credential
+           prompt's button lands here. Media keeps its own width for the same
+           reason — a raw <img> should not be widened to the column. */
+        article.markdown-body > button,
+        article.markdown-body > input,
+        article.markdown-body > select,
+        article.markdown-body > textarea,
+        article.markdown-body > img,
+        article.markdown-body > svg,
+        article.markdown-body > video,
+        article.markdown-body > audio {
+            align-self: flex-start;
+        }
     }
     .md-inline-tab {
         white-space: pre;
@@ -846,9 +862,10 @@ nonisolated extension MarkdownHTML {
     }
 
     img {
-        display: block;
+        /* Follow the surrounding text, including explicit HTML alignment. */
+        display: inline-block;
         max-width: 100%;
-        margin: 1.6em auto;
+        margin: \(paragraphSpacing)px 0 0;
         border-radius: 8px;
     }
     /* Keep downscaled images proportional, but let explicit width/height
@@ -856,14 +873,14 @@ nonisolated extension MarkdownHTML {
     img:not([width]):not([height]) {
         height: auto;
     }
+    /* The paragraph owns the block gap; image margins must not add to it. */
     p img {
         display: inline-block;
         vertical-align: middle;
-        margin: 0 0.35em 0.35em 0;
+        margin: 0 0.35em 0 0;
     }
     p > img:only-child {
-        display: block;
-        margin: 1.6em auto;
+        margin: 0;
     }
 
     strong { font-weight: 600; }
