@@ -1,0 +1,57 @@
+# Dead-code baseline — periphery scan
+#
+# Generated 2026-09-15 against main. Each line here is a known,
+# already-reviewed finding, not something to fix on sight.
+#
+# A new run reporting exactly these lines is clean. A NEW line not in this
+# file is what the check exists to catch — investigate it before merging
+# (see AGENTS.md, "Trace what a new parameter or stored property actually
+# reaches"). A line that DISAPPEARS is welcome; delete it from here.
+#
+# Caveat: this scans only the md-preview Xcode scheme. A declaration used
+# solely by tests/swift-tests (the symlinked SPM test package — see
+# QuickLookFirstResponderPolicy.rationale below) reads as unused here even
+# though it is genuinely load-bearing; check that package before removing
+# anything this flags.
+#
+md-preview/App/AppDelegate.swift:299:10: warning: Unused function 'showSettingsWindow(pane:)'
+md-preview/App/AppDelegate.swift:386:10: warning: Unused function 'installCommandLineToolsFromSettings()'
+md-preview/App/AppDelegate.swift:396:50: warning: Unused parameter 'sender'
+md-preview/App/AppDelegate.swift:462:10: warning: Unused function 'validateMenuItem(_:)'
+md-preview/App/AppDelegate.swift:1127:49: warning: Unused parameter 'sender'
+md-preview/Document/ContentViewController.swift:61:13: warning: Assign-only property 'headingID' is assigned, but never used
+md-preview/Document/DocumentWindowController+EditMode.swift:25:9: warning: Unused property 'canFormatMarkdown'
+md-preview/Document/DocumentWindowController+EditMode.swift:77:43: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+OpenTargets.swift:169:51: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+OpenTargets.swift:296:49: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+OpenTargets.swift:515:48: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+OpenTargets.swift:576:18: warning: Unused function 'sameApplication(_:_:)'
+md-preview/Document/DocumentWindowController+OpenTargets.swift:580:18: warning: Unused function 'canonicalAppURL(_:)'
+md-preview/Document/DocumentWindowController+Sidebar.swift:104:55: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+Sidebar.swift:109:53: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+Toolbar.swift:368:45: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+Toolbar.swift:546:48: warning: Unused parameter 'sender'
+md-preview/Document/MainSplitViewController.swift:174:10: warning: Unused function 'validateMenuItem(_:)'
+md-preview/Features/Mermaid/MermaidDiagramPopup.swift:172:41: warning: Unused parameter 'notification'
+md-preview/Features/OpenWith/OpenTargetCatalog.swift:25:10: warning: Unused enum case 'copyAndOpen'
+md-preview/Features/OpenWith/OpenTargetCatalog.swift:260:42: warning: Unused parameter 'editors'
+md-preview/Features/OpenWith/OpenTargetCatalog.swift:262:42: warning: Unused parameter 'llmApps'
+md-preview/Features/Settings/SettingsModel.swift:131:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
+md-preview/Features/Settings/SettingsModel.swift:140:10: warning: Unused function 'resetThemeColors()'
+md-preview/Features/Settings/SettingsWindowController.swift:185:10: warning: Unused function 'show(pane:)'
+md-preview/Features/Sidebar/SidebarViewController.swift:284:37: warning: Unused parameter 'sender'
+md-preview/Features/Sidebar/SidebarViewController.swift:311:9: warning: Assign-only property 'level' is assigned, but never used
+md-preview/Rendering/CodeFenceInfo.swift:21:9: warning: Assign-only property 'metadata' is assigned, but never used
+md-preview/Rendering/CodeHighlighter.swift:34:17: warning: Unused function 'useGrammar(source:)'
+md-preview/Rendering/CodeHighlighter.swift:64:17: warning: Unused function 'supports(language:)'
+md-preview/Rendering/CodeHighlighter.swift:164:21: warning: Unused function 'install(source:)'
+md-preview/Rendering/CodeHighlighter.swift:174:21: warning: Assign-only property 'context' is assigned, but never used
+md-preview/Rendering/MarkdownHTML+Footnotes.swift:23:13: warning: Assign-only property 'label' is assigned, but never used
+md-preview/Rendering/MarkdownWebView+PDFExport.swift:570:43: warning: Unused parameter 'sender'
+md-preview/Rendering/MarkdownWebView+PDFExport.swift:836:11: warning: Unused parameter 'operation'
+md-preview/Rendering/MarkdownWebView+PDFExport.swift:837:9: warning: Unused parameter 'success'
+md-preview/Rendering/MarkdownWebView+PDFExport.swift:838:9: warning: Unused parameter 'contextInfo'
+md-preview/Rendering/MarkdownWebView.swift:191:16: warning: Unused property 'none'
+md-preview/Theme/ThemeColorsSetting.swift:99:9: warning: Unused property 'hasWindowBackgroundOverride'
+md-preview/Theme/ThemeColorsSetting.swift:107:10: warning: Unused function 'hasWindowBackgroundOverride(for:)'
+quick-look/QuickLookFirstResponderPolicy.swift:31:16: warning: Unused property 'rationale'

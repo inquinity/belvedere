@@ -1,0 +1,23 @@
+# Dead-code scan. Run: periphery scan
+# Compare the result against docs/dead-code-baseline.txt (see AGENTS.md,
+# "Trace what a new parameter or stored property actually reaches") — a
+# finding not already in that file is new and needs a look before it merges.
+
+project: md-preview.xcodeproj
+schemes:
+  - md-preview
+
+# AppKit's target-action and menu-validation methods are dispatched by
+# selector, which Periphery's static call graph cannot see, so every
+# @objc-visible declaration reads as unreferenced without this.
+retain_objc_accessible: true
+
+# The CLI installer is deliberately unwired dead code, kept so upstream
+# merges stay cheap (see AGENTS.md, "The fork carries deliberately dead
+# code"). Retaining the whole file rather than listing each declaration
+# keeps this config from rotting as that file changes.
+retain_files:
+  - md-preview/App/AppDelegate.swift
+
+build_arguments:
+  - DEVELOPMENT_TEAM=45GJWJVQN2

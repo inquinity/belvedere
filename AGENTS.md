@@ -131,6 +131,80 @@ Follow the global Conventional Commits rules, with these exceptions:
 - `contrib/*` commits follow upstream's style: a plain imperative subject, no
   type prefix. They are squashed into upstream under the PR title.
 
+## A parameter that enforces a boundary must not default to nil
+
+A function parameter that represents a security or correctness boundary — one
+where "unset" is silently equivalent to "no boundary applies" — must never
+have a default value. A default is exactly what lets a call site opt out of a
+boundary its author never considered, and the compiler will not stop it.
+
+This is not hypothetical. An asset-containment boundary was threaded through
+several layers of the document window, editor, and split-view controller. One
+layer's *first-entry* path — creating a fresh editor the first time a window
+enters edit mode — called `.load(...)` without it, because the parameter
+defaulted to `nil` and the code still compiled. Every other call site passed
+it correctly; this one didn't, and nothing failed until a reviewer tested it
+by hand. A second bug in the same review sat one level up: re-rendering the
+same document after opening a new project folder went through the same
+code path used for loading a genuinely *new* document, so it re-evaluated —
+and immediately dropped — the folder root that had just been set.
+
+Neither bug is about this one feature. Both are the same shape: state meant
+to hold everywhere held almost everywhere, and the gap compiled cleanly. Where
+a parameter's whole job is to be supplied deliberately, give it no default —
+turn the silent gap into a build error at every call site that doesn't name
+it. Where two code paths must apply a rule identically (loading a document vs.
+refreshing its display), give them one shared implementation rather than two
+copies that can drift, as `renderCurrentDocument` and `rerenderForBoundaryChange`
+now do via a shared `displayCurrentDocument` — not two independent codings of
+"apply the boundary."
+
+## Trace what a new parameter or stored property actually reaches
+
+Before considering a change that adds state — a new parameter threaded
+through several layers, a new field on a struct — done, confirm something
+downstream actually reads it and acts on it. `grep -rn '<name>('` for every
+call site is a start, but reading is not enough: a field can be read and
+immediately re-stored with nothing ever consuming the value, which looks
+identical to load-bearing code and satisfies the type checker completely.
+
+That happened here too: a `containmentRoot` field was added to `ExportSource`
+(the app window's PDF/print snapshot) when the same name was threaded through
+`display(...)` for the live render — added by analogy, not because export
+code was confirmed to need it. Nothing ever read it for that purpose. A
+reviewer caught it by tracing every use; before this, nothing else would have.
+
+**Run `periphery scan` before calling a change like that done**, and compare
+the result to `docs/dead-code-baseline.txt`. The config lives in
+`.periphery.yml`, so the bare command reproduces the baseline. A finding
+already in the baseline is known and reviewed; a **new** one is what the
+check exists to catch — investigate it before merging, the same way you would
+a failing test. A finding that disappears is welcome — delete its line.
+
+Know its limits before trusting a clean run:
+
+- **It would not have caught the `ExportSource` case above.** Periphery finds
+  declarations nothing references, not ones that are read and then only
+  redundantly re-stored. A field can pass Periphery cleanly and still be dead
+  in every sense that matters — this check narrows the same failure shape, it
+  does not close it. The "trace to an actual consumer" step above is still
+  the real check; Periphery is the automated net under it.
+- **It only scans the `md-preview` Xcode scheme.** A declaration used solely
+  by `tests/swift-tests` — the symlinked SPM test package — reads as unused
+  here even when it is genuinely load-bearing (see the baseline file's own
+  note on `QuickLookFirstResponderPolicy.rationale`, kept there for exactly
+  this reason). Check that package before deleting anything this flags.
+- **AppKit's target-action dispatch is invisible to it.** `retain_objc_accessible`
+  in `.periphery.yml` covers most of this, but a genuinely new `@objc`-only
+  false positive is more likely than a genuinely new true one — read before
+  deleting.
+- **Its upstream repository is archived.** Homebrew currently still serves it
+  (`brew install periphery`) but has flagged it deprecated; it may stop
+  working against a future Swift toolchain with nobody to fix it. Treat this
+  section as needing a replacement tool, not as a permanent fixture, if a
+  `periphery scan` run ever starts failing outright rather than reporting
+  findings.
+
 ## Project facts
 
 | Thing             | Value                                                       |
