@@ -89,14 +89,16 @@ nonisolated enum MarkdownAssetResolution {
 
     /// The file an `md-asset:` URL names, **with no containment check**.
     ///
-    /// Exactly two things may call it: `fileURL(for:containedIn:)` above,
-    /// which applies the boundary, and the code that needs to name a file the
-    /// reader is being asked about — the sheet shown when a clicked link
-    /// points outside the boundary. Naming a path is not reading it, and the
-    /// reader decides what happens next.
+    /// `fileURL(for:containedIn:)` above uses this and applies the boundary,
+    /// for asset loads the document triggered on its own. The other caller is
+    /// link resolution: a clicked link is a deliberate act by the reader, not
+    /// document content acting on its own, so it is not bounded — the reader
+    /// decides what happens next by clicking or not.
     ///
-    /// Never serve, load or open the result directly. Asset loads go through
-    /// the bounded call, whose `containedIn` cannot be omitted.
+    /// Never feed the result into the `md-asset:` scheme handler or anything
+    /// else that reads the file's bytes into the page. Handing it to
+    /// `NSWorkspace`, or opening it as a new document the reader asked for, is
+    /// the sanctioned use; both start from a click, not from rendering.
     static func candidateFileURL(for assetURL: URL) -> URL? {
         guard assetURL.scheme == scheme else { return nil }
         if let host = assetURL.host, !host.isEmpty { return nil }

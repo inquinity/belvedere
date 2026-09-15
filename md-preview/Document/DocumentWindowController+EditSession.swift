@@ -83,23 +83,6 @@ extension DocumentWindowController {
         }
     }
 
-    /// Offered when a relative link is clicked in a document that has never
-    /// been saved. Saving gives the document a folder, which is the thing the
-    /// link needs to resolve against; until then there is nothing to follow.
-    func saveDocumentForLinkResolution() {
-        if isEditing || hasPendingEditorChanges {
-            commitEdits(exitAfter: false)
-            return
-        }
-        let body = currentMarkdown ?? ""
-        saveUntitledMarkdown(body) { [weak self] result in
-            guard let self, case .saved = result else { return }
-            // The document now has a folder, so re-render to pick up the
-            // boundary it establishes.
-            self.renderCurrentDocument(text: body, fileURL: self.currentFileURL)
-        }
-    }
-
     private func saveUntitledMarkdown(
         _ text: String,
         completion: @escaping (EditedMarkdownSaveResult) -> Void

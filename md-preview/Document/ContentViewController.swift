@@ -42,7 +42,6 @@ final class ContentViewController: NSViewController {
         let markdown: String
         let sourceURL: URL?
         let assetBaseURL: URL?
-        let containmentRoot: URL?
     }
 
     // Heading top offsets in CSS pixels, indexed by heading id. Compared in
@@ -74,7 +73,6 @@ final class ContentViewController: NSViewController {
     var taskCheckboxToggled: ((Int, Bool) -> Void)?
     var tableEditRequested: ((MarkdownTableEditRequest) -> Void)?
     var localMarkdownLinkActivated: ((URL) -> Void)?
-    var saveDocumentRequested: (() -> Void)?
     /// Fires once after a pending source scroll anchor (prepared via
     /// `prepareToRestoreSourceScrollAnchor`) has been applied to a fresh
     /// render. The edit-mode overlay uses it to hold its cross-fade until
@@ -119,9 +117,6 @@ final class ContentViewController: NSViewController {
         }
         webView.localMarkdownLinkActivated = { [weak self] url in
             self?.localMarkdownLinkActivated?(url)
-        }
-        webView.saveDocumentRequested = { [weak self] in
-            self?.saveDocumentRequested?()
         }
         webView.taskCheckboxToggled = { [weak self] line, checked in
             self?.taskCheckboxToggled?(line, checked)
@@ -219,8 +214,7 @@ final class ContentViewController: NSViewController {
         exportSource = ExportSource(
             markdown: markdown,
             sourceURL: sourceURL,
-            assetBaseURL: assetBaseURL,
-            containmentRoot: containmentRoot
+            assetBaseURL: assetBaseURL
         )
         if pendingPreviewScrollAnchor != nil {
             shouldApplyPendingAnchorOnHeight = true
@@ -249,8 +243,7 @@ final class ContentViewController: NSViewController {
         exportSource = ExportSource(
             markdown: source.markdown,
             sourceURL: sourceURL,
-            assetBaseURL: sourceURL.deletingLastPathComponent(),
-            containmentRoot: source.containmentRoot
+            assetBaseURL: sourceURL.deletingLastPathComponent()
         )
     }
 

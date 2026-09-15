@@ -36,7 +36,6 @@ final class MainSplitViewController: NSSplitViewController {
     var onOpenMarkdownLink: ((URL) -> Void)?
     var onToggleTaskCheckbox: ((Int, Bool) -> Void)?
     var onEditTable: ((MarkdownTableEditRequest) -> Void)?
-    var onSaveDocumentRequested: (() -> Void)?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -83,9 +82,6 @@ final class MainSplitViewController: NSSplitViewController {
         contentViewController?.localMarkdownLinkActivated = { [weak self] url in
             self?.onOpenMarkdownLink?(url)
         }
-        contentViewController?.saveDocumentRequested = { [weak self] in
-            self?.onSaveDocumentRequested?()
-        }
     }
 
     func display(markdown: String,
@@ -100,11 +96,7 @@ final class MainSplitViewController: NSSplitViewController {
             containmentRoot: containmentRoot
         )
         sidebarViewController?.display(markdown: markdown, fileName: fileName, fileURL: url)
-        var metadata = DocumentMetadata.make(url: url, markdown: markdown)
-        metadata.folderAccess = (containmentRoot ?? assetBaseURL).map {
-            DocumentMetadata.FolderAccess(folder: $0, isOpenedFolder: $0 != assetBaseURL)
-        }
-        inspectorViewController?.display(metadata: metadata)
+        inspectorViewController?.display(metadata: DocumentMetadata.make(url: url, markdown: markdown))
     }
 
     /// URL-only refresh after a rename. Skips the content re-render so
@@ -378,7 +370,7 @@ final class MainSplitViewController: NSSplitViewController {
             self.revealEditorIfPrepared(editorVC)
         }
         editorVC.applyPageZoom(previewZoom)
-        editorVC.load(markdown: markdown, assetBaseURL: assetBaseURL)
+        editorVC.load(markdown: markdown, assetBaseURL: assetBaseURL, containmentRoot: containmentRoot)
         contentViewController?.sourceScrollAnchor { [weak self, weak editorVC] anchor in
             guard let self, let editorVC, self.isEditorPreparing else { return }
             self.pendingSourceScrollAnchor = anchor

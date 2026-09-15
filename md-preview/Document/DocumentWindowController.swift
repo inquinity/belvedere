@@ -221,9 +221,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
                 self?.present(url: url)
             }
         }
-        split.onSaveDocumentRequested = { [weak self] in
-            self?.saveDocumentForLinkResolution()
-        }
         split.onToggleTaskCheckbox = { [weak self] line, checked in
             self?.toggleTaskCheckbox(onLine: line, checked: checked)
         }

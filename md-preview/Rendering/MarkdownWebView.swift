@@ -5,7 +5,6 @@
 
 import Cocoa
 import os
-import UniformTypeIdentifiers
 import WebKit
 
 /// Presents table operations with a real AppKit context menu. The web views
@@ -212,11 +211,6 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// Wider than the document's folder only when the reader opened a folder
     /// containing it — see `MarkdownAccessPolicy`.
     private var currentContainmentRoot: URL?
-    #if !QUICK_LOOK_EXTENSION
-    /// Called when a relative link is clicked in a document that has never
-    /// been saved, so the click says something rather than nothing.
-    var saveDocumentRequested: (() -> Void)?
-    #endif
     private let messageBridge = HostBridge()
 
     private struct RendererFingerprint: Equatable {
@@ -1539,149 +1533,37 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         decisionHandler(.allow)
     }
 
-    /// The folder this document's links and assets resolve inside.
-    private var currentBoundary: URL? { currentContainmentRoot ?? currentAssetBase }
-
-    /// A clicked link is not an asset load. The load happened because the
-    /// document was rendered, so it stays silent and bounded; the click
-    /// happened because the reader asked, so a target outside the boundary is
-    /// offered rather than ignored — named, and never launched unseen.
+    /// A clicked link is not an asset load: the reader asked for it, so it is
+    /// not bounded by `MarkdownAccessPolicy` the way automatic loads are. If
+    /// it opens another Markdown document, that document gets its own
+    /// boundary applied fresh, for its own assets — see
+    /// `DocumentWindowController`.
     private func activateLink(_ url: URL) {
         if let fragment = sameDocumentFragmentID(from: url) {
             fragmentLinkActivated?(fragment)
-            return
-        }
-        switch MarkdownAccessPolicy.linkAction(for: url,
-                                               documentFolder: currentAssetBase,
-                                               containmentRoot: currentBoundary,
-                                               isMarkdown: Self.isMarkdownDocumentFile,
-                                               isExecutable: Self.isExecutableTarget) {
-        case .ignore:
-            // `/__vendor/` is a reserved namespace served from the app bundle
-            // by the scheme handler — never a filesystem path, so clicks on
-            // authored vendor links stay inert.
-            break
-        case .openInViewer(let file):
-            // The resolver works on the path alone and drops `#section`.
-            localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: file))
-        case .openWithSystem(let file):
-            NSWorkspace.shared.open(file)
-        case .openExternally(let target):
-            NSWorkspace.shared.open(target)
-        case .confirmRevealExecutable(let file):
-            confirmRevealingExecutable(file)
-        case .confirmOpenOutside(let file):
-            confirmFollowingLinkOutsideBoundary(to: file, reveals: false) { [weak self] in
-                self?.localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: file))
+        } else if url.scheme == MarkdownAssetScheme.scheme,
+           currentAssetBase != nil,
+           // `/__vendor/` is a reserved namespace served from the app bundle
+           // by the scheme handler — never a filesystem path, so clicks on
+           // authored vendor links stay inert.
+           !url.path.hasPrefix(MarkdownAssetScheme.vendorPathPrefix),
+           let resolved = MarkdownAssetResolution.candidateFileURL(for: url) {
+            if Self.isMarkdownDocumentFile(resolved) {
+                // The resolver works on the path alone and drops `#section`.
+                localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: resolved))
+            } else {
+                NSWorkspace.shared.open(resolved)
             }
-        case .confirmRevealOutside(let file):
-            confirmFollowingLinkOutsideBoundary(to: file, reveals: true) {
-                NSWorkspace.shared.activateFileViewerSelecting([file])
-            }
-        case .saveDocumentFirst:
-            offerToSaveBeforeFollowingLinks()
+        } else if url.scheme != MarkdownAssetScheme.scheme {
+            NSWorkspace.shared.open(url)
         }
-    }
-
-    /// Asks before following a link out of the boundary. A Markdown file
-    /// opens in the viewer, which renders it under its own boundary; anything
-    /// else is revealed in Finder rather than launched, because document
-    /// content chose the path.
-    private func confirmFollowingLinkOutsideBoundary(to target: URL,
-                                                     reveals: Bool,
-                                                     then proceed: @escaping () -> Void) {
-        #if QUICK_LOOK_EXTENSION
-        // Quick Look previews a file Finder selected, not one the reader
-        // opened: no chrome to put an affordance in, and pressing space is
-        // not consent. It stays silent.
-        _ = (target, reveals, proceed)
-        #else
-        guard let window, let boundary = currentBoundary else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = String(
-            format: NSLocalizedString("“%@” is outside the folder this document can read.",
-                                      comment: "Blocked link alert title"),
-            target.lastPathComponent
-        )
-        var informative = String(
-            format: NSLocalizedString("This document can read files in “%@”.",
-                                      comment: "Blocked link alert message naming the boundary folder"),
-            boundary.path
-        )
-        if reveals {
-            informative += " " + NSLocalizedString(
-                "It will be shown in Finder rather than opened.",
-                comment: "Blocked link alert message for a file that is not a Markdown document"
-            )
-        }
-        alert.informativeText = informative
-        alert.addButton(withTitle: reveals
-            ? NSLocalizedString("Show in Finder", comment: "Blocked link alert button")
-            : NSLocalizedString("Open", comment: "Blocked link alert button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Blocked link alert button"))
-        alert.beginSheetModal(for: window) { response in
-            guard response == .alertFirstButtonReturn else { return }
-            proceed()
-        }
-        #endif
-    }
-
-    /// A program named by document content is shown, never started.
-    private func confirmRevealingExecutable(_ target: URL) {
-        #if !QUICK_LOOK_EXTENSION
-        guard let window else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = String(
-            format: NSLocalizedString("“%@” would be run, not opened.",
-                                      comment: "Executable link alert title"),
-            target.lastPathComponent
-        )
-        alert.informativeText = NSLocalizedString(
-            "This document links to a program or installer. It will be shown in Finder instead.",
-            comment: "Executable link alert message"
-        )
-        alert.addButton(withTitle: NSLocalizedString("Show in Finder", comment: "Blocked link alert button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Blocked link alert button"))
-        alert.beginSheetModal(for: window) { response in
-            guard response == .alertFirstButtonReturn else { return }
-            NSWorkspace.shared.activateFileViewerSelecting([target])
-        }
-        #endif
-    }
-
-    /// An unsaved document has no folder, so a relative link has nothing to
-    /// resolve against. Say so, and offer the one thing that fixes it.
-    private func offerToSaveBeforeFollowingLinks() {
-        #if !QUICK_LOOK_EXTENSION
-        guard let window else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString(
-            "Save this document to follow links to other files.",
-            comment: "Unsaved document link alert title"
-        )
-        alert.informativeText = NSLocalizedString(
-            "A document that has never been saved has no folder, so a relative link has nothing to point at.",
-            comment: "Unsaved document link alert message"
-        )
-        alert.addButton(withTitle: NSLocalizedString("Save…", comment: "Unsaved document link alert button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Blocked link alert button"))
-        alert.beginSheetModal(for: window) { [weak self] response in
-            guard response == .alertFirstButtonReturn else { return }
-            self?.saveDocumentRequested?()
-        }
-        #endif
     }
 
     private func showLinkContextMenu(_ source: URL) {
         let target: URL
         if source.scheme == MarkdownAssetScheme.scheme {
-            guard let boundary = currentBoundary,
-                  !source.path.hasPrefix(MarkdownAssetScheme.vendorPathPrefix),
-                  let file = MarkdownAssetResolution.fileURL(for: source,
-                                                             containedIn: boundary) else { return }
+            guard !source.path.hasPrefix(MarkdownAssetScheme.vendorPathPrefix),
+                  let file = MarkdownAssetResolution.candidateFileURL(for: source) else { return }
             target = Self.reattachingFragment(of: source, to: file)
         } else {
             guard ["https", "http", "mailto", "file"].contains(source.scheme?.lowercased() ?? "") else { return }
@@ -1733,28 +1615,15 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// For these "open" means execute, and a Markdown file has no reason to
     /// start one — so they are shown in Finder instead, even inside the
     /// boundary, where an ordinary document would simply open.
-    private static func isExecutableTarget(_ url: URL) -> Bool {
-        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
-            let runs: [UTType] = [.application, .applicationBundle, .unixExecutable, .diskImage]
-            if runs.contains(where: type.conforms(to:)) { return true }
-            if type.identifier == "com.apple.installer-package-archive" { return true }
-        }
-        // No registered type, or unreadable: the execute bit is what makes a
-        // plain file runnable.
-        var isDirectory: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        return exists && !isDirectory.boolValue
-            && FileManager.default.isExecutableFile(atPath: url.path)
-    }
-
     /// A Markdown *file*, not merely something named like one.
     ///
     /// The extension test above is satisfied by a **directory** called
-    /// `notes.md`, and opening a directory as a document mounts it as the
-    /// window's folder root — which is the one thing that widens what a
-    /// document may read. Document content chooses link targets, so it must
-    /// not be able to choose that. A path that does not exist stays eligible:
-    /// following it fails the way a missing file always has.
+    /// `notes.md`. `onOpenMarkdownLink` already refuses to open a directory as
+    /// this window's folder root, but that guard runs after this decision has
+    /// already sent the click here as "open in viewer" — so the same case is
+    /// caught here too, closer to where the click is resolved. A path that
+    /// does not exist stays eligible: following it fails the way a missing
+    /// file always has.
     private static func isMarkdownDocumentFile(_ url: URL) -> Bool {
         guard isMarkdownDocument(url) else { return false }
         var isDirectory: ObjCBool = false
