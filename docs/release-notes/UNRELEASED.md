@@ -8,17 +8,4 @@ bin/compose-release-notes.sh builds <version>.md from both files; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-- Opening a project folder widens where a document's images may load from: a
-  document inside the opened folder can now reach anywhere within it, not just
-  its own folder — the sidebar's root names which folder is in effect, the same
-  way it always has. Matches [Markdown Preview #337](https://github.com/pluk-inc/markdown-preview/pull/337).
-- Clicking a link is no longer bound to the document's folder — matching
-  Markdown Preview, the click is the decision. A link to a program, script,
-  installer or disk image is still shown in Finder rather than started,
-  wherever it points.
-- **New from Markdown Preview 0.0.58:** a leftover control from a stripped
-  `<form>` — a button, input, or image sitting directly in the document —
-  keeps its natural width instead of stretching across the column; images
-  align with surrounding text and use normal paragraph spacing in both
-  reading and editing; and the sidebar stops shrinking before its pane
-  picker would overflow.
+_(nothing yet)_
