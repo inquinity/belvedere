@@ -60,6 +60,11 @@
 >   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
 >   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.
 > - **Review all incoming upstream changes for security** Use the `security-oss-app-reviewer` skill and focus on incoming changes.
+> - **`README.md` is Belvedere's own, not preserved from upstream.** Unlike `AGENTS.md`
+>   (whose body below this block *is* upstream's, verbatim), `README.md` was rewritten to
+>   drop upstream's branding, donation links, and sponsor section, and to describe this
+>   fork's actual behavior rather than upstream's. `git merge upstream/main` no longer
+>   resolves it automatically — reconcile it by hand on sync, the same as `Version.xcconfig`.
 > - **Announce completion audibly.** When finishing a long task in this repo,
 >   run `say "<project or folder> <session> is ready for your review"` via
 >   the CLI — fill in the actual project/folder name and a short description

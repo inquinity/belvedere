@@ -1,111 +1,107 @@
 > ## ⚠️ This is a fork — Belvedere
 >
-> [`inquinity/belvedere`](https://github.com/inquinity/belvedere) is a fork of
-> [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) that removes the
-> app's outbound network connections (Sentry, PostHog, Sparkle). It ships as **Belvedere**,
-> installed with `brew install --cask inquinity/tap/belvedere`.
-> **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)** is the source of truth for how this repo
-> differs from the text below. In particular:
+> This README describes **[inquinity/belvedere](https://github.com/inquinity/belvedere)**
+> directly — it is no longer a copy of upstream's. **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)**
+> is still the source of truth for exactly how this repo differs from
+> [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) ("Markdown Preview",
+> upstream) under the hood, and for the branch model used to contribute fixes back.
 >
-> - The **Installation** section is correct for this fork. **Crash reporting**,
->   **Anonymous usage analytics**, and the Sparkle/Sentry parts of **Building from source**
->   describe upstream — those integrations are stubbed or excised here.
-> - **Building and releasing** run through `just` (`brew install just`; `just --list`),
->   whose recipes wrap the fork's scripts in `bin/` (not `scripts/`). Releasing is
->   `just release <seg>` then `just publish --go` — see
->   [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md). Upstream's Amore pipeline and
->   `scripts/release.sh` do not exist here.
-> - The release/cask **badges** below and the **Special Sponsor** / **Acknowledgments**
->   sections are upstream's.
->
-> Everything below this block is upstream's README, preserved as-is.
+> Because this file is now written for Belvedere instead of preserved verbatim, `git merge
+> upstream/main` no longer resolves it automatically — expect to reconcile it by hand on sync,
+> the same way `Version.xcconfig` already needs it.
 
-<h1 align="center">Markdown Preview</h1>
+<h1 align="center">Belvedere</h1>
 
 <p align="center">
-  <img src="docs/markdown-logo.svg" width="128" alt="Markdown Preview logo" />
+  <img src="docs/app-icon.png" width="128" alt="Belvedere icon" />
 </p>
 
 <p align="center">
-  A fast, native macOS app for reading Markdown files.
+  A native macOS Markdown previewer, hardened so that opening a file someone else sent you
+  is safe by default.
 </p>
 
-<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/pluk-inc/markdown-preview" />&nbsp;<img alt="Homebrew cask" src="https://img.shields.io/homebrew/cask/v/markdown-preview" /></p>
-
-<p align="center">
-  <a href="https://buymeacoffee.com/pluk">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="42" alt="Buy Me a Coffee" />
-  </a>
-</p>
+<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/homebrew-tap?label=belvedere" /></p>
 
 ---
 
-> Drop a `.md` on the icon (or set Markdown Preview as your default handler) and get a clean, scrollable preview with a real document outline — no Electron, no browser tab.
+> Drop a `.md` on the icon (or set Belvedere as your default handler) and get a clean,
+> scrollable preview with a real document outline — no Electron, no browser tab, and nothing
+> the document does reaches the network.
 
 ## Installation
 
-This fork ([`inquinity/belvedere`](https://github.com/inquinity/belvedere)) ships as
-**Belvedere** through a public Homebrew tap:
-
 ```sh
-brew install --cask inquinity/tap/belvedere
+brew tap inquinity/tap
+brew install --cask belvedere
 ```
 
-Or grab the latest signed and notarized DMG from the tap's
+`brew tap` adds [`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap) as a
+software source — it's a public repository you can read before trusting it, and it's the
+only place this cask's DMGs come from. `brew install --cask inquinity/tap/belvedere` does
+both steps in one if you'd rather skip the explicit tap; either way Homebrew records where
+the app came from, and `brew upgrade --cask belvedere` is how updates arrive (there is no
+auto-updater — see below). Each DMG is signed with a Developer ID and notarized by Apple, so
+Gatekeeper verifies it before install without a manual override.
+
+You can also grab the latest signed and notarized DMG directly from the tap's
 [Releases](https://github.com/inquinity/homebrew-tap/releases) page.
 
-> Upstream Markdown Preview is a separate app, available as `brew install --cask
-> markdown-preview` from the [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
+> Belvedere and upstream Markdown Preview install side by side — different bundle ID, different
+> icon — so having one doesn't remove or conflict with the other. Markdown Preview itself is
+> `brew install --cask markdown-preview` from the
+> [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
 
-## Screenshots
+## What Belvedere changes
 
-<p align="center">
-  <img src="docs/screenshot-main.png" width="820" alt="Main window with document outline sidebar" />
-</p>
+Belvedere is Markdown Preview with its network connections removed and its handling of
+untrusted documents tightened. Reading, editing, printing, PDF export and Quick Look are
+upstream's work — this section is everything on top of that.
 
-<p align="center">
-  <em>Edit Markdown directly with a native formatting toolbar:</em>
-</p>
+**It never connects on its own** — no crash reporting, no usage analytics, no auto-updater.
+The code that would have sent any of that is gone, not just disabled; new versions arrive
+only through `brew upgrade`.
 
-<p align="center">
-  <img src="docs/screenshot-edit-mode.png" width="820" alt="Edit Mode with document outline and Markdown formatting toolbar" />
-</p>
+**A document can't reach the network, or read files outside its folder, just by being
+opened.** Remote images, stylesheets, fonts and scripts are blocked in the app, the editor,
+and Quick Look — a remote image shows as a placeholder naming its host instead of loading,
+so opening a document never tells its author that you read it. Local images load from the
+document's own folder, or from a wider folder you explicitly opened; anything outside that
+boundary shows a placeholder with a one-click, not-remembered **Load** button.
 
-<p align="center">
-  <em>Quick Look preview — spacebar a <code>.md</code> in Finder:</em>
-</p>
+**A document can't draw a fake sign-in prompt.** Text fields, dropdowns, and other form
+controls are stripped from rendered content — a `<form>` that survives sanitization
+elsewhere as inert markup renders as nothing here. Task-list checkboxes still work.
 
-<p align="center">
-  <img src="docs/screenshot-quicklook.png" width="640" alt="Quick Look preview from Finder" />
-</p>
+**A link never runs or installs something on a click.** A link to an app, script, installer,
+or disk image is shown in Finder instead of started, wherever it points. Links to ordinary
+documents open as usual.
 
-<p align="center">
-  <em>Customize the toolbar — drag in Print, Copy, Zoom and the rest from <em>View → Customize Toolbar…</em></em>
-</p>
-
-<p align="center">
-  <img src="docs/screenshot-toolbar-customize.png" width="820" alt="Native macOS toolbar customization sheet showing draggable items" />
-</p>
+**A Save button** — in the toolbar, lit whenever the document has unsaved changes. Leaving
+edit mode asks Save / Revert… / Continue instead of discarding silently; ⌘S and Save As…
+work after leaving edit mode too.
 
 ## Features
 
 - **Native rendering** — `WKWebView` pipeline backed by [swift-markdown](https://github.com/swiftlang/swift-markdown), with heading anchors and link handling. Bare `http://` and `https://` URLs are clickable in the app and Quick Look previews.
-- **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>, and save with <kbd>⌘S</kbd> or the toolbar's Save button. Leaving edit mode with unsaved changes asks whether to save them, keep them for later, or revert them — or, with the setting turned on, simply keeps them.
+- **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>.
 - **Mermaid diagrams** — fenced `mermaid` code blocks render as diagrams in both the app and Quick Look previews, using a bundled renderer so previews work offline without a CDN request.
-- **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source (via the official `copy-tex` extension).
+- **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source.
 - **Document outline** — sidebar TOC that mirrors your headings; click to jump.
-- **File navigator** — browse Markdown files in the sidebar. Click a folder's name, icon, or empty row space to expand or collapse it, or use its disclosure triangle. Click a file to open its preview.
+- **File navigator** — browse Markdown files in the sidebar. Opening a folder (rather than a single file) also sets the containment boundary described above.
 - **Inspector panel** — toggleable side panel with file metadata.
 - **In-document search** — toolbar search field plus standard <kbd>⌘F</kbd> / <kbd>⌘G</kbd> / <kbd>⌘⇧G</kbd> for next/previous match.
 - **Open With** — switch to your real editor (VS Code, Cursor, Zed, Sublime, BBEdit, Nova, CotEditor, TextMate, MacVim, Xcode, TextEdit) without leaving the preview. The list filters to apps that actually declare an editor role for Markdown, and remembers your pick.
 - **Open in LLM** — send the current Markdown file to Codex, Claude, or ChatGPT from the toolbar. Supported apps open with file or folder context where possible, with a copy-and-open fallback for longer prompts.
 - **Text zoom** — bump preview text up or down with trackpad pinch, the toolbar's <kbd>A A</kbd> control, or <kbd>⌘+</kbd> / <kbd>⌘−</kbd> / <kbd>⌘0</kbd>. Discrete Safari-style stops from 50% to 300%.
-- **Customizable toolbar** — drag in the items you actually use (Print, Copy, Zoom, Sidebar, Open With, Inspector, Share, Search) via *View → Customize Toolbar…* Standard AppKit affordance, your layout sticks across launches.
-- **Share = copy the source** — the share toolbar feeds the picker the Markdown text itself, so **Copy** writes the raw source to the clipboard (great for pasting into ChatGPT / Claude), and Mail, Messages, and Notes get the content in the body instead of a file URL.
-- **Quick Look extension** — system-wide `.md` previews from Finder spacebar, Spotlight, and Mail attachments without launching the app.
-- **Command line tools** — install `mdp`, `md-preview`, and `markdown-preview` from the app menu, then open files or folders from any shell with commands like `mdp README.md` or `mdp .`.
-- **URL scheme** — open a file or folder from a browser link or another app with `md-preview://file/<absolute path>` (e.g. `md-preview://file/Users/me/project/README.md`), the same shape as `cursor://file/…`. Percent-encode special characters in the path (a space becomes `%20`).
+- **Customizable toolbar** — drag in the items you actually use via *View → Customize Toolbar…* Standard AppKit affordance, your layout sticks across launches.
+- **Share = copy the source** — the share toolbar feeds the picker the Markdown text itself, so **Copy** writes the raw source to the clipboard, and Mail, Messages, and Notes get the content in the body instead of a file URL.
+- **Quick Look extension** — system-wide `.md` previews from Finder spacebar, Spotlight, and Mail attachments without launching the app. Subject to the same network and containment restrictions above.
+- **URL scheme** — open a file or folder from a browser link or another app with `md-preview://file/<absolute path>` (e.g. `md-preview://file/Users/me/project/README.md`). Percent-encode special characters in the path.
 - **Default handler** — offers to register itself as the default `.md` opener on first launch.
+
+Not in Belvedere: the command-line tools installer (`mdp`, `md-preview`) is removed, along
+with the permission to control Terminal it needed.
 
 ## Supported file types
 
@@ -119,105 +115,60 @@ UTI: `net.daringfireball.markdown`
 
 ## Building from source
 
-> _This fork: clone `inquinity/belvedere` instead, and build with `just build`
-> (`brew install just`). Swift Package Manager no longer resolves Sparkle or Sentry —
-> both were removed. See the fork banner at the top._
-
 ```sh
-git clone git@github.com:pluk-inc/markdown-preview.git
-cd markdown-preview
-open markdown-preview.xcodeproj
+git clone git@github.com:inquinity/belvedere.git
+cd belvedere
+just build
 ```
 
-Build and run the `markdown-preview` scheme. Swift Package Manager will resolve [Sparkle](https://github.com/sparkle-project/Sparkle), [Sentry](https://github.com/getsentry/sentry-cocoa), and [swift-markdown](https://github.com/swiftlang/swift-markdown) on first build.
-
-### Crash reporting
-
-> _Not this fork: the Sentry integration is stubbed — no crash reports are sent. The section
-> below describes upstream._
-
-Release builds submit native crash reports to the `pluk-inc/markdown-preview` Sentry project. The integration does not collect performance traces, session data, breadcrumbs, network requests, user information, document contents, or file paths. Users can turn reporting off in Markdown Preview > Settings > Privacy; on later launches, the Sentry SDK will not initialize at all.
-
-The committed DSN is a public client key. Release archives upload the app dSYM with `sentry-cli`; authenticate locally with `sentry-cli login` and keep that authentication token outside the repository.
-
-### Anonymous usage analytics
-
-> _Not this fork: the PostHog integration is stubbed — no analytics events are sent. The
-> section below describes upstream._
-
-Release builds can submit at most one anonymous `app became active` event per installation per UTC day when Markdown Preview becomes active. The event contains a random installation identifier, app version, macOS major version, processor architecture, locale country or region, and the flag that prevents PostHog from creating a person profile. It is used to count daily and monthly active installations and understand basic platform compatibility. It does not contain document contents, file names or paths, actions, screens, precise location, personal information, or advertising identifiers. Users can disable it from Settings > Privacy.
-
-The PostHog project token is injected from the gitignored `Secrets.xcconfig`. Copy `Secrets.xcconfig.example` to `Secrets.xcconfig` and set `POSTHOG_PROJECT_TOKEN` before making a release build. If the token is absent, or for a Debug build, analytics remains disabled. Every event disables GeoIP enrichment, and the PostHog project must also be configured to discard IP data in Project Settings > General.
+Requires [`just`](https://github.com/casey/just) (`brew install just`). `just --list` shows
+the rest of the fork's build/release tasks, which wrap the scripts in `bin/`. Swift Package
+Manager resolves [swift-markdown](https://github.com/swiftlang/swift-markdown) on first
+build — Sparkle and Sentry are not dependencies here; both were removed entirely.
 
 ## Project layout
-
-> _This fork: the fork's own scripts are in `bin/` (`build.sh`, `build-release.sh`,
-> `publish-release.sh`, …); `scripts/` holds only upstream tooling, and there is no
-> `appcast.xml`. See the fork banner._
 
 ```
 md-preview/         Main app target (AppKit, WKWebView)
 quick-look/         Quick Look extension (.appex)
-scripts/            Release & rollback automation
+bin/                This fork's build & release scripts (build.sh, publish-release.sh, …)
+scripts/            Upstream's own tooling, untouched so syncs apply cleanly
 Version.xcconfig    Marketing & build version (single source of truth)
-appcast.xml         Sparkle update feed
 ```
 
 ## Releasing
 
-> _Not this fork. Releases here are `bin/build.sh --release` plus the Homebrew tap —
-> see [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md). Amore, `appcast.xml`,
-> `scripts/release.sh` and `scripts/rollback-release.sh` do not exist in this fork. The
-> section below describes upstream._
-
-Releases are driven by [Amore](http://amore.computer/) — it handles building, code signing, notarization, DMG creation, S3 upload, and Sparkle appcast publishing in one shot.
-
-To prepare a release PR, start from latest `main`, update both `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `Version.xcconfig`, and add the matching `CHANGELOG.md` entry with contributor credits. Submit these together in a ready PR; see the [release-process skill](.agents/skills/release-process/SKILL.md) for naming and validation.
-
-When ready to publish the prepared release, run the following from a clean working tree. This builds, notarizes, uploads, tags, and publishes the release:
+Releases are cut locally and published to the Homebrew tap — see
+[docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md) for the full flow. In short:
 
 ```sh
-./scripts/release.sh
+just release revision   # or minor / major — builds, signs, notarizes, commits, tags
+just publish --go       # pushes the release and bumps the tap's cask
 ```
-
-Use `./scripts/rollback-release.sh` to revert the appcast pointer if a release misbehaves.
 
 ### Contributing
 
-
-Pull requests are welcome. For larger changes, please open an issue first to discuss what you'd like to change.
+Pull requests are welcome. For larger changes, please open an issue first to discuss what
+you'd like to change.
 
 1. Fork the repo and create your branch from `main`.
 2. Run the app and verify the change end-to-end (UI changes need a manual smoke test — there's no UI test suite yet).
 3. Keep PRs focused; one logical change per PR.
 4. Match the existing Swift style (no formatter is enforced; mirror nearby code).
 
-<h2 align="center" style="color: #8a8a8a;">Special Sponsor</h2>
+A fix that belongs in Markdown Preview itself — rather than being specific to this fork's
+hardening — is usually better sent there directly; see the upstream contribution track in
+[docs/FORK-NOTES.md](docs/FORK-NOTES.md) for how this fork handles that split.
 
-<br />
+## Credits
 
-<p align="center">
-  <a href="https://pluk.sh">
-    <img src="docs/sponsors/pluk-logo.png" height="54" alt="Pluk" />
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://amore.computer">
-    <img src="docs/sponsors/amore-logo.png" height="54" alt="Amore" />
-  </a>
-</p>
+Belvedere is a fork of [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
+[pluk-inc](https://github.com/pluk-inc) — for its own branding, screenshots, and ways to
+support the project, see that repository directly.
 
-## Support
-
-Markdown Preview is free and MIT-licensed. If it saved you a browser tab, you can [buy us a coffee](https://buymeacoffee.com/pluk).
-
-## Acknowledgments
-- [Amore](http://amore.computer/) — MacOS release automation (signing, notarization, DMG, hosting, appcast)
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) — Markdown parser (Apple, cmark-gfm-backed)
 - [Mermaid](https://mermaid.js.org/) — Bundled diagram renderer for `mermaid` fenced code blocks
 - [KaTeX](https://katex.org/) — Bundled math typesetter for inline `$…$`, display `$$…$$`, and ` ```math ` blocks
-- [Sparkle](https://sparkle-project.org) — Auto-update framework
-- [Sentry](https://sentry.io) — Privacy-filtered native crash reporting
-- [LottieFiles](https://lottiefiles.com/) — Animated README logo
 
 ## License
 
