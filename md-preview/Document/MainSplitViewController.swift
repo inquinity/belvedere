@@ -8,6 +8,8 @@ import Cocoa
 final class MainSplitViewController: NSSplitViewController {
 
     private static let didSeedKey = "MainSplitView.didSeedInitialState"
+    /// Keeps the pane picker and sidebar toggle visible beside the window controls.
+    private static let minimumSidebarWidth: CGFloat = 230
 
     /// How far the chrome overlays (formatting bar, find bar) tuck up into
     /// the native tab bar's empty bottom margin, closing the visual gap
@@ -134,11 +136,39 @@ final class MainSplitViewController: NSSplitViewController {
         contentViewController?.currentScrollPosition ?? 0
     }
 
+    private var activeFindQuery = ""
+    private var activeFindMode: SearchMode = .contains
+    private var activeFindCompletion: ((FindResult) -> Void)?
+
     func find(_ query: String,
               backwards: Bool = false,
               mode: SearchMode = .contains,
               completion: ((FindResult) -> Void)? = nil) {
-        contentViewController?.find(query, backwards: backwards, mode: mode, completion: completion)
+        activeFindQuery = query
+        activeFindMode = mode
+        activeFindCompletion = completion
+        let pasteboard = NSPasteboard(name: .find)
+        pasteboard.clearContents()
+        pasteboard.setString(query, forType: .string)
+        if isEditorPreparing { return } // Replay once the editor and scroll position are ready.
+        if let editor = editorViewController {
+            editor.find(query, backwards: backwards, mode: mode, completion: completion)
+        } else {
+            contentViewController?.find(query, backwards: backwards, mode: mode, completion: completion)
+        }
+    }
+
+    private func refreshFindAfterModeChange() {
+        guard !activeFindQuery.isEmpty else { return }
+        if let editor = editorViewController {
+            editor.find(activeFindQuery, mode: activeFindMode, completion: activeFindCompletion)
+        } else {
+            contentViewController?.find("") { [weak self] _ in
+                guard let self, !self.isEditingDocument else { return }
+                self.contentViewController?.find(self.activeFindQuery, mode: self.activeFindMode,
+                                                 completion: self.activeFindCompletion)
+            }
+        }
     }
 
     // Custom selector (instead of `print:`) so AppKit's inherited
@@ -264,7 +294,7 @@ final class MainSplitViewController: NSSplitViewController {
         let item = themed
             ? NSSplitViewItem(viewController: viewController)
             : NSSplitViewItem(sidebarWithViewController: viewController)
-        item.minimumThickness = 180
+        item.minimumThickness = minimumSidebarWidth
         item.maximumThickness = 400
         item.canCollapse = true
         item.canCollapseFromWindowResize = false
@@ -276,14 +306,13 @@ final class MainSplitViewController: NSSplitViewController {
         return item
     }
 
-    /// Recovers a sane sidebar width when the autosaved divider position is
-    /// degenerate — collapsed-to-zero or ballooned — which the sidebar item
-    /// swap can leave behind.
+    /// Brings restored widths into the supported range, including narrow
+    /// widths saved before the sidebar gained its pane picker.
     private func normalizeSidebarWidthIfNeeded() {
         guard let sidebar = splitViewItems.first, !sidebar.isCollapsed else { return }
         let width = sidebar.viewController.view.frame.width
         if width < sidebar.minimumThickness || width > sidebar.maximumThickness {
-            splitView.setPosition(240, ofDividerAt: 0)
+            splitView.setPosition(Self.minimumSidebarWidth, ofDividerAt: 0)
         }
     }
 
@@ -499,6 +528,7 @@ final class MainSplitViewController: NSSplitViewController {
                         // titlebar material sampling. The editor overlay is now
                         // fully opaque and covering it.
                         self.contentViewController?.view.isHidden = true
+                        self.refreshFindAfterModeChange()
                         if self.shouldAutofocusEditor {
                             self.shouldAutofocusEditor = false
                             editorVC.focusEditor()
@@ -552,6 +582,7 @@ final class MainSplitViewController: NSSplitViewController {
                         guard let self, let editorVC,
                               !self.isEditorPreparing, !self.isEditorVisible else { return }
                         editorVC.view.isHidden = true
+                        self.refreshFindAfterModeChange()
                         overlayHidden?()
                     }
                 }
@@ -602,7 +633,7 @@ final class MainSplitViewController: NSSplitViewController {
 
         // Seed the expanded width so the toolbar toggle opens to a sensible size,
         // then start collapsed (Preview-style for single-item docs).
-        splitView.setPosition(240, ofDividerAt: 0)
+        splitView.setPosition(Self.minimumSidebarWidth, ofDividerAt: 0)
         splitViewItems.first?.isCollapsed = true
         defaults.set(true, forKey: Self.didSeedKey)
     }

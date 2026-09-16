@@ -16,11 +16,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
                 vendorLoading: vendorLoading
             )
             let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 640, height: 300))
-            // The SPM test bundle has no resources; load the real sanitizer
-            // from the checkout so this exercises the production bootstrap.
-            let purifier = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
-            let page = html.replacingOccurrences(of: "<head>", with: "<head><script>\(purifier)</script>")
-            webView.loadHTMLString(page, baseURL: nil)
+            webView.loadHTMLString(html, baseURL: nil)
             let deadline = Date().addingTimeInterval(10)
             while webView.isLoading && Date() < deadline {
                 try await Task.sleep(for: .milliseconds(10))
@@ -1080,9 +1076,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             rendered.articleHTML.contains(#"class="mermaid-hud-width-symbol" aria-hidden="true">⤢</span>"#),
             rendered.articleHTML
         )
-        // SPM helper tests lack the Mermaid vendor bundle, so the page falls
-        // back to the "renderer unavailable" stub — assert the real wiring
-        // string (injected by the app when Vendor/Mermaid is present).
+        // Assert the shared production wiring as well as the emitted controls.
         XCTAssertTrue(MarkdownHTML.mermaidInitWiring.contains("kind: 'mermaidPopup'"))
         XCTAssertTrue(MarkdownHTML.mermaidInitWiring.contains("function openPopup"))
         XCTAssertTrue(MarkdownHTML.mermaidInitWiring.contains("case 'popup'"))
@@ -1616,6 +1610,57 @@ final class MarkdownHTMLRenderTests: XCTestCase {
         XCTAssertFalse(restored.expanded)
         XCTAssertEqual(restored.buttonPressed, "false")
         XCTAssertEqual(restored.figureWidth, initial.figureWidth, accuracy: 1)
+    }
+
+    /// The article is a flex column on screen, which stretches its children.
+    /// Block content should span the column; an inline-level element left at
+    /// the top level should not. A `<button>` whose `<form>` the sanitiser
+    /// removed lands there, and drawn edge to edge it reads as a working
+    /// control instead of the inert leftover it is.
+    @MainActor
+    func testTopLevelInlineElementsKeepTheirOwnWidth() async throws {
+        let rendered = MarkdownHTML.render(markdown: "Paragraph.\n", vendorLoading: .lazy)
+        let stylesheet = try XCTUnwrap(
+            rendered.html
+                .components(separatedBy: "<style>")
+                .dropFirst()
+                .first?
+                .components(separatedBy: "</style>")
+                .first
+        )
+        let html = """
+        <!DOCTYPE html>
+        <html><head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>\(stylesheet)</style>
+        </head><body><article class="markdown-body">
+        <p id="para">Paragraph.</p>
+        <button id="control">Sign in</button>
+        </article></body></html>
+        """
+        let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 900, height: 600))
+        webView.loadHTMLString(html, baseURL: nil)
+        while webView.isLoading {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let result = try await webView.evaluateJavaScript("""
+        (() => {
+            const article = document.querySelector('.markdown-body');
+            return JSON.stringify({
+                articleWidth: article.clientWidth,
+                paragraphWidth: document.getElementById('para').getBoundingClientRect().width,
+                buttonWidth: document.getElementById('control').getBoundingClientRect().width,
+            });
+        })()
+        """)
+        let metrics = try JSONDecoder().decode(
+            TopLevelInlineMetrics.self,
+            from: Data(try XCTUnwrap(result as? String).utf8)
+        )
+
+        XCTAssertEqual(metrics.paragraphWidth, metrics.articleWidth, accuracy: 1)
+        XCTAssertLessThan(metrics.buttonWidth, metrics.articleWidth / 3)
     }
 
     @MainActor
@@ -2509,6 +2554,12 @@ private struct MermaidLayoutMetrics: Decodable {
     let svgWidth: CGFloat
     let expanded: Bool
     let buttonPressed: String
+}
+
+private struct TopLevelInlineMetrics: Decodable {
+    let articleWidth: CGFloat
+    let paragraphWidth: CGFloat
+    let buttonWidth: CGFloat
 }
 
 private struct WideMermaidMetrics: Decodable {
