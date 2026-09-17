@@ -22,19 +22,17 @@
 
 ```sh
 brew tap inquinity/tap
-brew trust inquinity/tap
+brew trust inquinity/tap          # or: brew trust --cask inquinity/tap/belvedere, to trust only this cask
 brew install --cask belvedere
 ```
 
 `brew tap` adds [`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap) as a
 software source — it's a public repository you can read before trusting it. `brew trust`
 records that review: without it, `brew install` refuses to load a cask from a non-official
-tap at all (`Error: Refusing to load cask … from untrusted tap …`). The command above trusts
-the whole tap; `brew trust --cask inquinity/tap/belvedere` trusts only this one cask if
-you'd rather not extend that to anything else published there. Either way, Homebrew records
-where the app came from, and `brew upgrade --cask belvedere` is how updates arrive (there is
-no auto-updater — see below). Each DMG is signed with a Developer ID and notarized by Apple,
-so Gatekeeper verifies it before install without a manual override.
+tap at all (`Error: Refusing to load cask … from untrusted tap …`). Homebrew records where
+the app came from either way, and `brew upgrade --cask belvedere` is how updates arrive
+(there is no auto-updater — see below). Each release is signed with a Developer ID and
+notarized by Apple, so Gatekeeper verifies it before install without a manual override.
 
 You can also grab the latest signed and notarized DMG directly from the tap's
 [Releases](https://github.com/inquinity/homebrew-tap/releases) page.
