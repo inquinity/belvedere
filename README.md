@@ -52,6 +52,36 @@ You can also grab the latest signed and notarized DMG directly from the tap's
 > `brew install --cask markdown-preview` from the
 > [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshot-main.png" width="820" alt="Main window with document outline sidebar" />
+</p>
+
+<p align="center">
+  <em>Edit Markdown directly with a native formatting toolbar:</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshot-edit-mode.png" width="820" alt="Edit Mode with document outline and Markdown formatting toolbar" />
+</p>
+
+<p align="center">
+  <em>Quick Look preview — spacebar a <code>.md</code> in Finder:</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshot-quicklook.png" width="640" alt="Quick Look preview from Finder" />
+</p>
+
+<p align="center">
+  <em>Customize the toolbar — drag in Print, Copy, Zoom and the rest from <em>View → Customize Toolbar…</em></em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshot-toolbar-customize.png" width="820" alt="Native macOS toolbar customization sheet showing draggable items" />
+</p>
+
 ## What Belvedere changes
 
 Belvedere is Markdown Preview with its network connections removed and its handling of
