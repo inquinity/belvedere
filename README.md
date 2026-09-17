@@ -67,7 +67,7 @@ You can also download the latest release directly, as a DMG, from the tap's
   <img src="docs/screenshot-toolbar-customize.png" width="820" alt="Native macOS toolbar customization sheet showing draggable items" />
 </p>
 
-## What Belvedere changes
+## Belvedere
 
 Reading, editing, printing, PDF export and Quick Look are the core experience, and work the
 way you'd expect from a native Mac app. Everything below is what's added on top:
