@@ -1,15 +1,3 @@
-> ## ⚠️ This is a fork — Belvedere
->
-> This README describes **[inquinity/belvedere](https://github.com/inquinity/belvedere)**
-> directly — it is no longer a copy of upstream's. **[docs/FORK-NOTES.md](docs/FORK-NOTES.md)**
-> is still the source of truth for exactly how this repo differs from
-> [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) ("Markdown Preview",
-> upstream) under the hood, and for the branch model used to contribute fixes back.
->
-> Because this file is now written for Belvedere instead of preserved verbatim, `git merge
-> upstream/main` no longer resolves it automatically — expect to reconcile it by hand on sync,
-> the same way `Version.xcconfig` already needs it.
-
 <h1 align="center">Belvedere</h1>
 
 <p align="center">
@@ -17,8 +5,9 @@
 </p>
 
 <p align="center">
-  A native macOS Markdown previewer, hardened so that opening a file someone else sent you
-  is safe by default.
+  Belvedere is a native macOS app for reading Markdown files — fast, no Electron, no browser
+  tab — hardened so that opening a file someone else sent you is safe by default: nothing in
+  a document can reach the network, run something, or fake a sign-in prompt.
 </p>
 
 <p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/homebrew-tap?label=belvedere" /></p>
@@ -192,13 +181,17 @@ hardening — is usually better sent there directly; see the upstream contributi
 
 ## Credits
 
-Belvedere is a fork of [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
-[pluk-inc](https://github.com/pluk-inc) — for its own branding, screenshots, and ways to
-support the project, see that repository directly.
-
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) — Markdown parser (Apple, cmark-gfm-backed)
 - [Mermaid](https://mermaid.js.org/) — Bundled diagram renderer for `mermaid` fenced code blocks
 - [KaTeX](https://katex.org/) — Bundled math typesetter for inline `$…$`, display `$$…$$`, and ` ```math ` blocks
+
+## About this fork
+
+Belvedere is a fork of [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
+[pluk-inc](https://github.com/pluk-inc), hardened to remove its outbound network connections
+and tighten how it handles untrusted documents. See
+[docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and why. For upstream's
+own branding, screenshots, and ways to support that project, see its repository directly.
 
 ## License
 
