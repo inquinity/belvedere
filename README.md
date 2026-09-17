@@ -15,8 +15,8 @@
 ---
 
 > Drop a `.md` on the icon (or set Belvedere as your default handler) and get a clean,
-> scrollable preview with a real document outline — no Electron, no browser tab, and nothing
-> the document does reaches the network.
+> scrollable preview with a real document outline — and nothing the document does reaches
+> the network.
 
 ## Installation
 
@@ -69,9 +69,8 @@ You can also download the latest release directly, as a DMG, from the tap's
 
 ## What Belvedere changes
 
-Belvedere is Markdown Preview with its network connections removed and its handling of
-untrusted documents tightened. Reading, editing, printing, PDF export and Quick Look are
-upstream's work — this section is everything on top of that.
+Reading, editing, printing, PDF export and Quick Look are the core experience, and work the
+way you'd expect from a native Mac app. Everything below is what's added on top:
 
 **It never connects on its own** — no crash reporting, no usage analytics, no auto-updater.
 The code that would have sent any of that is gone, not just disabled; new versions arrive
