@@ -34,13 +34,8 @@ the app came from either way, and `brew upgrade --cask belvedere` is how updates
 (there is no auto-updater — see below). Each release is signed with a Developer ID and
 notarized by Apple, so Gatekeeper verifies it before install without a manual override.
 
-You can also grab the latest signed and notarized DMG directly from the tap's
+You can also download the latest release directly, as a DMG, from the tap's
 [Releases](https://github.com/inquinity/homebrew-tap/releases) page.
-
-> Belvedere and upstream Markdown Preview install side by side — different bundle ID, different
-> icon — so having one doesn't remove or conflict with the other. Markdown Preview itself is
-> `brew install --cask markdown-preview` from the
-> [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
 
 ## Screenshots
 
@@ -193,6 +188,11 @@ Belvedere is a fork of [Markdown Preview](https://github.com/pluk-inc/markdown-p
 and tighten how it handles untrusted documents. See
 [docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and why. For upstream's
 own branding, screenshots, and ways to support that project, see its repository directly.
+
+Belvedere and upstream Markdown Preview install side by side — different bundle ID, different
+icon — so having one doesn't remove or conflict with the other. Markdown Preview itself is
+`brew install --cask markdown-preview` from the
+[official cask repository](https://formulae.brew.sh/cask/markdown-preview).
 
 ## License
 
