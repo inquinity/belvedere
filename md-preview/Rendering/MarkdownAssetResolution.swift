@@ -121,7 +121,12 @@ nonisolated enum MarkdownAssetResolution {
     static func isContained(_ candidate: URL, in folder: URL) -> Bool {
         let candidatePath = candidate.standardizedFileURL.resolvingSymlinksInPath().path
         let folderPath = folder.standardizedFileURL.resolvingSymlinksInPath().path
-        return candidatePath == folderPath || candidatePath.hasPrefix(folderPath + "/")
+        if candidatePath == folderPath { return true }
+        // folderPath is "/" at the volume root, which already ends in the
+        // separator — appending another would require a descendant path to
+        // start with "//" and reject every real one.
+        let prefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+        return candidatePath.hasPrefix(prefix)
     }
 
     // MARK: - Image storage helpers

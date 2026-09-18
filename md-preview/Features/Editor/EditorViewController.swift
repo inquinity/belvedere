@@ -53,6 +53,17 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         view = webView
     }
 
+    /// Applies a changed containment boundary to the document already open in
+    /// the editor, without touching its content — cursor, selection, scroll
+    /// position, and undo history all survive. For when the boundary itself
+    /// moved (the reader opened a different folder) but the document on
+    /// screen didn't change; `load(markdown:assetBaseURL:containmentRoot:)`
+    /// is for the document itself changing.
+    func updateContainmentRoot(_ containmentRoot: URL?) {
+        currentContainmentRoot = containmentRoot?.standardizedFileURL
+        assetScheme.setContainmentRoot(currentContainmentRoot)
+    }
+
     func load(markdown: String, assetBaseURL: URL? = nil, containmentRoot: URL? = nil) {
         hasChanges = false
         currentAssetBaseURL = assetBaseURL?.standardizedFileURL
