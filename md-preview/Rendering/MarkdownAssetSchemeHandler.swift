@@ -119,18 +119,28 @@ nonisolated final class MarkdownAssetScheme: NSObject, WKURLSchemeHandler {
             // and the warmup page — and only from inside that document's
             // folder. Document content chooses this path, so an unbounded
             // resolve here is an arbitrary local file read.
+            //
+            // Opens and reads the file as one operation — see
+            // `readContainedFile`'s doc comment — rather than resolving a
+            // path here and handing it to `serve(file:)` below, which would
+            // check one filesystem object and read a second one reopened
+            // from the same path string moments later.
             guard let boundary,
-                  let resolved = MarkdownAssetResolution.fileURL(
+                  let (data, resolved) = MarkdownAssetResolution.readContainedFile(
                       for: requestURL,
                       containedIn: boundary
                   ) else {
                 wrapper.fail(with: URLError(.badURL))
                 return
             }
-            Self.serve(file: resolved, requestURL: requestURL, task: wrapper, cacheable: false)
+            Self.respond(data: data, resolved: resolved, requestURL: requestURL, task: wrapper)
         }
     }
 
+    /// Vendor bundles only — trusted, app-bundle-local files with no
+    /// containment concern, so reading the path directly (with a byte
+    /// cache on top) is fine. User files go through `readContainedFile`
+    /// and `respond(data:resolved:...)` instead; see the call site.
     private nonisolated static func serve(file resolved: URL,
                                           requestURL: URL,
                                           task: TaskWrapper,
@@ -148,6 +158,14 @@ nonisolated final class MarkdownAssetScheme: NSObject, WKURLSchemeHandler {
             }
             data = read
         }
+        respond(data: data, resolved: resolved, requestURL: requestURL, task: task, cacheable: cacheable)
+    }
+
+    private nonisolated static func respond(data: Data,
+                                            resolved: URL,
+                                            requestURL: URL,
+                                            task: TaskWrapper,
+                                            cacheable: Bool = false) {
         let mime = mimeType(for: resolved)
         var headerFields = [
             "Content-Type": mime,
