@@ -260,7 +260,10 @@ extension DocumentWindowController {
     func rerenderForBoundaryChange() {
         guard let currentMarkdown else { return }
         if isEditing {
-            mainSplit?.editorViewController?.updateContainmentRoot(currentContainmentRoot)
+            mainSplit?.editorViewController?.updateContainmentRoot(
+                currentContainmentRoot,
+                assetBaseURL: currentFileURL?.deletingLastPathComponent()
+            )
         } else {
             displayCurrentDocument(text: currentMarkdown, fileURL: currentFileURL)
         }
