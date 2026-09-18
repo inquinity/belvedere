@@ -124,6 +124,19 @@ final class MarkdownAssetResolutionTests: XCTestCase {
         XCTAssertNil(MarkdownAssetResolution.fileURL(for: asset, containedIn: documentFolder))
     }
 
+    /// The volume root already ends in the path separator. Appending another
+    /// for the containment prefix would require every descendant path to
+    /// start with "//" and reject all of them — opening "/" as a folder
+    /// would silently block every image instead of allowing them.
+    func testVolumeRootContainsItsDescendants() {
+        let asset = URL(string: "md-asset:///Users/me/notes/doc.png")!
+        let root = URL(fileURLWithPath: "/", isDirectory: true)
+        XCTAssertEqual(
+            MarkdownAssetResolution.fileURL(for: asset, containedIn: root),
+            URL(fileURLWithPath: "/Users/me/notes/doc.png")
+        )
+    }
+
     /// Real filesystem: a symlink inside the document folder pointing outside
     /// it must not become an escape hatch. A purely textual containment check
     /// passes this and hands back the target.
