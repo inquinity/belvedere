@@ -242,17 +242,22 @@ extension DocumentWindowController {
     ///
     /// Goes through `displayCurrentDocument`, not `renderCurrentDocument`:
     /// the document on screen has not changed, only the boundary around it,
-    /// so `openedFolderRoot` — just set by `openFolder(_:)` — must not be
+    /// so `openedFolderRoot` — just set by `openFolder(_:)`, or already
+    /// reconsidered by the caller as `handleRename(to:)` does — must not be
     /// re-evaluated here. It was dropping the newly opened root immediately,
     /// because the still-visible document from the *previous* folder is
     /// (correctly) not contained in it.
+    ///
+    /// Internal rather than private: `handleRename(to:)` in
+    /// `DocumentWindowController.swift` calls this too, after a move changes
+    /// which folder bounds the document without changing its content.
     ///
     /// While editing, the read-mode page this would refresh is not even on
     /// screen — the editor is. It needs the same new boundary, applied to
     /// the document already open there rather than by reloading it, which
     /// would otherwise discard the reader's cursor, selection, and undo
     /// history over a boundary change they didn't ask to make to the text.
-    private func rerenderForBoundaryChange() {
+    func rerenderForBoundaryChange() {
         guard let currentMarkdown else { return }
         if isEditing {
             mainSplit?.editorViewController?.updateContainmentRoot(currentContainmentRoot)
