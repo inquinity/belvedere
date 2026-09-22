@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [0.0.60] – 2026-09-22
+
+This release fixes keyboard focus when entering edit mode and keeps toolbar and tab colors in sync with automatic appearance changes.
+
+### Fixed
+
+- **Entering edit mode puts keyboard focus in the editor.** The first switch to editing no longer sends focus to the toolbar search field ([#415](https://github.com/pluk-inc/markdown-preview/pull/415)).
+- **Toolbar and tab colors follow automatic light and dark appearance changes on macOS 26 and later.** Preview and editor backgrounds refresh when the window appearance changes, preventing mismatched light or dark strips without requiring a resize or theme selection ([#416](https://github.com/pluk-inc/markdown-preview/pull/416)).
+
+### Contributors
+
+- [@hhh2210](https://github.com/hhh2210) — fixed toolbar and tab colors after automatic appearance changes ([#416](https://github.com/pluk-inc/markdown-preview/pull/416)).
+- [@alchezar](https://github.com/alchezar) — reported mismatched toolbar and tab backgrounds ([#360](https://github.com/pluk-inc/markdown-preview/issues/360)).
+
+## [0.0.59] – 2026-09-21
+
+This release fixes search in edit mode and improves how Markdown layout carries between reading and editing.
+
+### Fixed
+
+- **Search highlights and navigates matches in edit mode.** Matches include unsaved edits and text outside the visible area. Previous and next navigation wrap correctly, counts update while editing, and search refreshes when switching modes. Matches in tables and Mermaid blocks reveal their source ([#404](https://github.com/pluk-inc/markdown-preview/pull/404)).
+- **More consistent layout between reading and editing.** Corrected wrapping around trailing spaces, nested quote and loose-list spacing, code-block borders, horizontal rules, narrow table columns, Mermaid sizing, and escaped punctuation in live preview ([#406](https://github.com/pluk-inc/markdown-preview/pull/406)).
+- **Images appear when background parsing finishes.** Live preview now refreshes after parsing, so images no longer remain as Markdown source until the next interaction ([#406](https://github.com/pluk-inc/markdown-preview/pull/406)).
+
+### Contributors
+
+- [@MelvinSDRS](https://github.com/MelvinSDRS) — reported and fixed search highlighting and navigation in edit mode ([#403](https://github.com/pluk-inc/markdown-preview/issues/403), [#404](https://github.com/pluk-inc/markdown-preview/pull/404)).
+
 ## [0.0.58] – 2026-09-15
 
 This release keeps Finder navigation responsive in Quick Look, improves image and sidebar layout, preserves custom themes in full screen, and closes a renderer sanitization bypass.
