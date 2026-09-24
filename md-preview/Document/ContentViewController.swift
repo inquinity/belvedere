@@ -75,7 +75,7 @@ final class ContentViewController: NSViewController {
     var localMarkdownLinkActivated: ((URL) -> Void)?
     /// Fires once after a pending source scroll anchor (prepared via
     /// `prepareToRestoreSourceScrollAnchor`) has been applied to a fresh
-    /// render. The edit-mode overlay uses it to hold its cross-fade until
+    /// render. The edit-mode overlay uses it to hold its visibility swap until
     /// the preview underneath is positioned.
     var pendingAnchorRestored: (() -> Void)?
 
@@ -377,14 +377,14 @@ final class ContentViewController: NSViewController {
             let target = max((sourceTop - anchor.topGap) * self.webView.pageZoom, 0)
             // A mode switch is a position hand-off, not a navigation: land
             // instantly. An animated scroll here reads as jitter when the
-            // editor overlay fades away.
+            // editor overlay is hidden.
             self.webView.scrollDocument(to: target, topMargin: 0, duration: 0)
             completion?()
         }
     }
 
     /// Applies the scroll anchor captured from the editor once the fresh
-    /// article is in place, then reports it so the editor overlay can fade.
+    /// article is in place, then reports it so the views can swap visibility.
     private func applyPendingScrollAnchorIfNeeded() {
         guard shouldApplyPendingAnchorOnHeight,
               let anchor = pendingPreviewScrollAnchor else { return }
@@ -446,9 +446,9 @@ final class ContentViewController: NSViewController {
     /// The search row sits in the content host beneath the native toolbar.
     weak var findOverlay: NSView?
 
-    /// The formatting row (macOS 26.1+ native accessory path only). The
-    /// preview is hidden while editing, but it shows again beneath the bar
-    /// during the exit crossfade and must keep the same page padding.
+    /// The formatting controls. The preview is hidden while editing; legacy
+    /// rows still affect page padding during the exit hand-off, while the
+    /// macOS 26 floating controls intentionally do not.
     weak var formattingBar: NSView?
 
     func chromeOverlaysDidChange() {
@@ -470,7 +470,9 @@ final class ContentViewController: NSViewController {
             // then lagged one step behind the strip (missing while it was
             // shown, still covering the page after it was gone).
             inset += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
-            inset += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
+            if !MainSplitViewController.usesFloatingFormattingBar {
+                inset += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
+            }
             return max(0, inset)
         }
         if #available(macOS 26.0, *),
@@ -546,7 +548,7 @@ final class ContentViewController: NSViewController {
             .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let color = ThemeColorsSetting.current.color(
             .windowBackground, isDark ? .dark : .light
-        ) ?? .windowBackgroundColor
+        ) ?? .clear
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
             webView.webView.underPageBackgroundColor = color.usingColorSpace(.sRGB) ?? color
         }
@@ -781,10 +783,11 @@ private final class PreviewToolbarGutterView: NSView {
 
     override func updateLayer() {
         let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let scheme: ThemeColorScheme = isDark ? .dark : .light
         let color = ThemeColorsSetting.current.color(
-            .windowBackground, isDark ? .dark : .light
-        ) ?? .windowBackgroundColor
-        layer?.backgroundColor = color.cgColor
+            .windowBackground, scheme
+        )
+        layer?.backgroundColor = color?.cgColor
     }
 }
 
@@ -796,8 +799,8 @@ private final class PreviewToolbarGutterView: NSView {
 /// (#251). Painting it here covers the page and, in centered mode, the gutter
 /// the web view's leading edge leaves beside the column.
 ///
-/// Dark mode paints nothing and keeps the window background, which already
-/// reads as a page.
+/// Original dark mode leaves the native window background visible, including
+/// the centered-layout margin. Custom themes explicitly paint both surfaces.
 private final class DocumentBackgroundView: NSView {
 
     weak var scrollWheelTarget: NSView?
