@@ -60,6 +60,10 @@ extension DocumentWindowController {
             return EditExitPolicy.isRevertCommandEnabled(hasUnsavedChanges: hasUnsavedEditorChanges,
                                                          hasFile: currentFileURL != nil)
         }
+        if menuItem.action == #selector(searchForDocument(_:)) {
+            // Greyed out rather than opening a palette with nothing to search.
+            return projectRootURL != nil
+        }
         if menuItem.action == #selector(toggleAlwaysOnTop(_:)) {
             menuItem.state = isAlwaysOnTop ? .on : .off
             menuItem.image = Self.alwaysOnTopMenuImage(isPinned: isAlwaysOnTop)

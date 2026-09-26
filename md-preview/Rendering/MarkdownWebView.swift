@@ -444,7 +444,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                            vendorLoading: .lazy,
                                            contentWidth: contentWidth,
                                            themeOverrides: themeOverrides,
-                                           warmup: warmup)
+                                           warmup: warmup,
+                                           pageTopClearance: MarkdownHTML.appPageTopClearance)
         let elapsedMs = Int(
             (Double(DispatchTime.now().uptimeNanoseconds - t0.uptimeNanoseconds)
              / 1_000_000).rounded()
@@ -937,6 +938,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         let clamped = clampedZoom(value)
         guard abs(webView.pageZoom - clamped) > 0.001 else { return }
         webView.pageZoom = clamped
+        updateChromeZoom()
         zoomDidChange?(clamped)
         if persist {
             persistPageZoom(clamped)
@@ -944,6 +946,11 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         if notifyHeight {
             heightDidChange?(lastReportedDocumentHeight * clamped)
         }
+    }
+
+    private func updateChromeZoom() {
+        guard #available(macOS 26.0, *) else { return }
+        webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-chrome-zoom', '\(max(webView.pageZoom, 0.001))')", completionHandler: nil)
     }
 
     private func clampedZoom(_ value: CGFloat) -> CGFloat {
@@ -1795,6 +1802,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         configureWebKitScrollView()
         isPageReady = true
+        updateChromeZoom()
         #if !QUICK_LOOK_EXTENSION
         // A render snapshots the theme before its concurrent pass; if the
         // colors changed mid-flight, the navigation just installed stale
