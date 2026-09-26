@@ -317,3 +317,13 @@
 /* A link to something the system would run */
 "“%@” would be run, not opened." = "“%@” would be run, not opened.";
 "This document links to a program or installer. It will be shown in Finder instead." = "This document links to a program or installer. It will be shown in Finder instead.";
+/* Search for Document */
+"Search for Document…" = "Search for Document…";
+"Search files by name" = "Search files by name";
+"No matching files" = "No matching files";
+"Open a folder to search its files" = "Open a folder to search its files";
+"Open Folder…" = "Open Folder…";
+"Showing the first %d files in this project" = "Showing the first %d files in this project";
+"↑↓ browse · ↩ open · ⌘↩ new tab · ⌥↩ new window" = "↑↓ browse · ↩ open · ⌘↩ new tab · ⌥↩ new window";
+"Search for Document" = "Search for Document";
+"Search for a file by name" = "Search for a file by name";

@@ -53,7 +53,8 @@ final class MarkdownHTMLPrintStyleTests: XCTestCase {
 
     func testPrintDropsScreenOnlyAffordances() throws {
         let block = try printBlock()
-        XCTAssertTrue(block.contains(".md-code-copy"))
+        XCTAssertTrue(block.contains(".md-code-action"))
+        XCTAssertFalse(block.contains(".md-code-header"), "Keep code language labels in print")
         XCTAssertTrue(block.contains("display: none !important"))
         // A printed page cannot be clicked, so an offer to load something is
         // noise on paper — and a PDF carrying "Load" next to an image that is
