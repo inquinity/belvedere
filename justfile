@@ -54,7 +54,7 @@ icon *args:
 version:
     @printf '%s build %s\n' "$(bin/ver)" "$(bin/build-num)"
 
-# Publish the release at HEAD to the Homebrew tap. Dry run unless you pass --go.
+# Publish the release at HEAD to GitHub Releases and bump the tap's cask. Dry run unless you pass --go.
 publish *args:
     bin/publish-release.sh {{ args }}
 

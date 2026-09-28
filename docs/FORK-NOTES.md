@@ -200,7 +200,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 
 | # | Item | Notes |
 |---|---|---|
-| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on the tap repo itself, so no token is needed; source stays private in `inquinity/belvedere`. First published version: 1.1.0. |
+| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on [`inquinity/belvedere`](https://github.com/inquinity/belvedere/releases), so no token is needed. 1.1.0 through 1.2.4 were first released on the tap repo itself, while the source was still private; moved and backfilled 2026-09-28 once it was public — see `docs/RELEASE-AUTOMATION.md`, decision 6. First published version: 1.1.0. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
 | **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
 | **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. Not part of the containment PR (#337); offered upstream as its own PR once that is completed — see the Upstream contribution track. |
@@ -211,6 +211,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
 | **F12** | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). **Updated:** since the #337 rework landed on `main`, a clicked link is no longer gated by containment at all — the click is the decision, matching upstream. The executable/installer check above is what still stands between a link and `NSWorkspace.shared.open`, and now applies to every link, not only ones containment used to let through. |
 | **F13** | Pitch upstream an optional setting to block a document's network egress | **not started, low priority** — the maintainer's own idea, offered when closing [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399): *"we may revisit an optional privacy setting or a narrower CSP separately."* Worth a narrow proposal along those lines once someone has time, distinct from and no substitute for `PreviewContentPolicy` here, which stays unconditional regardless of whether this ever lands. If they build it as a user-facing toggle, decide then whether Belvedere adopts it (defaulted to enforced) or leaves the toggle out entirely and keeps its own unconditional enforcement — no reason to pick now. |
+| **F14** | Delete the six Belvedere releases still on the tap repo | **Due on or after 2026-10-28.** Left in place when releases moved to `inquinity/belvedere` on 2026-09-28, so nothing mid-flight broke during the switch. The command, and the check to run first, are in `docs/RELEASE-AUTOMATION.md`, decision 6. Irreversible, so do it deliberately rather than as part of some other change. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
@@ -945,8 +946,9 @@ bug that the app window cannot have.
 No Sparkle means no automatic updates. Builds are published to a public Homebrew tap:
 `brew install --cask inquinity/tap/belvedere` (repo
 [`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)). The DMG that
-`bin/build.sh --release` produces is uploaded as a GitHub Release on the tap repo,
-and the cask points at it; the tap is public so no token is needed to install. Handing
+`bin/build.sh --release` produces is uploaded as a GitHub Release on this repository,
+on the release's own tag, and the tap's cask points at it; both repositories are public,
+so no token is needed to install. Handing
 the DMG out directly via the corporate share or Dropbox still works as a fallback. See
 `docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look
 does not register until the app has been moved to `/Applications` and launched once.

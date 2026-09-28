@@ -10,7 +10,7 @@
   a document can reach the network, run something, or fake a sign-in prompt.
 </p>
 
-<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/homebrew-tap?label=belvedere" /></p>
+<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/belvedere?label=belvedere" /></p>
 
 ---
 
@@ -34,8 +34,9 @@ the app came from either way, and `brew upgrade --cask belvedere` is how updates
 (there is no auto-updater — see below). Each release is signed with a Developer ID and
 notarized by Apple, so Gatekeeper verifies it before install without a manual override.
 
-You can also download the latest release directly, as a DMG, from the tap's
-[Releases](https://github.com/inquinity/homebrew-tap/releases) page.
+You can also download the latest release directly, as a DMG, from this repository's
+[Releases](https://github.com/inquinity/belvedere/releases) page — the same file the cask
+installs.
 
 ## Screenshots
 
@@ -152,7 +153,8 @@ Version.xcconfig    Marketing & build version (single source of truth)
 
 ## Releasing
 
-Releases are cut locally and published to the Homebrew tap — see
+Releases are cut locally, published as GitHub Releases on this repository, and picked up
+by the Homebrew tap's cask — see
 [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md) for the full flow. In short:
 
 ```sh
