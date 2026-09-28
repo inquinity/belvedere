@@ -2,8 +2,9 @@
 
 Both halves are implemented: `just release <seg>` cuts the release locally, and
 `bin/publish-release.sh` (via `just publish`) pushes it out. This documents the flow and
-why each decision was made. Every release from 1.1.0 through 1.2.4 went out through
-`just publish --go`, onto the tap; the first release after the move to
+why each decision was made. 1.2.0 through 1.2.4 went out through `just publish --go`,
+onto the tap; 1.1.0 was created by hand before the script existed, and only its asset
+was re-published through it. The first release after the move to
 `inquinity/belvedere` (decision 6) is the first `--go` run against the new location.
 
 ## The flow
@@ -137,8 +138,9 @@ public — which `yatu` and `qltextview` follow. Belvedere was the exception. Mo
 
 All six earlier releases were copied here byte-for-byte from the tap's assets (each
 checked against the tap's recorded sha256, so the cask's checksum did not change) with
-the same notes, and the cask's `url` was switched in one tap commit with no version
-bump. `bin/publish-release.sh` refuses to run if the cask's `url` does not point here,
+notes from `docs/release-notes/` — identical to the tap's, except that 1.2.0's link to
+1.2.1 now points here — and the cask's `url` was switched in one tap commit with no
+version bump. `bin/publish-release.sh` refuses to run if the cask's `url` does not point here,
 so a release can never go up in one place while `brew` fetches from another.
 
 **Cleanup due on or after 2026-10-28:** the six tap copies were left in place so that
@@ -174,8 +176,9 @@ steps (each idempotent — safe to re-run after a mid-way failure):
   3. sha = shasum -a 256 dist/Belvedere-<v>.dmg
   4. gh release create v<v> dist/Belvedere-<v>.dmg --repo inquinity/belvedere --verify-tag \
        --title "Belvedere <v>" --notes-file docs/release-notes/<v>.md [--draft]
-     (release already exists? -> gh release upload --clobber)
-  5. sed -i '' the version + sha256 lines in <tap>/Casks/belvedere.rb   (skip if already <v>)
+     (release already exists? -> gh release upload --clobber, then gh release edit --notes-file)
+  5. sed -i '' the version + sha256 lines in <tap>/Casks/belvedere.rb
+     (skip if already <v> with this sha256; same <v> with a new sha256 re-points it)
   6. (tap) git commit -m "belvedere <v>" && git push                   (skip if --draft)
   7. print: brew update && brew upgrade --cask belvedere
 
@@ -184,8 +187,10 @@ flags: --go (default: dry run) · --draft · --tap-repo <path> · --force
 
 ## Rollback
 
-`gh release delete v<v> --repo inquinity/belvedere --yes`, then revert the cask bump
-commit in the tap. **Do not pass `--cleanup-tag`**: the release sits on the source tag,
+Revert the cask bump commit in the tap and push it, **then** `gh release delete v<v>
+--repo inquinity/belvedere --yes` — in the other order, the cask points at a deleted
+asset in between and every `brew install` 404s. **Do not pass `--cleanup-tag`**: the
+release sits on the source tag,
 which stays as history along with the release commit on `main`. Anyone who already
 installed is unaffected; re-installers may hit CDN-cached bytes, so **prefer rolling
 forward with `<v+1>`** over unpublishing.
@@ -202,6 +207,6 @@ Decisions 1–5 settled (2026-09-09) and shipped in `bin/publish-release.sh` +
 `bin/build.sh`: separate `bin/publish-release.sh`; it validates a human release commit
 rather than making one; `package_dmg` emits `Belvedere-<v>.dmg`; release notes are a
 required per-version file accumulated in `UNRELEASED.md`, kept in this repo; default
-run is a dry run needing `--go`. Exercised with `--go` for 1.1.0 through 1.2.4.
+run is a dry run needing `--go`. Exercised with `--go` for 1.2.0 through 1.2.4.
 Decision 6 — releases on `inquinity/belvedere` — settled and applied 2026-09-28; its
 first `--go` run is the next release.

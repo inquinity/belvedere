@@ -16,7 +16,7 @@ set -euo pipefail
 #      DMG attached
 #   3. bump the cask (version + sha256) in the tap-repo checkout and push it
 #
-# It creates nothing in this repo -- no commits, no tags. It validates that the
+# It makes no local commits or tags. It validates that the
 # release commit and tag already exist, then performs steps that are each safe
 # to re-run if a later one fails.
 #
@@ -143,13 +143,17 @@ require_write_access() {
 # The cask must already download from where this script publishes. If it still
 # named another repository, the bump would point every `brew install` at a
 # release that does not exist there, and nothing here would report an error.
+#
+# The whole template is matched, not just the repository: a url with the
+# right repository but a different tag or asset name 404s just the same.
 require_cask_downloads_from_releases() {
     local cask_rel="Casks/$CASK_TOKEN.rb"
-    local expected_prefix="https://github.com/$RELEASE_SLUG/releases/download/"
+    # Single quotes: #{version} is the cask's own Ruby interpolation, not ours.
+    local expected_url='https://github.com/'"$RELEASE_SLUG"'/releases/download/v#{version}/'"$APP_NAME"'-#{version}.dmg'
     local url_line
     url_line="$(git -C "$tap_repo" show "HEAD:$cask_rel" | grep -E '^  url "' || true)"
-    [[ "$url_line" == "  url \"$expected_prefix"* ]] \
-        || die "$cask_rel in $tap_repo does not download from $RELEASE_SLUG (have: ${url_line:-no url line})"
+    [[ "$url_line" == "  url \"$expected_url\""* ]] \
+        || die "$cask_rel in $tap_repo does not download from $RELEASE_SLUG releases (want: url \"$expected_url\")"
 }
 
 # Everything that must be true before any outward step. Read-only.
