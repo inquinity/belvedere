@@ -109,8 +109,19 @@ one app, so per-app release notes don't belong there.
 
 `--draft` → `gh release create --draft` and skip the cask bump, so nothing installs.
 Promote later once the build is checked on a second Mac (the QA step `FORK-NOTES.md`
-still wants). The default run is a dry run that prints every command and mutates
-nothing; `--go` makes it act.
+still wants) by re-running without `--draft`: `just publish --go`. Finding the release
+already there, it re-uploads the DMG, refreshes the notes, publishes the draft
+(`gh release edit v<v> --draft=false`), then bumps the cask. The usual preconditions
+apply, so promote before anything else lands on `main`: `HEAD` must still be the
+release commit.
+
+A run without `--draft` publishes any draft it finds rather than refusing. Leaving it
+a draft is never right: the cask bump would point `brew` at assets that aren't publicly
+downloadable, so every install 404s. The same path recovers the draft `gh release
+create` leaves behind when its upload fails and its own cleanup fails too.
+
+The default run is a dry run that prints every command and mutates nothing; `--go`
+makes it act.
 
 ## `bin/publish-release.sh` — preconditions and steps
 
@@ -129,7 +140,8 @@ steps (each idempotent — safe to re-run after a mid-way failure):
   3. sha = shasum -a 256 dist/Belvedere-<v>.dmg
   4. gh release create v<v> dist/Belvedere-<v>.dmg --repo inquinity/homebrew-tap \
        --title "Belvedere <v>" --notes-file docs/release-notes/<v>.md [--draft]
-     (release already exists? -> gh release upload --clobber)
+     (release already exists? -> gh release upload --clobber + gh release edit --notes-file;
+      still a draft and no --draft? -> gh release edit --draft=false   # the promote step)
   5. sed -i '' the version + sha256 lines in <tap>/Casks/belvedere.rb   (skip if already <v>)
   6. (tap) git commit -m "belvedere <v>" && git push                   (skip if --draft)
   7. print: brew update && brew upgrade --cask belvedere
