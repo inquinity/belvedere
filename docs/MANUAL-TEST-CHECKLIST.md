@@ -169,6 +169,7 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
 | The repository link opens `github.com/inquinity/belvedere` | |
 | **Acknowledgements**, below it — with a little space between the two links in the menu panel — opens `Acknowledgements.md` in the default Markdown app: one line each for Markdown Preview, swift-markdown, swift-cmark and the six JavaScript libraries, "*X* is used under the *license*", each license a link to that project's repository | A file rather than an in-app window, on purpose: the standard About panel opens its links itself, so a file is the one target both About surfaces can share. The license texts are not on the page by design; they ship in `Contents/Resources` |
+| With Belvedere as the default Markdown app, open **Acknowledgements**, press ⌘E, type a character and save (⌘S, then accept the save panel that asks for permission). The save must fail, and `codesign --verify --deep --strict /Applications/Belvedere.app` must still pass | The page lives inside the signed bundle and is read-only there; a save that succeeds has broken the app's code seal |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and "Acknowledgements" (致谢) have not been checked by a native reader** |
 
 ## 5. Saving and leaving edit mode

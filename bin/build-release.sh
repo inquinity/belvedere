@@ -200,6 +200,10 @@ PLIST
         -exportPath "$export_dir" \
         -exportOptionsPlist "$work_dir/export-options.plist"
 
+    # Read-only, so Belvedere cannot save its own Acknowledgements page into
+    # the signed bundle. Same step as bin/build.sh's protect_bundled_documents.
+    run chmod a-w "$app_path/Contents/Resources/Acknowledgements.md"
+
     # The app is notarized and stapled before packaging so the ticket travels
     # inside the bundle, then the DMG is signed and notarized in its own right.
     # Gatekeeper assesses what the reader downloaded, not only what is inside.

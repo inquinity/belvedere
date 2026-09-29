@@ -203,6 +203,20 @@ verify_app_group() {
         || die "$bundle_name is signed for app group '$signed_group' but its code uses '$expected_group'; do not distribute this build"
 }
 
+# Acknowledgements.md opens from inside the bundle, usually in Belvedere
+# itself, which may save any file it is asked to open. Saving it would modify
+# the signed bundle and break its seal. Read-only makes that save fail: the
+# app's in-place write fallback is refused. It is a narrow guard for the one
+# document the app links to; treating the whole bundle as read-only is still
+# to do (FORK-NOTES backlog). Permissions are not part of the code seal, so
+# this is safe before or after signing.
+protect_bundled_documents() {
+    local app_path=$1
+    local document="$app_path/Contents/Resources/Acknowledgements.md"
+    [[ -f "$document" ]] || die "missing $document"
+    chmod a-w "$document"
+}
+
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
 # someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
 # the app this script already built rather than re-archiving, since there is
@@ -306,6 +320,7 @@ main() {
     mkdir -p "$OUTPUT_DIR"
     cp -R "$built_app" "$output_app"
     [[ -d "$appex_path" ]] || die "build did not embed $appex_path"
+    protect_bundled_documents "$output_app"
 
     if can_notarize; then
         print_colored "$COLOR_BRIGHTYELLOW" "* Signing with Developer ID"
