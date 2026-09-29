@@ -191,8 +191,8 @@ From the Save-button work submitted upstream ([PR #379](https://github.com/pluk-
 For a `--release` build, verify the artifact rather than trusting the log:
 
 ```bash
-xcrun stapler validate "dist/Belvedere <version>.dmg"
-spctl -a -vvv -t open --context context:primary-signature "dist/Belvedere <version>.dmg"
+xcrun stapler validate "dist/Belvedere-<version>.dmg"
+spctl -a -vvv -t open --context context:primary-signature "dist/Belvedere-<version>.dmg"
 ```
 
 Both must pass. Then **check it on a second Mac** — one that has never run this
