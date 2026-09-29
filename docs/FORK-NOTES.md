@@ -993,6 +993,25 @@ stops that now.
 Upstream is MIT and this fork remains MIT. `LICENSE` is unmodified and upstream's
 copyright notice stays intact.
 
+The app carries every notice it is obliged to, in `Contents/Resources`:
+
+- **upstream's**, as `Markdown-Preview-LICENSE.txt`: a copy of `LICENSE`,
+  because Mermaid's license already has the name `LICENSE` in the bundle;
+- **each vendored JavaScript library's**, from beside the library in
+  `md-preview/Vendor/`;
+- **the linked Swift packages'**: swift-markdown's license and NOTICE, and
+  swift-cmark's `COPYING`, which swift-markdown compiles in. They live in
+  `md-preview/Licenses/`.
+
+Until 2026-09-29 the upstream and package notices were missing. The About
+box's "Forked from pluk-inc/markdown-preview" line was the only trace of
+upstream in the app, and it was never the MIT notice. `ForkPostureTests`
+now fails if a notice goes missing, if the copy drifts from `LICENSE`, or
+if the app gains a Swift package or vendored library without its notice.
+It cannot see packages that a package pulls in, because `Package.resolved`
+is not committed. When the package list changes, check
+`SourcePackages/checkouts` by hand.
+
 ---
 
 *Fork cut 2026-09-01 from upstream `f8c22d0`.*

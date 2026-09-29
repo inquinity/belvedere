@@ -195,4 +195,5 @@ icon — so having one doesn't remove or conflict with the other. Markdown Previ
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The app carries upstream's notice and those of the third-party code it
+includes, in `Belvedere.app/Contents/Resources`.

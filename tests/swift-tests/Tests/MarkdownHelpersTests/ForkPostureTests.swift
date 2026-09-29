@@ -203,6 +203,68 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    // MARK: - License notices ship inside the app
+
+    /// MIT, BSD and Apache attach their notices to *copies* of the code, and
+    /// every DMG we publish is one. Anything under `md-preview/` is an app
+    /// resource by virtue of the synchronized folder, so a file existing here
+    /// means it is in the bundle.
+    ///
+    /// Upstream's notice ships as a copy rather than `LICENSE` itself, because
+    /// Mermaid's license already takes the name `LICENSE` in the bundle.
+    func testUpstreamLicenseShipsInTheApp() throws {
+        XCTAssertEqual(
+            try text(at: "md-preview/Licenses/Markdown-Preview-LICENSE.txt"),
+            try text(at: "LICENSE"),
+            """
+            The copy of LICENSE shipped in the app no longer matches LICENSE. \
+            Copy LICENSE over md-preview/Licenses/Markdown-Preview-LICENSE.txt.
+            """
+        )
+    }
+
+    /// Swift packages are compiled into the binary, so their notices ship too.
+    ///
+    /// Covers direct packages only. `Package.resolved` is not committed, so a
+    /// dependency a package pulls in (swift-cmark, here) is listed by hand;
+    /// check `SourcePackages/checkouts` whenever the package list changes.
+    func testEveryLinkedPackageShipsItsNotices() throws {
+        let marker = "XCRemoteSwiftPackageReference \""
+        let project = try text(at: "md-preview.xcodeproj/project.pbxproj")
+        let packages = Set(project.components(separatedBy: marker).dropFirst().compactMap {
+            $0.split(separator: "\"", maxSplits: 1).first.map(String.init)
+        })
+        XCTAssertEqual(
+            packages, ["swift-markdown"],
+            """
+            The app's Swift packages changed. Ship each new package's license \
+            (and NOTICE, if it has one) in md-preview/Licenses/, including any \
+            package it pulls in, then update this list.
+            """
+        )
+        for path in ["md-preview/Licenses/swift-markdown-LICENSE.txt",
+                     "md-preview/Licenses/swift-markdown-NOTICE.txt",
+                     "md-preview/Licenses/swift-cmark-COPYING.txt"] {
+            XCTAssertFalse(try text(at: path).isEmpty, "\(path) is empty.")
+        }
+    }
+
+    /// Every vendored JavaScript library keeps its license beside it.
+    func testEveryVendoredLibraryShipsItsLicense() throws {
+        let manager = FileManager.default
+        let libraries = try manager.contentsOfDirectory(
+            at: url("md-preview/Vendor"), includingPropertiesForKeys: [.isDirectoryKey]
+        ).filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+        XCTAssertFalse(libraries.isEmpty, "No vendored libraries found; has md-preview/Vendor moved?")
+        for library in libraries {
+            let files = try manager.contentsOfDirectory(atPath: library.path)
+            XCTAssertTrue(
+                files.contains { $0.uppercased().contains("LICENSE") },
+                "md-preview/Vendor/\(library.lastPathComponent) has no license file beside it."
+            )
+        }
+    }
+
     // MARK: - Helpers
 
     private func url(_ relativePath: String) -> URL {
