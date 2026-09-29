@@ -214,6 +214,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F14** | Delete the six Belvedere releases still on the tap repo | **Due on or after 2026-10-28.** Left in place when releases moved to `inquinity/belvedere` on 2026-09-28, so nothing mid-flight broke during the switch. The command, and the check to run first, are in `docs/RELEASE-AUTOMATION.md`, decision 6. Irreversible, so do it deliberately rather than as part of some other change. |
 | **F15** | `brew uninstall --zap belvedere` left folders behind | ✅ **fixed in the tap, 2026-09-29** (`05ed469`, "belvedere: zap the Quick Look, group and script folders"). `zap` had trashed only the app's container. It now also covers the Quick Look extension's container, both group containers and the four `~/Library/Application Scripts` folders. It drops the `HTTPStorages` and `Preferences` paths, because a sandboxed app never writes those outside its container. **The stray `~/Library/Preferences/45GJWJVQN2.com.altmansoftwaredesign.belvedere.plist`** holds one key, `MarkdownPreview.appearance`, and was written once, at 22:54 on 2026-09-25, during the 0.0.62 sync. Only an unsandboxed process writes an app-group suite there, which means an unsigned build run directly, not the shipped app. So it stays out of `zap`; it has since been deleted. **The investigation found a real bug, fixed 2026-09-29:** releases through 1.2.4 were signed for an app group literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS makes the folder `--DEVELOPMENT_TEAM-.…`), not the `45GJWJVQN2.…` the code reads. So the app and Quick Look could not share settings. `bin/build.sh` now expands the entitlements and checks the signed group before notarizing; see *`bin/build.sh` signs outside Xcode, so it expands the entitlements itself* under Distribution. Settings actually carrying over to Quick Look is not yet confirmed on screen; the first Developer ID build after the fix is the test. `zap` covers both folder names, since earlier installs keep the `--DEVELOPMENT_TEAM-` ones. |
 | **F16** | Understand the Greptile review comments on our upstream PRs | **not started.** `greptile-apps[bot]` reviews pluk-inc PRs automatically, and its comments land on ours — inline on #337 (`MarkdownWebView.swift`), and in a *Comments Outside Diff* list that is easy to miss outside email. Work out which of its findings on our PRs are real, how much weight the maintainer gives them (does an open finding hold up a merge?), and how to treat outside-diff comments, which attach to whatever the PR branch contains — including upstream code pulled in by *Update branch*. **First triaged, 2026-09-28, on #337:** "Later documents miss snapshots" at `ContentViewController.swift:465`. That is upstream's reopen-snapshot code from #450 (`b0f9668`), merged into the PR branch the same day, not our diff — nothing to do on #337. The finding is accurate (`snapshotSource` is set only while `!webView.hasRequestedDocument`, so only a window's first document is saved), but for Belvedere it points the wrong way: `DocumentSnapshotCache` writes PNGs of the first screen of up to 40 recently opened documents to the app's Caches folder, and this would widen it. Whether Belvedere keeps that cache at all is a decision for the sync that brings #450 in; upstream already has an off switch, `MarkdownPreview.disableDocumentSnapshots`, though it exists for timing tests. |
+| **F17** | Belvedere must never write inside its own app bundle | **future security feature, not started.** Belvedere has `files.user-selected.read-write`, so any file it is asked to open, it may save. That includes a file inside `/Applications/Belvedere.app` -- the Acknowledgements page is the obvious one, but Open With or File › Open reach any bundled file, whatever the default Markdown app is. Saving there breaks the app's code seal. macOS's App Management protection stops *other* developers' apps from modifying the bundle, but not the app itself, so Belvedere is the one app that can do this silently. The fix is app-wide, not about one page: treat any document inside `Bundle.main.bundleURL` (resolved, symlinks followed) as read-only -- no edit mode, no Save, Save As… to somewhere else still allowed -- and refuse any other write path there too. Keep the check in a new file, with a one-line call from the edit-mode entry, since `DocumentWindowController+EditSession.swift` is upstream's. Found reviewing the Markdown Acknowledgements page, 2026-09-29; accepted for 1.3.0 as a known gap. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
@@ -1048,11 +1049,27 @@ It cannot see packages that a package pulls in, because `Package.resolved`
 is not committed. When the package list changes, check
 `SourcePackages/checkouts` by hand.
 
-Both About surfaces link to **Acknowledgements**: `Acknowledgements.txt`, all
-of the above in one readable file, opened in the default plain-text app. It is
-generated by `bin/make-acknowledgements.sh`; rerun that whenever a notice
-changes. The script will not run while a notice exists that it does not list,
-and `ForkPostureTests` fails if the committed file lacks any notice's text. It
+Both About surfaces link to **Acknowledgements**: `Acknowledgements.md`, a
+short Markdown page opened in the default Markdown app. It names each component
+and the license it is used under, linked to that license in the component's own
+repository, as in "Markdown Preview is used under the MIT License". Links are
+pinned to the version that ships, not a default branch: DOMPurify's LICENSE on
+`main` became Apache-only while the 3.4.2 that ships is Apache-or-MPL. Where a
+version file exists, the script refuses a link that names any other version.
+
+It deliberately does not reproduce the license texts. An earlier version pasted
+all ten in, which made a long page nobody reads. The notices above still ship
+in the app on their own, and that is what meets the MIT, BSD and Apache
+requirement that the notice accompany every copy. A GitHub link alone would not:
+the file there can change or move, and it does not travel with the copy. (VS
+Code, Signal Desktop and IINA all reproduce the texts in their single notices
+file; with the notices shipping as separate files, Belvedere can give the
+reader the short version instead.)
+
+It is generated by `bin/make-acknowledgements.sh`; rerun that whenever a
+component is added, removed or relicensed. The script will not run while a
+shipped notice is unaccounted for or a license is named without an https link,
+and `ForkPostureTests` runs its `--check`, so a stale page fails the tests. It
 is a file rather than an in-app window because the standard About panel opens
 its links itself, through NSWorkspace, so a file is the one target both
 surfaces can share.

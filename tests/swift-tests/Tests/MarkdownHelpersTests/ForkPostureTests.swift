@@ -262,35 +262,33 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
-    /// The About box's Acknowledgements link opens `Acknowledgements.txt`:
-    /// every notice above, collected into one file by
-    /// `bin/make-acknowledgements.sh`. It must hold each one verbatim, and
-    /// the About box must still link to it.
-    func testAcknowledgementsCollectEveryNoticeVerbatim() throws {
-        let manager = FileManager.default
-        let acknowledgements = try text(at: "md-preview/Acknowledgements.txt")
-        var notices = try manager.contentsOfDirectory(atPath: url("md-preview/Licenses").path)
-            .filter { !$0.hasPrefix(".") }
-            .map { "md-preview/Licenses/\($0)" }
-        for library in try vendoredLibraries() {
-            notices += try manager.contentsOfDirectory(atPath: library.path)
-                .filter { $0.uppercased().contains("LICENSE") }
-                .map { "md-preview/Vendor/\(library.lastPathComponent)/\($0)" }
-        }
-        XCTAssertFalse(notices.isEmpty, "No notices found; have md-preview/Licenses or Vendor moved?")
-        for path in notices {
-            XCTAssertTrue(
-                acknowledgements.contains(try text(at: path)),
-                """
-                Acknowledgements.txt does not contain \(path) verbatim. \
-                Run bin/make-acknowledgements.sh.
-                """
-            )
-        }
+    /// The About box's Acknowledgements link opens `Acknowledgements.md`: each
+    /// component and the license it is used under, linked to that license,
+    /// written by `bin/make-acknowledgements.sh`. The license texts themselves
+    /// are the notices above, which ship in the app on their own.
+    ///
+    /// Its `--check` fails if any notice that ships is not acknowledged, if a
+    /// license is named without an https link, or if the committed page is
+    /// not what the script would write -- so a new vendored library cannot
+    /// ship with the page still silent about it.
+    func testAcknowledgementsAccountForEveryNotice() throws {
+        let check = Process()
+        check.executableURL = URL(fileURLWithPath: "/bin/bash")
+        check.arguments = [url("bin/make-acknowledgements.sh").path, "--check"]
+        let output = Pipe()
+        check.standardOutput = output
+        check.standardError = output
+        try check.run()
+        let report = String(
+            decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self
+        )
+        check.waitUntilExit()
+        XCTAssertEqual(check.terminationStatus, 0, "bin/make-acknowledgements.sh --check: \(report)")
+
         XCTAssertTrue(
             try text(at: "md-preview/App/AboutCopy.swift")
-                .contains(#"forResource: "Acknowledgements", withExtension: "txt""#),
-            "The About box no longer links to Acknowledgements.txt."
+                .contains(#"forResource: "Acknowledgements", withExtension: "md""#),
+            "The About box no longer links to Acknowledgements.md."
         )
     }
 

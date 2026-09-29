@@ -199,4 +199,5 @@ icon — so having one doesn't remove or conflict with the other. Markdown Previ
 
 [MIT](LICENSE). The app carries upstream's notice and those of the third-party code it
 includes, in `Belvedere.app/Contents/Resources`. **Acknowledgements**, in the About box
-and Settings › About, opens them all in one file.
+and Settings › About, lists each component and the license it is used under, linked to
+that license in the component's repository.

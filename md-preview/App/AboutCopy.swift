@@ -78,16 +78,17 @@ enum AboutCopy {
 
     static var repositoryLabel: String { "github.com/inquinity/belvedere" }
 
-    /// Every third-party notice the app carries, in one file built by
-    /// `bin/make-acknowledgements.sh`. It opens in the reader's default app
-    /// for plain text.
+    /// A short Markdown page, built by `bin/make-acknowledgements.sh`, naming
+    /// each open-source component and the license it is used under, linked to
+    /// that license in the component's repository. The license texts ship
+    /// beside it in Resources. It opens in the reader's default Markdown app.
     ///
     /// A file rather than an in-app window because the standard About panel
     /// opens its links itself, through NSWorkspace: a file is the one target
     /// both About surfaces can share. Nil only if the resource is missing,
     /// which `ForkPostureTests` guards against.
     static var acknowledgementsURL: URL? {
-        Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt")
+        Bundle.main.url(forResource: "Acknowledgements", withExtension: "md")
     }
 
     static var acknowledgementsLabel: String { L("Acknowledgements") }
@@ -130,6 +131,13 @@ enum AboutCopy {
         ))
 
         if let acknowledgementsURL {
+            // Spacing, not a blank line: set flush under the repository link,
+            // the two links read as one, but a whole blank line would space
+            // them as far apart as the unrelated paragraphs above.
+            let spacedBelowRepository = NSMutableParagraphStyle()
+            spacedBelowRepository.setParagraphStyle(centred)
+            spacedBelowRepository.paragraphSpacingBefore = 6
+
             // The break is its own run so it is not part of either link.
             credits.append(NSAttributedString(
                 string: "\n",
@@ -143,7 +151,7 @@ enum AboutCopy {
                 attributes: [
                     .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                     .link: acknowledgementsURL,
-                    .paragraphStyle: centred,
+                    .paragraphStyle: spacedBelowRepository,
                 ]
             ))
         }
