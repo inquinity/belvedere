@@ -251,13 +251,10 @@ final class ForkPostureTests: XCTestCase {
 
     /// Every vendored JavaScript library keeps its license beside it.
     func testEveryVendoredLibraryShipsItsLicense() throws {
-        let manager = FileManager.default
-        let libraries = try manager.contentsOfDirectory(
-            at: url("md-preview/Vendor"), includingPropertiesForKeys: [.isDirectoryKey]
-        ).filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+        let libraries = try vendoredLibraries()
         XCTAssertFalse(libraries.isEmpty, "No vendored libraries found; has md-preview/Vendor moved?")
         for library in libraries {
-            let files = try manager.contentsOfDirectory(atPath: library.path)
+            let files = try FileManager.default.contentsOfDirectory(atPath: library.path)
             XCTAssertTrue(
                 files.contains { $0.uppercased().contains("LICENSE") },
                 "md-preview/Vendor/\(library.lastPathComponent) has no license file beside it."
@@ -265,7 +262,45 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    /// The About box's Acknowledgements link opens `Acknowledgements.txt`:
+    /// every notice above, collected into one file by
+    /// `bin/make-acknowledgements.sh`. It must hold each one verbatim, and
+    /// the About box must still link to it.
+    func testAcknowledgementsCollectEveryNoticeVerbatim() throws {
+        let manager = FileManager.default
+        let acknowledgements = try text(at: "md-preview/Acknowledgements.txt")
+        var notices = try manager.contentsOfDirectory(atPath: url("md-preview/Licenses").path)
+            .filter { !$0.hasPrefix(".") }
+            .map { "md-preview/Licenses/\($0)" }
+        for library in try vendoredLibraries() {
+            notices += try manager.contentsOfDirectory(atPath: library.path)
+                .filter { $0.uppercased().contains("LICENSE") }
+                .map { "md-preview/Vendor/\(library.lastPathComponent)/\($0)" }
+        }
+        XCTAssertFalse(notices.isEmpty, "No notices found; have md-preview/Licenses or Vendor moved?")
+        for path in notices {
+            XCTAssertTrue(
+                acknowledgements.contains(try text(at: path)),
+                """
+                Acknowledgements.txt does not contain \(path) verbatim. \
+                Run bin/make-acknowledgements.sh.
+                """
+            )
+        }
+        XCTAssertTrue(
+            try text(at: "md-preview/App/AboutCopy.swift")
+                .contains(#"forResource: "Acknowledgements", withExtension: "txt""#),
+            "The About box no longer links to Acknowledgements.txt."
+        )
+    }
+
     // MARK: - Helpers
+
+    private func vendoredLibraries() throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(
+            at: url("md-preview/Vendor"), includingPropertiesForKeys: [.isDirectoryKey]
+        ).filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
+    }
 
     private func url(_ relativePath: String) -> URL {
         TestVendor.repositoryRoot.appendingPathComponent(relativePath)

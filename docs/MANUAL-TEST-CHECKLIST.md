@@ -167,8 +167,9 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | Tagline and security line both present | The security line is a **claim about behaviour**. If the app ever connects on its own, or stops blocking remote content by default, the line is false and must change with the code |
 | The tagline breaks after "viewer," in the **menu panel** and runs on one line in **Settings → About** | Deliberate, not a bug. The panel is narrow enough to wrap mid-clause, so it uses its own localized string with the break in it (`taglineWrapped`); the pane is wide enough for the unbroken form |
 | The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
-| The repository link opens `github.com/inquinity/belvedere` | The only link in the box |
-| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline and security line have not been checked by a native reader** |
+| The repository link opens `github.com/inquinity/belvedere` | |
+| **Acknowledgements**, below it, opens `Acknowledgements.txt` in the default plain-text app (usually TextEdit): Markdown Preview first, then swift-markdown, swift-cmark and the six JavaScript libraries, each notice in full | A file rather than an in-app window, on purpose: the standard About panel opens its links itself, so a file is the one target both About surfaces can share |
+| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and "Acknowledgements" (致谢) have not been checked by a native reader** |
 
 ## 5. Saving and leaving edit mode
 

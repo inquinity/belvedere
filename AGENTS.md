@@ -47,8 +47,8 @@
 >   `SUEnableAutomaticChecks` to false, in a local commit that is never pushed.
 > - **Fork-authored scripts live in `bin/`** (`build.sh`, `build-release.sh`,
 >   `install.sh`, `bundle.sh`, `check-upstream.sh`, `show-private-changes.sh`,
->   `make-icon.swift`, `publish-release.sh`, `compose-release-notes.sh`, `ver`,
->   `build-num`). `scripts/` now holds
+>   `make-icon.swift`, `make-acknowledgements.sh`, `publish-release.sh`,
+>   `compose-release-notes.sh`, `ver`, `build-num`). `scripts/` now holds
 >   only upstream's tooling, so `git merge upstream/main` never touches `bin/`. Wherever
 >   the text below says `scripts/<one of those>`, read `bin/`.
 > - **The Project facts table below is upstream's and is wrong here.** The bundle id

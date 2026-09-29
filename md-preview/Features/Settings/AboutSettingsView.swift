@@ -49,6 +49,9 @@ struct AboutSettingsView: View {
 
             Section {
                 Link(AboutCopy.repositoryLabel, destination: AboutCopy.repositoryURL)
+                if let acknowledgementsURL = AboutCopy.acknowledgementsURL {
+                    Link(AboutCopy.acknowledgementsLabel, destination: acknowledgementsURL)
+                }
             }
         }
         .formStyle(.grouped)
