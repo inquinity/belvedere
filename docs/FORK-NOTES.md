@@ -988,6 +988,23 @@ shows all of them:
 `build/` for the same reason — the `rm -rf "$OUTPUT_DIR"` in `bin/build.sh` is what
 stops that now.
 
+### `bin/build.sh` signs outside Xcode, so it expands the entitlements itself
+
+`bin/build.sh` compiles with `CODE_SIGNING_ALLOWED=NO` and then runs `codesign`
+itself. Xcode expands build settings such as `$(DEVELOPMENT_TEAM)` in an
+`.entitlements` file when it signs; `codesign` does not. Through 1.2.4 the script
+signed with the source files, so every release was entitled to an app group
+literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS
+turned it into a folder named `--DEVELOPMENT_TEAM-.…`). The code reads
+`45GJWJVQN2.…` from `Info.plist`, so neither the app nor the Quick Look extension
+was entitled to the group they share settings through. Xcode-signed builds,
+Debug included, were always right, which is why it went unnoticed.
+
+The script now signs with an expanded copy of each file. It refuses to build if
+either file uses a build setting it does not expand, and after signing it checks
+that each bundle's signed app group matches its `Info.plist` before notarizing.
+`bin/build-release.sh` archives through Xcode and was never affected.
+
 ## License
 
 Upstream is MIT and this fork remains MIT. `LICENSE` is unmodified and upstream's
