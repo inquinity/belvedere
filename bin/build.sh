@@ -168,6 +168,41 @@ sign_component() {
     codesign --force --sign "$identity" --entitlements "$entitlements" "$@" "$target_path"
 }
 
+# Xcode expands build settings such as $(DEVELOPMENT_TEAM) in an .entitlements
+# file when it signs; codesign does not. Signing with the source files shipped
+# the app group as the literal "$(DEVELOPMENT_TEAM).com.altmansoftwaredesign
+# .belvedere" (every release through 1.2.4), so neither the app nor its Quick
+# Look extension was entitled to the group their code uses. Sign with an
+# expanded copy instead, and refuse any build setting this does not expand.
+render_entitlements() {
+    local source_path=$1 rendered_path=$2
+    sed "s/\$(DEVELOPMENT_TEAM)/$DEVELOPMENT_TEAM/g" "$source_path" > "$rendered_path"
+    # shellcheck disable=SC2016  # a literal "$(" is exactly what to look for
+    if grep -n '\$(' "$rendered_path" >&2; then
+        die "unexpanded build setting in $source_path (shown above); expand it in render_entitlements"
+    fi
+}
+
+# Check the signed result, not the file passed in: the app group a bundle is
+# signed for must be the one its code reads from Info.plist, or the settings
+# the app and Quick Look share silently stop reaching each other.
+verify_app_group() {
+    local bundle_path=$1
+    local bundle_name expected_group signed_group signed_entitlements
+    bundle_name="$(basename "$bundle_path")"
+    signed_entitlements="$work_dir/signed-$bundle_name.plist"
+    expected_group="$(/usr/libexec/PlistBuddy -c 'Print :MarkdownPreviewAppGroupIdentifier' \
+        "$bundle_path/Contents/Info.plist")" \
+        || die "$bundle_name has no MarkdownPreviewAppGroupIdentifier in its Info.plist"
+    codesign -d --entitlements - --xml "$bundle_path" > "$signed_entitlements" 2>/dev/null \
+        || die "could not read the signed entitlements of $bundle_name"
+    signed_group="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' \
+        "$signed_entitlements")" \
+        || die "$bundle_name is not signed for any app group"
+    [[ "$signed_group" == "$expected_group" ]] \
+        || die "$bundle_name is signed for app group '$signed_group' but its code uses '$expected_group'; do not distribute this build"
+}
+
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
 # someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
 # the app this script already built rather than re-archiving, since there is
@@ -218,6 +253,10 @@ main() {
     [[ -f "$VERSION_CONFIG" ]] || die "missing $VERSION_CONFIG"
     [[ -f "$APP_ENTITLEMENTS" ]] || die "missing $APP_ENTITLEMENTS"
     [[ -f "$APPEX_ENTITLEMENTS" ]] || die "missing $APPEX_ENTITLEMENTS"
+    # It is substituted into the entitlements with sed, so hold it to the
+    # shape of a real team ID.
+    [[ "$DEVELOPMENT_TEAM" =~ ^[A-Z0-9]{10}$ ]] \
+        || die "DEVELOPMENT_TEAM must be a 10-character team ID, got '$DEVELOPMENT_TEAM'"
 
     if [[ "$release_flag" == "true" ]]; then
         require_command hdiutil
@@ -242,6 +281,12 @@ main() {
     local built_app="$derived_data/Build/Products/Release/$APP_NAME.app"
     local output_app="$OUTPUT_DIR/$APP_NAME.app"
     local appex_path="$output_app/Contents/PlugIns/$APPEX_NAME.appex"
+    local app_entitlements="$work_dir/md-preview.entitlements"
+    local appex_entitlements="$work_dir/quick-look.entitlements"
+
+    # Before compiling, so a setting it cannot expand fails in seconds.
+    render_entitlements "$APP_ENTITLEMENTS" "$app_entitlements"
+    render_entitlements "$APPEX_ENTITLEMENTS" "$appex_entitlements"
 
     print_colored "$COLOR_BRIGHTYELLOW" "* Compiling"
     xcodebuild build \
@@ -264,8 +309,10 @@ main() {
 
     if can_notarize; then
         print_colored "$COLOR_BRIGHTYELLOW" "* Signing with Developer ID"
-        sign_component "$appex_path" "$SIGNING_IDENTITY" "$APPEX_ENTITLEMENTS" --options runtime --timestamp
-        sign_component "$output_app" "$SIGNING_IDENTITY" "$APP_ENTITLEMENTS" --options runtime --timestamp
+        sign_component "$appex_path" "$SIGNING_IDENTITY" "$appex_entitlements" --options runtime --timestamp
+        sign_component "$output_app" "$SIGNING_IDENTITY" "$app_entitlements" --options runtime --timestamp
+        verify_app_group "$appex_path"
+        verify_app_group "$output_app"
 
         print_colored "$COLOR_BRIGHTYELLOW" "* Notarizing"
         local notarize_zip="$work_dir/app.zip"
@@ -275,8 +322,10 @@ main() {
     else
         print_colored "$COLOR_RED" "Skipping notarization"
         print_colored "$COLOR_BRIGHTYELLOW" "* Self-signing (local, ad-hoc)"
-        sign_component "$appex_path" - "$APPEX_ENTITLEMENTS"
-        sign_component "$output_app" - "$APP_ENTITLEMENTS"
+        sign_component "$appex_path" - "$appex_entitlements"
+        sign_component "$output_app" - "$app_entitlements"
+        verify_app_group "$appex_path"
+        verify_app_group "$output_app"
     fi
 
     print_colored "$COLOR_GREEN" "Done: $output_app"
