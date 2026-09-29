@@ -16,8 +16,7 @@ import AppKit
 /// same commit. `ForkPostureTests` guards the code those claims rest on.
 ///
 /// Fork-only: upstream's About box carries neither the tagline nor the
-/// security line, and upstream is the thing being forked *from* in
-/// `forkCredit`.
+/// security line.
 enum AboutCopy {
 
     /// Upstream's product name, which the .strings files map to "Belvedere".
@@ -78,19 +77,20 @@ enum AboutCopy {
     static let repositoryURL = URL(string: "https://github.com/inquinity/belvedere")!
 
     static var repositoryLabel: String { "github.com/inquinity/belvedere" }
-    /// Attribution, deliberately not a link.
+
+    /// Every third-party notice the app carries, in one file built by
+    /// `bin/make-acknowledgements.sh`. It opens in the reader's default app
+    /// for plain text.
     ///
-    /// The point of the line is credit and provenance, not navigation: this is
-    /// our app, and a reader who wants upstream can reach it from our
-    /// repository. Two equal-weight links would also imply equal standing
-    /// between us and a different app's repository.
-    ///
-    /// "pluk-inc/markdown-preview" is a repository slug rather than a URL --
-    /// no scheme, no host -- so the usual expectation that a URL on screen
-    /// should be clickable does not apply to it.
-    ///
-    /// MIT attribution is satisfied by shipping LICENSE, not by this line.
-    static var forkCredit: String { L("Forked from pluk-inc/markdown-preview") }
+    /// A file rather than an in-app window because the standard About panel
+    /// opens its links itself, through NSWorkspace: a file is the one target
+    /// both About surfaces can share. Nil only if the resource is missing,
+    /// which `ForkPostureTests` guards against.
+    static var acknowledgementsURL: URL? {
+        Bundle.main.url(forResource: "Acknowledgements", withExtension: "txt")
+    }
+
+    static var acknowledgementsLabel: String { L("Acknowledgements") }
 
     /// The `.credits` value for the standard About panel, which renders it
     /// below the version. Links are live: the field is backed by a text view
@@ -121,7 +121,7 @@ enum AboutCopy {
         ))
 
         credits.append(NSAttributedString(
-            string: repositoryLabel + "\n\n",
+            string: repositoryLabel,
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .link: repositoryURL,
@@ -129,14 +129,24 @@ enum AboutCopy {
             ]
         ))
 
-        credits.append(NSAttributedString(
-            string: forkCredit,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                .foregroundColor: NSColor.secondaryLabelColor,
-                .paragraphStyle: centred,
-            ]
-        ))
+        if let acknowledgementsURL {
+            // The break is its own run so it is not part of either link.
+            credits.append(NSAttributedString(
+                string: "\n",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                    .paragraphStyle: centred,
+                ]
+            ))
+            credits.append(NSAttributedString(
+                string: acknowledgementsLabel,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                    .link: acknowledgementsURL,
+                    .paragraphStyle: centred,
+                ]
+            ))
+        }
 
         return credits
     }

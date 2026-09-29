@@ -200,7 +200,7 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 
 | # | Item | Notes |
 |---|---|---|
-| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on the tap repo itself, so no token is needed; source stays private in `inquinity/belvedere`. First published version: 1.1.0. |
+| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on [`inquinity/belvedere`](https://github.com/inquinity/belvedere/releases), so no token is needed. 1.1.0 through 1.2.4 were first released on the tap repo itself, while the source was still private; moved and backfilled 2026-09-28 once it was public — see `docs/RELEASE-AUTOMATION.md`, decision 6. First published version: 1.1.0. |
 | **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
 | **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
 | **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. Not part of the containment PR (#337); offered upstream as its own PR once that is completed — see the Upstream contribution track. |
@@ -211,6 +211,9 @@ Unscheduled — not part of the milestone sequence above, and not blocking M5. `
 | **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
 | **F12** | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). **Updated:** since the #337 rework landed on `main`, a clicked link is no longer gated by containment at all — the click is the decision, matching upstream. The executable/installer check above is what still stands between a link and `NSWorkspace.shared.open`, and now applies to every link, not only ones containment used to let through. |
 | **F13** | Pitch upstream an optional setting to block a document's network egress | **not started, low priority** — the maintainer's own idea, offered when closing [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399): *"we may revisit an optional privacy setting or a narrower CSP separately."* Worth a narrow proposal along those lines once someone has time, distinct from and no substitute for `PreviewContentPolicy` here, which stays unconditional regardless of whether this ever lands. If they build it as a user-facing toggle, decide then whether Belvedere adopts it (defaulted to enforced) or leaves the toggle out entirely and keeps its own unconditional enforcement — no reason to pick now. |
+| **F14** | Delete the six Belvedere releases still on the tap repo | **Due on or after 2026-10-28.** Left in place when releases moved to `inquinity/belvedere` on 2026-09-28, so nothing mid-flight broke during the switch. The command, and the check to run first, are in `docs/RELEASE-AUTOMATION.md`, decision 6. Irreversible, so do it deliberately rather than as part of some other change. |
+| **F15** | `brew uninstall --zap belvedere` left folders behind | ✅ **fixed in the tap, 2026-09-29** (`05ed469`, "belvedere: zap the Quick Look, group and script folders"). `zap` had trashed only the app's container. It now also covers the Quick Look extension's container, both group containers and the four `~/Library/Application Scripts` folders. It drops the `HTTPStorages` and `Preferences` paths, because a sandboxed app never writes those outside its container. **The stray `~/Library/Preferences/45GJWJVQN2.com.altmansoftwaredesign.belvedere.plist`** holds one key, `MarkdownPreview.appearance`, and was written once, at 22:54 on 2026-09-25, during the 0.0.62 sync. Only an unsandboxed process writes an app-group suite there, which means an unsigned build run directly, not the shipped app. So it stays out of `zap`; it has since been deleted. **The investigation found a real bug, fixed 2026-09-29:** releases through 1.2.4 were signed for an app group literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS makes the folder `--DEVELOPMENT_TEAM-.…`), not the `45GJWJVQN2.…` the code reads. So the app and Quick Look could not share settings. `bin/build.sh` now expands the entitlements and checks the signed group before notarizing; see *`bin/build.sh` signs outside Xcode, so it expands the entitlements itself* under Distribution. Settings actually carrying over to Quick Look is not yet confirmed on screen; the first Developer ID build after the fix is the test. `zap` covers both folder names, since earlier installs keep the `--DEVELOPMENT_TEAM-` ones. |
+| **F16** | Understand the Greptile review comments on our upstream PRs | **not started.** `greptile-apps[bot]` reviews pluk-inc PRs automatically, and its comments land on ours — inline on #337 (`MarkdownWebView.swift`), and in a *Comments Outside Diff* list that is easy to miss outside email. Work out which of its findings on our PRs are real, how much weight the maintainer gives them (does an open finding hold up a merge?), and how to treat outside-diff comments, which attach to whatever the PR branch contains — including upstream code pulled in by *Update branch*. **First triaged, 2026-09-28, on #337:** "Later documents miss snapshots" at `ContentViewController.swift:465`. That is upstream's reopen-snapshot code from #450 (`b0f9668`), merged into the PR branch the same day, not our diff — nothing to do on #337. The finding is accurate (`snapshotSource` is set only while `!webView.hasRequestedDocument`, so only a window's first document is saved), but for Belvedere it points the wrong way: `DocumentSnapshotCache` writes PNGs of the first screen of up to 40 recently opened documents to the app's Caches folder, and this would widen it. Whether Belvedere keeps that cache at all is a decision for the sync that brings #450 in; upstream already has an off switch, `MarkdownPreview.disableDocumentSnapshots`, though it exists for timing tests. |
 | ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
@@ -945,8 +948,9 @@ bug that the app window cannot have.
 No Sparkle means no automatic updates. Builds are published to a public Homebrew tap:
 `brew install --cask inquinity/tap/belvedere` (repo
 [`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)). The DMG that
-`bin/build.sh --release` produces is uploaded as a GitHub Release on the tap repo,
-and the cask points at it; the tap is public so no token is needed to install. Handing
+`bin/build.sh --release` produces is uploaded as a GitHub Release on this repository,
+on the release's own tag, and the tap's cask points at it; both repositories are public,
+so no token is needed to install. Handing
 the DMG out directly via the corporate share or Dropbox still works as a fallback. See
 `docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look
 does not register until the app has been moved to `/Applications` and launched once.
@@ -988,10 +992,68 @@ shows all of them:
 `build/` for the same reason — the `rm -rf "$OUTPUT_DIR"` in `bin/build.sh` is what
 stops that now.
 
+### `bin/build.sh` signs outside Xcode, so it expands the entitlements itself
+
+`bin/build.sh` compiles with `CODE_SIGNING_ALLOWED=NO` and then runs `codesign`
+itself. Xcode expands build settings such as `$(DEVELOPMENT_TEAM)` in an
+`.entitlements` file when it signs; `codesign` does not. Through 1.2.4 the script
+signed with the source files, so every release was entitled to an app group
+literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS
+turned it into a folder named `--DEVELOPMENT_TEAM-.…`). The code reads
+`45GJWJVQN2.…` from `Info.plist`, so neither the app nor the Quick Look extension
+was entitled to the group they share settings through. Xcode-signed builds,
+Debug included, were always right, which is why it went unnoticed.
+
+The script now signs with an expanded copy of each file. It refuses to build if
+either file uses a build setting it does not expand, and after signing it checks
+that each bundle's signed app group matches its `Info.plist` before notarizing.
+`bin/build-release.sh` archives through Xcode and was never affected.
+
 ## License
 
 Upstream is MIT and this fork remains MIT. `LICENSE` is unmodified and upstream's
 copyright notice stays intact.
+
+The app carries every notice it is obliged to, in `Contents/Resources`:
+
+- **upstream's**, as `Markdown-Preview-LICENSE.txt`: a copy of `LICENSE`,
+  because Mermaid's license already has the name `LICENSE` in the bundle;
+- **each vendored JavaScript library's**, from beside the library in
+  `md-preview/Vendor/`;
+- **the linked Swift packages'**: swift-markdown's license and NOTICE, and
+  swift-cmark's `COPYING`, which swift-markdown compiles in. They live in
+  `md-preview/Licenses/`.
+
+Until 2026-09-29 the upstream and package notices were missing. The About
+box's "Forked from pluk-inc/markdown-preview" line was the only trace of
+upstream in the app, and it was never the MIT notice. `ForkPostureTests`
+now fails if a notice goes missing, if the copy drifts from `LICENSE`, or
+if the app gains a Swift package or vendored library without its notice.
+It cannot see packages that a package pulls in, because `Package.resolved`
+is not committed. When the package list changes, check
+`SourcePackages/checkouts` by hand.
+
+Both About surfaces link to **Acknowledgements**: `Acknowledgements.txt`, all
+of the above in one readable file, opened in the default plain-text app. It is
+generated by `bin/make-acknowledgements.sh`; rerun that whenever a notice
+changes. The script will not run while a notice exists that it does not list,
+and `ForkPostureTests` fails if the committed file lacks any notice's text. It
+is a file rather than an in-app window because the standard About panel opens
+its links itself, through NSWorkspace, so a file is the one target both
+surfaces can share.
+
+Whether each notice is *required*, checked 2026-09-29 against the license
+texts and swift.org:
+
+- **Upstream (MIT) and swift-cmark (BSD-2 and MIT)**: required. Both attach
+  their notice to binary copies, and neither has an exception.
+- **swift-markdown (Apache 2.0 with the Runtime Library Exception)**: most
+  likely not. swift.org says the exception exists so that apps built with
+  Swift need not credit Swift; swift-markdown's own license carries the same
+  exception. Shipped anyway: it costs nothing, and the exception is worded
+  around compiling, not linking a library.
+- **The Swift runtime itself** is not listed. That is the exception's whole
+  purpose, and on macOS the runtime is part of the OS.
 
 ---
 

@@ -143,8 +143,8 @@ unreleased_body() {
 }
 
 # Upstream commit subjects as release-note bullets. Upstream's own release
-# commits and merge commits are skipped, and every "(#123)" is dropped: on the
-# tap repo's release page a #123 would link to the tap's issue 123, not
+# commits and merge commits are skipped, and every "(#123)" is dropped: on
+# Belvedere's release page a #123 would link to Belvedere's own #123, not
 # upstream's. A squash of a PR whose title already cites an issue carries two,
 # as in "… (#292) (#370)".
 upstream_change_bullets() {
