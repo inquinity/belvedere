@@ -955,6 +955,21 @@ the DMG out directly via the corporate share or Dropbox still works as a fallbac
 `docs/INTERNAL-INSTALL.md` for what recipients need to do — in particular, Quick Look
 does not register until the app has been moved to `/Applications` and launched once.
 
+### Staging a release with `--draft`
+
+`just publish --go --draft` creates the GitHub Release as a draft and leaves the cask
+alone, so nothing installs. That's the way to check a build on a second Mac first.
+**Promote it by running `just publish --go` again, without `--draft`**, before anything
+else lands on `main` (`HEAD` must still be the release commit): it publishes the draft,
+then bumps the cask. The reverse is refused: `--draft` against a release that is already
+published stops before touching it.
+
+Both rules close gaps that would have broken installs. Without the first, the promote
+run bumped the cask onto a release still in draft, whose assets aren't publicly
+downloadable, so every `brew install` would 404. Without the second, `--draft` on a
+published release replaced its DMG while the cask kept the old checksum. See
+`docs/RELEASE-AUTOMATION.md`, decision 5.
+
 ### Installing on the maintainer's own machine
 
 Run **the brew-managed copy**, same as everyone else — `brew install --cask

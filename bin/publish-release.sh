@@ -66,6 +66,8 @@ usage() {
     printf '%s\n' '      --go            Actually publish. Without it, nothing is mutated.'
     printf '%s\n' '      --draft         Create the GitHub Release as a draft and skip the cask'
     printf '%s\n' '                      bump, so nothing installs until the release is promoted.'
+    printf '%s\n' '                      Promote it by re-running without --draft. Refused once'
+    printf '%s\n' '                      the release is published.'
     printf '%s\n' '      --force         Allow re-pushing a tag that is already on origin.'
     printf '%s\n' "      --tap-repo PATH Local checkout of $TAP_SLUG to bump and push."
     printf '%s\n' '                      Default: the Homebrew tap clone (brew --repository).'
@@ -221,12 +223,33 @@ create_release() {
     print_colored "$COLOR_GREEN" "  sha256($(basename "$dmg")) = $sha"
 
     if gh release view "$tag" --repo "$RELEASE_SLUG" >/dev/null 2>&1; then
+        local is_draft
+        is_draft="$(gh release view "$tag" --repo "$RELEASE_SLUG" --json isDraft -q .isDraft)" \
+            && [[ "$is_draft" == "true" || "$is_draft" == "false" ]] \
+            || die "could not read whether release $tag is a draft"
+        # --draft cannot take a published release back, and it skips the cask
+        # bump: re-uploading the DMG here would leave the cask's sha256
+        # describing the old file, so every `brew install` would fail its
+        # checksum. Refuse before touching the release.
+        if [[ "$draft" == "true" && "$is_draft" == "false" ]]; then
+            die "release $tag is already published; --draft would replace its DMG without re-pointing the cask. Re-run without --draft to re-publish it."
+        fi
+
         print_colored "$COLOR_YELLOW" "* Release $tag exists -- re-uploading the asset and refreshing its notes"
         run gh release upload "$tag" "$dmg" --repo "$RELEASE_SLUG" --clobber
         # The notes are refreshed too. Uploading with --clobber replaces only
         # the asset, so without this a re-publish leaves the release page
         # describing the artifact it used to carry.
         run gh release edit "$tag" --repo "$RELEASE_SLUG" --notes-file "$notes"
+        # Without --draft, a release still in draft is published here, before
+        # bump_cask points the cask at it: draft assets are not publicly
+        # downloadable, so every `brew install` would 404. This is how a
+        # --draft release is promoted, and it also recovers the draft that
+        # `gh release create` leaves when its upload and its cleanup both fail.
+        if [[ "$draft" != "true" && "$is_draft" == "true" ]]; then
+            print_colored "$COLOR_BRIGHTYELLOW" "* Release $tag is still a draft -- publishing it"
+            run gh release edit "$tag" --repo "$RELEASE_SLUG" --draft=false
+        fi
     else
         print_colored "$COLOR_BRIGHTYELLOW" "* Creating GitHub Release $tag on $RELEASE_SLUG"
         # --verify-tag: attach to the tag push_source sent, and fail if it is
