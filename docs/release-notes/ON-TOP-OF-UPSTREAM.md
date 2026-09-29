@@ -61,6 +61,8 @@ Proposed to Markdown Preview and carried here until it merges them:
   Markdown Preview instead of replacing it.
 - The command-line tools installer is removed, along with the permission to control
   Terminal that it needed.
-- The About box states the network posture above and credits Markdown Preview.
+- The About box states the network posture above. Its **Acknowledgements** link
+  credits Markdown Preview and every open-source component the app includes, with
+  each license in full.
 - Signed with Belvedere's own Developer ID, notarized by Apple, and distributed
   through the Homebrew tap `inquinity/tap/belvedere`.

@@ -13,3 +13,8 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   appearance and theme changes made in Belvedere could not reach Quick Look
   previews. After updating, you may need to choose your appearance and theme
   once more.
+- **Acknowledgements, in the About box and Settings › About.** It opens the
+  licenses of Markdown Preview and of every open-source component Belvedere
+  includes, each in full. The app now ships all of them; Markdown Preview's own
+  notice and swift-cmark's were missing before. The About box's "Forked from"
+  line is gone, since Acknowledgements credits Markdown Preview instead.
