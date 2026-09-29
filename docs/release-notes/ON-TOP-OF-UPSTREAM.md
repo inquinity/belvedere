@@ -63,6 +63,6 @@ Proposed to Markdown Preview and carried here until it merges them:
   Terminal that it needed.
 - The About box states the network posture above. Its **Acknowledgements** link
   credits Markdown Preview and every open-source component the app includes, with
-  each license in full.
+  the license each is used under.
 - Signed with Belvedere's own Developer ID, notarized by Apple, and distributed
   through the Homebrew tap `inquinity/tap/belvedere`.
