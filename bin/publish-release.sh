@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Publish an already-built Belvedere release to the Homebrew tap.
+# Publish an already-built Belvedere release: a GitHub Release on this
+# repository, and the Homebrew tap's cask pointed at it.
 #
 # The human cuts the release:
 #   bin/build.sh --release --update <major|minor|revision>   # builds dist/Belvedere-<v>.dmg
@@ -11,10 +12,11 @@ set -euo pipefail
 #
 # This script takes it from there and does only the outward steps:
 #   1. push main and the tag to origin
-#   2. create the GitHub Release on inquinity/homebrew-tap with the DMG attached
+#   2. create the GitHub Release for that tag on inquinity/belvedere, with the
+#      DMG attached
 #   3. bump the cask (version + sha256) in the tap-repo checkout and push it
 #
-# It creates nothing in this repo -- no commits, no tags. It validates that the
+# It makes no local commits or tags. It validates that the
 # release commit and tag already exist, then performs steps that are each safe
 # to re-run if a later one fails.
 #
@@ -41,6 +43,9 @@ NOTES_DIR="$PROJECT_ROOT/docs/release-notes"
 APP_NAME="Belvedere"
 CASK_TOKEN="belvedere"
 TAP_SLUG="inquinity/homebrew-tap"
+# Releases live on the app's own repository, on the tag step 1 pushes. The tap
+# holds only the cask, so its "latest release" never belongs to another app.
+RELEASE_SLUG="inquinity/belvedere"
 
 go=false
 draft=false
@@ -51,7 +56,8 @@ usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: publish-release.sh [--go] [--draft] [--force] [--tap-repo PATH]${COLOR_RESET}"
     printf '\n'
     printf '%s\n' 'Publish the release described by HEAD -- a "Release <v> build <n>" commit'
-    printf '%s\n' 'tagged v<v> -- to the Homebrew tap. Build the DMG first with:'
+    printf '%s\n' "tagged v<v> -- as a GitHub Release on $RELEASE_SLUG, and bump the"
+    printf '%s\n' "$CASK_TOKEN cask in $TAP_SLUG to it. Build the DMG first with:"
     printf '%s\n' '  bin/build.sh --release --update <major|minor|revision>'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Options:${COLOR_RESET}"
@@ -122,6 +128,34 @@ resolve_tap_repo() {
         || die "tap repo has uncommitted changes: $tap_repo"
 }
 
+# gh reports ADMIN, MAINTAIN, WRITE, TRIAGE, READ -- or nothing when the
+# repository cannot be seen at all. Only the first three can publish.
+require_write_access() {
+    local repo_slug=$1 permission
+    permission="$(gh repo view "$repo_slug" --json viewerPermission -q .viewerPermission 2>/dev/null || true)"
+    case "$permission" in
+        ADMIN|MAINTAIN|WRITE) ;;
+        "") die "cannot reach $repo_slug with gh -- check access" ;;
+        *) die "no write access to $repo_slug (gh reports $permission)" ;;
+    esac
+}
+
+# The cask must already download from where this script publishes. If it still
+# named another repository, the bump would point every `brew install` at a
+# release that does not exist there, and nothing here would report an error.
+#
+# The whole template is matched, not just the repository: a url with the
+# right repository but a different tag or asset name 404s just the same.
+require_cask_downloads_from_releases() {
+    local cask_rel="Casks/$CASK_TOKEN.rb"
+    # Single quotes: #{version} is the cask's own Ruby interpolation, not ours.
+    local expected_url='https://github.com/'"$RELEASE_SLUG"'/releases/download/v#{version}/'"$APP_NAME"'-#{version}.dmg'
+    local url_line
+    url_line="$(git -C "$tap_repo" show "HEAD:$cask_rel" | grep -E '^  url "' || true)"
+    [[ "$url_line" == "  url \"$expected_url\""* ]] \
+        || die "$cask_rel in $tap_repo does not download from $RELEASE_SLUG releases (want: url \"$expected_url\")"
+}
+
 # Everything that must be true before any outward step. Read-only.
 validate() {
     require_command git
@@ -159,10 +193,11 @@ validate() {
     [[ -f "$notes" ]] || die "missing release notes: $notes"
 
     gh auth status >/dev/null 2>&1 || die "gh is not authenticated (gh auth login)"
-    gh repo view "$TAP_SLUG" >/dev/null 2>&1 \
-        || die "cannot reach $TAP_SLUG with gh -- check access"
+    require_write_access "$RELEASE_SLUG"
+    require_write_access "$TAP_SLUG"
 
     resolve_tap_repo
+    require_cask_downloads_from_releases
 }
 
 push_source() {
@@ -185,17 +220,21 @@ create_release() {
     sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
     print_colored "$COLOR_GREEN" "  sha256($(basename "$dmg")) = $sha"
 
-    if gh release view "$tag" --repo "$TAP_SLUG" >/dev/null 2>&1; then
+    if gh release view "$tag" --repo "$RELEASE_SLUG" >/dev/null 2>&1; then
         print_colored "$COLOR_YELLOW" "* Release $tag exists -- re-uploading the asset and refreshing its notes"
-        run gh release upload "$tag" "$dmg" --repo "$TAP_SLUG" --clobber
+        run gh release upload "$tag" "$dmg" --repo "$RELEASE_SLUG" --clobber
         # The notes are refreshed too. Uploading with --clobber replaces only
         # the asset, so without this a re-publish leaves the release page
         # describing the artifact it used to carry.
-        run gh release edit "$tag" --repo "$TAP_SLUG" --notes-file "$notes"
+        run gh release edit "$tag" --repo "$RELEASE_SLUG" --notes-file "$notes"
     else
-        print_colored "$COLOR_BRIGHTYELLOW" "* Creating GitHub Release $tag on $TAP_SLUG"
+        print_colored "$COLOR_BRIGHTYELLOW" "* Creating GitHub Release $tag on $RELEASE_SLUG"
+        # --verify-tag: attach to the tag push_source sent, and fail if it is
+        # not there, rather than letting gh cut a new tag from the default
+        # branch's tip -- which would label some other commit as this release.
         local args=(release create "$tag" "$dmg"
-            --repo "$TAP_SLUG"
+            --repo "$RELEASE_SLUG"
+            --verify-tag
             --title "$APP_NAME $version"
             --notes-file "$notes")
         [[ "$draft" == "true" ]] && args+=(--draft)
@@ -259,6 +298,7 @@ main() {
     print_colored "$COLOR_GREEN" "Release $version build $build  ($tag)"
     print_colored "$COLOR_GREEN" "  DMG:       $dmg"
     print_colored "$COLOR_GREEN" "  notes:     $notes"
+    print_colored "$COLOR_GREEN" "  releases:  $RELEASE_SLUG"
     print_colored "$COLOR_GREEN" "  tap repo:  $tap_repo"
     [[ "$draft" == "true" ]] && print_colored "$COLOR_YELLOW" "  mode:      draft (no cask bump)"
     printf '\n'
@@ -271,7 +311,7 @@ main() {
     if [[ "$go" == "true" ]]; then
         print_colored "$COLOR_GREEN" "Published. Verify with:"
         if [[ "$draft" == "true" ]]; then
-            print_colored "$COLOR_GREEN" "  gh release view $tag --repo $TAP_SLUG --web"
+            print_colored "$COLOR_GREEN" "  gh release view $tag --repo $RELEASE_SLUG --web"
         else
             print_colored "$COLOR_GREEN" "  brew update && brew upgrade --cask $CASK_TOKEN"
         fi
