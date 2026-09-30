@@ -246,7 +246,9 @@ enum InlineLocalAssets {
     /// `Data(contentsOf:)`; `resolveRelative`'s own check stays in place as
     /// a cheap first filter, not a substitute for this.
     static func safeReadContainedFile(at candidate: URL, containedIn baseDirectory: URL) throws -> Data {
-        let fd = candidate.path.withCString { open($0, O_RDONLY) }
+        // Non-blocking: a FIFO or tty swapped in after the path check must
+        // not hang the preview. Only a regular file passes fstat below.
+        let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
         guard fd >= 0 else { throw ContainmentError.unreadable }
         defer { close(fd) }
 

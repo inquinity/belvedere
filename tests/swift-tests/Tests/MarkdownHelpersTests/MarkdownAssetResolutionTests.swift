@@ -479,4 +479,52 @@ final class MarkdownAssetResolutionTests: XCTestCase {
             """
         )
     }
+
+    // MARK: - readContainedFile
+
+    private func makeFolder() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder
+    }
+
+    private func assetURL(_ file: URL) -> URL {
+        URL(string: "md-asset://" + file.path)!
+    }
+
+    func testReadContainedFileReturnsAFileInsideTheFolder() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent("img.png")
+        try Data([1, 2, 3]).write(to: image)
+
+        let read = MarkdownAssetResolution.readContainedFile(for: assetURL(image), containedIn: folder)
+        XCTAssertEqual(read?.data, Data([1, 2, 3]))
+    }
+
+    func testReadContainedFileRefusesAFileOutsideTheFolder() throws {
+        let parent = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let folder = parent.appendingPathComponent("docs", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let outside = parent.appendingPathComponent("secret.png")
+        try Data([9]).write(to: outside)
+
+        XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(outside), containedIn: folder))
+    }
+
+    /// A FIFO inside the folder passes the path filter. Opened blocking, it
+    /// would hang here (and in the app, the scheme handler's queue) until a
+    /// writer appeared; it must instead come back refused, promptly.
+    func testReadContainedFileRefusesAFIFOWithoutBlocking() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let fifo = folder.appendingPathComponent("pipe.png")
+        XCTAssertEqual(mkfifo(fifo.path, 0o600), 0)
+
+        let started = Date()
+        XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(fifo), containedIn: folder))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 1)
+    }
 }

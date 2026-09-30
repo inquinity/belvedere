@@ -101,9 +101,16 @@ nonisolated enum MarkdownAssetResolution {
     /// containment check and the read act on that one open file — nothing
     /// that happens to the path afterward can matter, because the descriptor
     /// no longer refers to a path, it refers to the inode `open` found.
+    ///
+    /// The path is filtered first, with no file access, so a document cannot
+    /// make the app `open` an arbitrary path -- a FIFO or a tty would block
+    /// the scheme handler's queue, and with it every later load for the page.
+    /// `O_NONBLOCK` covers the same case if a filtered path is swapped for one
+    /// between the filter and the open; the check on the open descriptor
+    /// below remains the one that counts.
     static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL)? {
-        guard let candidate = candidateFileURL(for: assetURL) else { return nil }
-        let fd = candidate.path.withCString { open($0, O_RDONLY) }
+        guard let candidate = fileURL(for: assetURL, containedIn: documentFolder) else { return nil }
+        let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
         guard fd >= 0 else { return nil }
         defer { close(fd) }
 
