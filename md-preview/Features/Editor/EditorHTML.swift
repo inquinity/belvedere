@@ -283,6 +283,45 @@ nonisolated enum EditorHTML {
             padding-inline-start: 2.1em;
             text-indent: -2.1em;
         }
+        .cm-md-task-completed {
+            color: var(--secondary);
+            text-decoration: line-through;
+        }
+        #editor .cm-md-task-line {
+            text-indent: 0 !important;
+        }
+        .cm-md-task-marker {
+            display: inline;
+        }
+        .cm-md-task-marker input {
+            appearance: none;
+            -webkit-appearance: none;
+            font: inherit;
+            width: 0.9em;
+            height: 0.9em;
+            margin: 0;
+            margin-inline-start: calc(-0.9em - 0.75em);
+            margin-inline-end: 0.75em;
+            vertical-align: calc(0.5cap - 0.45em);
+            border: 1.5px solid var(--grid);
+            border-radius: 25%;
+            background: transparent;
+            position: relative;
+            cursor: pointer;
+        }
+        .cm-md-task-marker input:checked {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+        .cm-md-task-marker input:checked::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M4.4 8.4 L7 11 L11.6 5.4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 100% 100%;
+        }
         .cm-md-bullet {
             display: inline-block;
             width: 2.1em;
@@ -528,7 +567,7 @@ nonisolated enum EditorHTML {
             position: relative;
             width: fit-content;
             /* Outer spacing comes from the block separator lines, matching
-               the preview's .md-table-scroll margin. */
+               the preview's table margin. */
             margin: 0;
             max-width: 100%;
             overflow: visible;
@@ -575,34 +614,13 @@ nonisolated enum EditorHTML {
             opacity: 0.72;
             pointer-events: none;
         }
+        /* Match the document's quiet, text-first editing surface. The caret
+           identifies the insertion point; a tint marks the active cell. */
         .cm-md-table-cell:focus {
-            outline: 2px solid var(--accent);
-            outline-offset: -2px;
             background: color-mix(in srgb, var(--accent) 8%, transparent);
         }
         .cm-md-table-cell.is-table-part-selected {
-            --table-selection-top-edge: 0 0 transparent;
-            --table-selection-right-edge: 0 0 transparent;
-            --table-selection-bottom-edge: 0 0 transparent;
-            --table-selection-left-edge: 0 0 transparent;
-            background: color-mix(in srgb, var(--accent) 14%, Canvas);
-            box-shadow:
-                var(--table-selection-top-edge),
-                var(--table-selection-right-edge),
-                var(--table-selection-bottom-edge),
-                var(--table-selection-left-edge);
-        }
-        .cm-md-table-cell.is-table-selection-top {
-            --table-selection-top-edge: inset 0 1px color-mix(in srgb, var(--accent) 52%, transparent);
-        }
-        .cm-md-table-cell.is-table-selection-right {
-            --table-selection-right-edge: inset -1px 0 color-mix(in srgb, var(--accent) 52%, transparent);
-        }
-        .cm-md-table-cell.is-table-selection-bottom {
-            --table-selection-bottom-edge: inset 0 -1px color-mix(in srgb, var(--accent) 52%, transparent);
-        }
-        .cm-md-table-cell.is-table-selection-left {
-            --table-selection-left-edge: inset 1px 0 color-mix(in srgb, var(--accent) 52%, transparent);
+            background: color-mix(in srgb, var(--accent) 16%, transparent);
         }
         /* Page scrolling lets WebKit own the native toolbar backdrop.
            The macOS 15 editor keeps its internal scroller. */

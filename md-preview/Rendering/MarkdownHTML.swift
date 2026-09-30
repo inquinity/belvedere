@@ -271,14 +271,16 @@ nonisolated enum MarkdownHTML {
                          vendorLoading: VendorLoading = .inline,
                          colorScheme: ColorScheme? = nil,
                          documentFont: DocumentFontSetting = .current,
-                         readerLayout: ReaderLayoutSetting = .current) -> String {
+                         readerLayout: ReaderLayoutSetting = .current,
+                         strictLineBreaks: Bool = StrictLineBreaksSetting.current) -> String {
         render(markdown: markdown,
                allowsScroll: allowsScroll,
                assetBaseHref: assetBaseHref,
                vendorLoading: vendorLoading,
                colorScheme: colorScheme,
                documentFont: documentFont,
-               readerLayout: readerLayout).html
+               readerLayout: readerLayout,
+               strictLineBreaks: strictLineBreaks).html
     }
 
     static func render(markdown: String,
@@ -290,7 +292,9 @@ nonisolated enum MarkdownHTML {
                        themeOverrides: ThemeOverrides? = nil,
                        documentFont: DocumentFontSetting = .current,
                        readerLayout: ReaderLayoutSetting = .current,
+                       strictLineBreaks: Bool = StrictLineBreaksSetting.current,
                        warmup: Bool = false,
+                       preloadsMathAndCode: Bool = false,
                        pageTopClearance: CGFloat = 0,
                        highlightsCode: Bool = true) -> RenderedHTML {
         let frontmatter = MarkdownFrontmatter.split(markdown)
@@ -308,14 +312,16 @@ nonisolated enum MarkdownHTML {
             math.processedMarkdown,
             sourceLineOffset: sourceLineOffset,
             sourceMarkdown: body,
-            highlightsCode: highlightsCode
+            highlightsCode: highlightsCode,
+            strictLineBreaks: strictLineBreaks
         )
         let mermaidResult = renderMermaidBlocks(in: formatted)
         let mathResult = renderMathBlocks(in: mermaidResult.html, with: math)
         let footnoteReferenceHTML = renderFootnoteReferences(in: mathResult.html, with: footnotes)
         let footnoteDefinitions = renderFootnoteDefinitions(
             footnotes,
-            sourceLineOffset: sourceLineOffset
+            sourceLineOffset: sourceLineOffset,
+            strictLineBreaks: strictLineBreaks
         )
         let headingsHTML = injectHeadingIDs(in: footnoteReferenceHTML + footnoteDefinitions.html)
         // Direction inference scans every rendered block. Most documents
@@ -336,9 +342,12 @@ nonisolated enum MarkdownHTML {
             frontmatterHTML = ""
         }
         let bodyHTML = frontmatterHTML + renderedBodyHTML
-        let containsMath = mathResult.containsMath || footnoteDefinitions.containsMath
+        // A preloading page carries the math and code renderers before it
+        // has content, so later documents that need them can reuse it.
+        let containsMath = preloadsMathAndCode
+            || mathResult.containsMath || footnoteDefinitions.containsMath
         let containsMermaid = mermaidResult.containsMermaid || footnoteDefinitions.containsMermaid
-        let containsCode = detectHighlightableCode(in: bodyHTML)
+        let containsCode = preloadsMathAndCode || detectHighlightableCode(in: bodyHTML)
         let scrollOverride = allowsScroll ? """
         <style>
         html { overflow-x: hidden !important; overflow-y: auto !important; overscroll-behavior-x: none; }

@@ -40,6 +40,13 @@ final class SettingsModel {
         }
     }
 
+    var strictLineBreaks: Bool {
+        didSet {
+            guard !isRestoringExternalValues, strictLineBreaks != oldValue else { return }
+            appDelegate?.applyStrictLineBreaksSetting(strictLineBreaks)
+        }
+    }
+
     var readerLayout: ReaderLayoutSetting {
         didSet {
             guard !isRestoringExternalValues, readerLayout != oldValue else { return }
@@ -229,6 +236,7 @@ final class SettingsModel {
         textSize = TextSizeSetting.current
         documentFont = DocumentFontSetting.current
         readerLayout = ReaderLayoutSetting.current
+        strictLineBreaks = StrictLineBreaksSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
         exitsEditModeSilently = EditExitPolicy.exitsSilently
@@ -253,6 +261,7 @@ final class SettingsModel {
         textSize = TextSizeSetting.current
         documentFont = DocumentFontSetting.current
         readerLayout = ReaderLayoutSetting.current
+        strictLineBreaks = StrictLineBreaksSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
         exitsEditModeSilently = EditExitPolicy.exitsSilently

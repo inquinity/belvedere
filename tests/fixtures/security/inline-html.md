@@ -60,20 +60,18 @@ Two things to know before reading, or you will misjudge a pass:
 
 <embed src="https://example.invalid/embed">
 
-## Task list — must keep working
+## Task list — must keep rendering
 
 > **This is a positive control: you SHOULD see checkboxes.**
 >
-> **EXPECT:** two checkboxes below, one ticked, and **both clickable**.
+> **EXPECT:** two checkboxes below, one ticked, both **greyed out**. The
+> reading view is read-only; tasks are ticked in Edit Mode, where each one is
+> a clickable checkbox that edits the source.
 > **FAIL IF:** they are missing. Form controls are stripped so a document
 > cannot draw a credential prompt, and the rule that admits this one shape —
 > a checkbox — is narrow enough to get wrong in the strict direction.
-> **FAIL IF:** they are greyed out. The renderer emits `disabled`, DOMPurify
-> strips it, and that removal is load-bearing: clicking a task checkbox is a
-> real feature that writes the change back to the file.
->
-> **Clicking one edits this fixture.** That is the feature working, not a
-> fault — undo it with `git checkout tests/fixtures/security/inline-html.md`.
+> **FAIL IF:** clicking one in the reading view ticks it or changes this file.
+> The page has no way left to ask the app to write, and that is the point.
 
 - [ ] unchecked task
 - [x] checked task

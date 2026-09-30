@@ -203,6 +203,70 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    /// Every page the app itself loads carries a Content-Security-Policy.
+    /// The reader and the editor go through `PreviewContentPolicy`; the Mermaid
+    /// popup builds a self-contained page with its own `default-src 'none'`.
+    /// A new render path that loads HTML without either -- the kind of thing an
+    /// upstream restructure adds -- would let a document reach the network.
+    func testEveryAppPageLoadCarriesAContentPolicy() throws {
+        let appSources = try swiftSources().filter { !$0.path.contains("/quick-look/") }
+        var loads = 0
+        for file in appSources {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            let lines = source.components(separatedBy: "\n")
+            for (index, line) in lines.enumerated() where line.contains("loadHTMLString(")
+                && !line.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+                && !line.contains("\"[mdp-perf") {
+                if line.contains("loadHTMLString(\"\"") { continue }   // blanking a page
+                loads += 1
+                let call = lines[index..<min(index + 3, lines.count)].joined(separator: " ")
+                let selfContained = file.lastPathComponent == "MermaidDiagramPopup.swift"
+                    && source.contains("Content-Security-Policy\" content=\"default-src 'none'")
+                XCTAssertTrue(
+                    call.contains("PreviewContentPolicy.applying") || selfContained,
+                    "\(file.lastPathComponent):\(index + 1) loads HTML without PreviewContentPolicy."
+                )
+            }
+        }
+        XCTAssertGreaterThanOrEqual(loads, 4, "Found too few page loads; has the scan stopped matching?")
+    }
+
+    // MARK: - Features declined from upstream
+
+    /// Upstream's reopen snapshots wrote a PNG of each opened document's
+    /// first screen to the app's Caches folder and kept up to 40 of them,
+    /// with no clean-up when the document closed or was deleted. Belvedere
+    /// removed the code, not just its default; a merge must not bring it back.
+    func testDocumentSnapshotsStayRemoved() throws {
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: url("md-preview/Rendering/DocumentSnapshotCache.swift").path),
+            "DocumentSnapshotCache.swift is back; an upstream merge restored reopen snapshots."
+        )
+        for file in try swiftSources() {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains("DocumentSnapshotCache") || source.contains("\"DocumentSnapshots\""),
+                "\(file.lastPathComponent) references the removed document snapshot cache."
+            )
+        }
+    }
+
+    /// Upstream's What's New window describes Markdown Preview's release,
+    /// links to upstream's GitHub, and keys off upstream's build numbers, so it
+    /// would open for every Belvedere user on each upstream bump. Its files are
+    /// kept untouched for cheap merges; nothing may present it.
+    func testWhatsNewIsNeverPresented() throws {
+        for file in try swiftSources() where !file.path.contains("/Features/WhatsNew/") {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            for call in ["WhatsNewWindow.present", "WhatsNewWindow.noteLaunch", "installWhatsNewMenuItem"] {
+                XCTAssertFalse(
+                    source.contains(call),
+                    "\(file.lastPathComponent) calls \(call); upstream's What's New must stay switched off."
+                )
+            }
+        }
+    }
+
     // MARK: - License notices ship inside the app
 
     /// MIT, BSD and Apache attach their notices to *copies* of the code, and

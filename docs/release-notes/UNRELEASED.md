@@ -13,6 +13,11 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   appearance and theme changes made in Belvedere could not reach Quick Look
   previews. After updating, you may need to choose your appearance and theme
   once more.
+- **Tighter folder boundary for a document's images.** An image is now checked
+  and read as one step, so a file swapped for a link at the wrong moment cannot
+  slip past the boundary, and a document cannot make Belvedere open a device or
+  pipe and hang. The boundary also follows a document that is renamed or moved
+  while open, and applies in the editor when you open a folder mid-edit.
 - **Acknowledgements, in the About box and Settings › About.** It lists
   Markdown Preview and every open-source component Belvedere includes, with the
   license each is used under, linked to that license. The app also now ships

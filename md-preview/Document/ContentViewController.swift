@@ -70,8 +70,7 @@ final class ContentViewController: NSViewController {
     private static let stickyReleaseFraction: CGFloat = 1.0 / 3.0
 
     var activeHeadingDidChange: ((Int?) -> Void)?
-    var taskCheckboxToggled: ((Int, Bool) -> Void)?
-    var tableEditRequested: ((MarkdownTableEditRequest) -> Void)?
+    var zoomDidChange: ((CGFloat) -> Void)?
     var localMarkdownLinkActivated: ((URL) -> Void)?
     /// Fires once after a pending source scroll anchor (prepared via
     /// `prepareToRestoreSourceScrollAnchor`) has been applied to a fresh
@@ -84,7 +83,7 @@ final class ContentViewController: NSViewController {
         container.translatesAutoresizingMaskIntoConstraints = false
         view = container
 
-        webView = MarkdownWebView()
+        webView = SpareReaderPool.shared.takeReader()
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.heightDidChange = { [weak self] _ in
             guard let self else { return }
@@ -102,6 +101,8 @@ final class ContentViewController: NSViewController {
             // fires heightDidChange, so this is the reliable signal.
             self?.applyPendingScrollAnchorIfNeeded()
             self?.updatePointerTracking()
+            guard let self, self.webView.hasRequestedDocument else { return }
+            SpareReaderPool.shared.documentDidPaint()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(updatePointerTracking),
                                                name: UserDefaults.didChangeNotification, object: nil)
@@ -118,15 +119,10 @@ final class ContentViewController: NSViewController {
         webView.localMarkdownLinkActivated = { [weak self] url in
             self?.localMarkdownLinkActivated?(url)
         }
-        webView.taskCheckboxToggled = { [weak self] line, checked in
-            self?.taskCheckboxToggled?(line, checked)
-        }
-        webView.tableEditRequested = { [weak self] request in
-            self?.tableEditRequested?(request)
-        }
         webView.zoomDidChange = { [weak self] zoom in
             self?.webViewCenteredLeadingConstraint?.constant =
                 -MarkdownHTML.preferredPageWidth * zoom / 2
+            self?.zoomDidChange?(zoom)
         }
         webView.scrollDidChange = { [weak self] in
             self?.evaluateActiveHeading()

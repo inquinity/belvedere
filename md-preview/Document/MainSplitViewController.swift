@@ -7,7 +7,8 @@ import Cocoa
 
 final class MainSplitViewController: NSSplitViewController {
 
-    private static let didSeedKey = "MainSplitView.didSeedInitialState"
+    /// Also read by `WhatsNewWindow` as a sign of earlier use.
+    static let didSeedKey = "MainSplitView.didSeedInitialState"
     /// Keeps the pane picker and sidebar toggle visible beside the window controls.
     private static let minimumSidebarWidth: CGFloat = 230
 
@@ -36,8 +37,6 @@ final class MainSplitViewController: NSSplitViewController {
 
     var onSelectFile: ((URL) -> Void)?
     var onOpenMarkdownLink: ((URL) -> Void)?
-    var onToggleTaskCheckbox: ((Int, Bool) -> Void)?
-    var onEditTable: ((MarkdownTableEditRequest) -> Void)?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -72,14 +71,11 @@ final class MainSplitViewController: NSSplitViewController {
         }
 
         // Wired after addSplitViewItem so the accessors are non-nil.
+        contentViewController?.zoomDidChange = { [weak self] zoom in
+            self?.cachedEditorViewController?.applyPageZoom(zoom)
+        }
         contentViewController?.activeHeadingDidChange = { [weak self] headingID in
             self?.sidebarViewController?.setActiveHeading(headingID)
-        }
-        contentViewController?.taskCheckboxToggled = { [weak self] line, checked in
-            self?.onToggleTaskCheckbox?(line, checked)
-        }
-        contentViewController?.tableEditRequested = { [weak self] request in
-            self?.onEditTable?(request)
         }
         contentViewController?.localMarkdownLinkActivated = { [weak self] url in
             self?.onOpenMarkdownLink?(url)
