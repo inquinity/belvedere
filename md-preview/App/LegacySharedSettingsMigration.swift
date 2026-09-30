@@ -43,10 +43,14 @@ nonisolated enum LegacySharedSettingsMigration {
         // In the sandbox, the home directory is the app's own container.
         let legacyFile = URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent("Library/Preferences/\(group).plist")
+        // Notice level, so the outcome is kept in the log store: whether an
+        // upgrade found anything is the first question if settings look reset.
         if let legacy = NSDictionary(contentsOf: legacyFile) as? [String: Any] {
             let copied = migrate(legacy, into: shared)
             // Key names only: which settings came across, never their values.
-            log.info("Carried \(copied.count, privacy: .public) settings from before 1.3.0: \(copied.joined(separator: ", "), privacy: .public)")
+            log.notice("Carried \(copied.count, privacy: .public) settings from before 1.3.0: \(copied.joined(separator: ", "), privacy: .public)")
+        } else {
+            log.notice("No settings from before 1.3.0 to carry over")
         }
         shared.set(true, forKey: completedKey)
     }
