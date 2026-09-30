@@ -98,7 +98,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         )
     }
 
-    func load(markdown: String, assetBaseURL: URL? = nil, containmentRoot: URL? = nil) {
+    func load(markdown: String, assetBaseURL: URL?, containmentRoot: URL?) {
         hasChanges = false
         currentAssetBaseURL = assetBaseURL?.standardizedFileURL
         currentContainmentRoot = containmentRoot?.standardizedFileURL

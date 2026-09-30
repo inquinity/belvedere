@@ -245,8 +245,8 @@ extension DocumentWindowController {
     /// so `openedFolderRoot` — just set by `openFolder(_:)`, or already
     /// reconsidered by the caller as `handleRename(to:)` does — must not be
     /// re-evaluated here. Doing so would drop the newly opened root
-    /// immediately, because the still-visible document from the *previous* folder is
-    /// (correctly) not contained in it.
+    /// immediately, because the still-visible document from the *previous*
+    /// folder is (correctly) not contained in it.
     ///
     /// Internal rather than private: `handleRename(to:)` in
     /// `DocumentWindowController.swift` calls this too, after a move changes
