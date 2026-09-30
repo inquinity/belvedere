@@ -214,3 +214,59 @@ final class DeferredAssetMissingTests: XCTestCase {
         )
     }
 }
+
+// MARK: - Reading only what is safe to read
+
+final class DeferredAssetSafeReadTests: XCTestCase {
+
+    private let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] + Array(repeating: 0, count: 8))
+
+    private func makeFolder() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder
+    }
+
+    func testARegularImageLoads() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent("ok.png")
+        try png.write(to: image)
+        guard case .loaded = DeferredAssetLoader.outcome(forFileAt: image.path) else {
+            return XCTFail("a small regular PNG must load")
+        }
+    }
+
+    /// An oversized file is refused from its size alone. Reading it first and
+    /// then checking would already have pulled it into memory.
+    func testAnOversizedFileIsRefusedBeforeReading() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let big = folder.appendingPathComponent("big.png")
+        try (png + Data(repeating: 0, count: 4096)).write(to: big)
+        XCTAssertEqual(DeferredAssetLoader.outcome(forFileAt: big.path, maxBytes: 1024), .refused(.tooLarge))
+    }
+
+    /// A FIFO would block `open`, and then never reach end of file. Both
+    /// callers run on the main thread, so this is a hang, not a slow read.
+    func testAFIFOIsRefusedWithoutBlocking() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let fifo = folder.appendingPathComponent("pipe.png")
+        XCTAssertEqual(mkfifo(fifo.path, 0o600), 0)
+        let started = Date()
+        XCTAssertEqual(DeferredAssetLoader.outcome(forFileAt: fifo.path), .refused(.unreadable))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 1)
+    }
+
+    /// The failure explainer judges containment by the scheme handler's rule.
+    /// `..%2F` decodes to a real `..` only after a string-prefix test, so it
+    /// must be the resolved URL that is checked, not the path text.
+    func testAnEncodedParentEscapeIsOutsideTheBoundary() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let escape = URL(string: "md-asset://" + folder.path + "/..%2F..%2F..%2Fetc%2Fpasswd")!
+        XCTAssertNil(MarkdownAssetResolution.fileURL(for: escape, containedIn: folder))
+    }
+}

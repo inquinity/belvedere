@@ -102,7 +102,7 @@ work after leaving edit mode too.
 - **Native rendering** — `WKWebView` pipeline backed by [swift-markdown](https://github.com/swiftlang/swift-markdown), with heading anchors and link handling. Bare `http://` and `https://` URLs are clickable in the app and Quick Look previews.
 - **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>.
 - **Mermaid diagrams** — fenced `mermaid` code blocks render as diagrams in both the app and Quick Look previews, using a bundled renderer so previews work offline without a CDN request.
-- **Strict line breaks** — single source newlines stay visible by default. Turn on *Settings → General → Reading → Strict line breaks* to let ordinary source lines flow into paragraphs, in the app and in Quick Look.
+- **Line breaks** — a single new line in the source stays a new line by default (*Keep as typed*, as GitHub shows comments and issues). Choose *Join into paragraphs* in *Settings → General → Reading → Line breaks* to let lines run together until a blank line, as standard Markdown does. Applies in the app and in Quick Look.
 - **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source.
 - **Document outline** — sidebar TOC that mirrors your headings; click to jump.
 - **File navigator** — browse Markdown files in the sidebar. Opening a folder (rather than a single file) also sets the containment boundary described above.

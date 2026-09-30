@@ -1,0 +1,1 @@
+../../../../md-preview/App/LegacySharedSettingsMigration.swift

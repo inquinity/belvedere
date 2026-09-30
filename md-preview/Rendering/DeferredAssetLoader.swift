@@ -80,14 +80,51 @@ nonisolated enum DeferredAssetLoader {
     /// one refusal told the reader "cannot read file" for a file that simply is
     /// not there, which sends them looking for a permissions problem that does
     /// not exist. The distinction costs one `stat`.
+    ///
+    /// Without a `reader`, the file is read by `readRegularFile`, which refuses
+    /// anything but a regular file within `maxBytes` before reading a byte.
     static func outcome(forFileAt path: String,
                         maxBytes: Int = defaultMaxBytes,
                         exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
-                        reader: (URL) throws -> Data = { try Data(contentsOf: $0) }) -> Outcome {
+                        reader: ((URL) throws -> Data)? = nil) -> Outcome {
         let url = URL(fileURLWithPath: path).standardizedFileURL
         guard exists(url.path) else { return .refused(.missing) }
-        guard let data = try? reader(url) else { return .refused(.unreadable) }
+        let read = reader ?? { try readRegularFile(at: $0, maxBytes: maxBytes) }
+        let data: Data
+        do {
+            data = try read(url)
+        } catch ReadRefusal.tooLarge {
+            return .refused(.tooLarge)
+        } catch {
+            return .refused(.unreadable)
+        }
         return outcome(for: data, maxBytes: maxBytes)
+    }
+
+    /// Why `readRegularFile` declined before reading anything.
+    enum ReadRefusal: Error {
+        case notARegularFile
+        case tooLarge
+    }
+
+    /// Reads a whole file, but only a regular file no larger than `maxBytes`,
+    /// judged on the open descriptor before any bytes are read.
+    ///
+    /// `Data(contentsOf:)` reads whatever the path names, to the end: a
+    /// multi-gigabyte file is pulled into memory before the size cap can
+    /// refuse it, and a FIFO or `/dev/urandom` never ends. Both reads here run
+    /// on the main thread, so either would hang the app. Opening non-blocking
+    /// keeps a FIFO from blocking in `open` itself.
+    static func readRegularFile(at url: URL, maxBytes: Int) throws -> Data {
+        let fd = url.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
+        guard fd >= 0 else { throw CocoaError(.fileReadNoPermission) }
+        defer { close(fd) }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
+            throw ReadRefusal.notARegularFile
+        }
+        guard info.st_size <= maxBytes else { throw ReadRefusal.tooLarge }
+        return try FileHandle(fileDescriptor: fd, closeOnDealloc: false).readToEnd() ?? Data()
     }
 
     /// Why a reference inside the document's own folder failed to render.
@@ -106,7 +143,7 @@ nonisolated enum DeferredAssetLoader {
         atPath path: String,
         maxBytes: Int = defaultMaxBytes,
         exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
-        reader: (URL) throws -> Data = { try Data(contentsOf: $0) }
+        reader: ((URL) throws -> Data)? = nil
     ) -> Refusal? {
         switch outcome(forFileAt: path, maxBytes: maxBytes, exists: exists, reader: reader) {
         case .loaded: return nil

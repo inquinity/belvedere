@@ -341,5 +341,3 @@
 "Wrap long lines with one click. Code blocks now use rounded cards that show their language." = "一键为长代码行换行。代码块现采用圆角卡片设计，并显示其语言。";
 
 /* Reading preferences */
-"Strict line breaks" = "严格换行";
-"Join ordinary source lines into flowing paragraphs. Turn this off to preserve every line break. Applies to reading view and Quick Look previews." = "将普通源文本行合并为连续段落。关闭此选项可保留每个换行。适用于阅读视图和快速查看预览。";
