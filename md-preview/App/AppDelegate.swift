@@ -97,6 +97,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         CrashReporter.start()
+        // Before anything reads the shared suite: 1.2.4 and earlier saved it elsewhere.
+        LegacySharedSettingsMigration.runIfNeeded()
         let storedAppearance = AppearanceMode.migrateLegacyValue()
         ThemePreset.migrateLegacyValues()
         let appearanceMode = ThemePreset.applied().requiredAppearance ?? storedAppearance

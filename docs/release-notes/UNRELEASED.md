@@ -11,8 +11,8 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **The app and its Quick Look extension can now share settings.** Releases
   through 1.2.4 were signed without access to the storage the two share, so
   appearance and theme changes made in Belvedere could not reach Quick Look
-  previews. After updating, you may need to choose your appearance and theme
-  once more.
+  previews. Your existing reading settings — appearance, theme, font, spacing
+  and custom colors — carry over when you update.
 - **Tighter folder boundary for a document's images.** An image is now checked
   and read as one step, so a file swapped for a link at the wrong moment cannot
   slip past the boundary, and a document cannot make Belvedere open a device or
