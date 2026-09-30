@@ -22,7 +22,7 @@
 
 ```sh
 brew tap inquinity/tap
-brew trust inquinity/tap          # or: brew trust --cask inquinity/tap/belvedere, to trust only this cask
+brew trust --tap inquinity/tap    # or: brew trust --cask inquinity/tap/belvedere, to trust only this cask
 brew install --cask belvedere
 ```
 
