@@ -1,6 +1,6 @@
 # Dead-code baseline — periphery scan
 #
-# Generated 2026-09-25 against main, after merging upstream 0.0.62. Each line here
+# Generated 2026-09-29 against the upstream 0.0.63 merge. Each line here
 # is a known, already-reviewed finding, not something to fix on sight.
 #
 # A new run reporting exactly these lines is clean. A NEW line not in this
@@ -19,7 +19,27 @@
 # ProjectFileIndex.invalidate(root:) is upstream's hook for a directory watcher
 # that is not wired yet.
 #
+# Reviewed at the 0.0.63 merge:
+# - Features/WhatsNew/* is orphaned on purpose: Belvedere never presents
+#   upstream's What's New window (see FORK-NOTES, "How changes are applied").
+# - ReaderRenderSettings.fingerprint was read only by the reopen-snapshot code
+#   Belvedere removed; the file is upstream's and kept untouched.
+# - EscapingHTMLFormatter's MarkdownTableEdit / TaskCheckboxSource helpers are
+#   dead upstream too, left behind by upstream's read-only reading view.
+# - AppDelegate.installCommandLineToolsFromSettings and SettingsWindowController
+#   .show(pane:) / showSettingsWindow(pane:) are reached only from settings UI
+#   this fork removed with the CLI installer.
+# - AppDelegate.validateMenuItem and canFormatMarkdown: AppDelegate does not
+#   conform to NSMenuItemValidation (upstream's own, as on main), so AppKit
+#   never calls it. An upstream bug, noted for a separate fix.
+#
+md-preview/App/AppDelegate.swift:1176:49: warning: Unused parameter 'sender'
+md-preview/App/AppDelegate.swift:322:10: warning: Unused function 'showSettingsWindow(pane:)'
+md-preview/App/AppDelegate.swift:415:10: warning: Unused function 'installCommandLineToolsFromSettings()'
+md-preview/App/AppDelegate.swift:425:50: warning: Unused parameter 'sender'
+md-preview/App/AppDelegate.swift:492:10: warning: Unused function 'validateMenuItem(_:)'
 md-preview/Document/ContentViewController.swift:61:13: warning: Assign-only property 'headingID' is assigned, but never used
+md-preview/Document/DocumentWindowController+EditMode.swift:25:9: warning: Unused property 'canFormatMarkdown'
 md-preview/Document/DocumentWindowController+EditMode.swift:77:43: warning: Unused parameter 'sender'
 md-preview/Document/DocumentWindowController+OpenTargets.swift:169:51: warning: Unused parameter 'sender'
 md-preview/Document/DocumentWindowController+OpenTargets.swift:296:49: warning: Unused parameter 'sender'
@@ -28,9 +48,9 @@ md-preview/Document/DocumentWindowController+OpenTargets.swift:576:18: warning: 
 md-preview/Document/DocumentWindowController+OpenTargets.swift:580:18: warning: Unused function 'canonicalAppURL(_:)'
 md-preview/Document/DocumentWindowController+Sidebar.swift:104:55: warning: Unused parameter 'sender'
 md-preview/Document/DocumentWindowController+Sidebar.swift:109:53: warning: Unused parameter 'sender'
-md-preview/Document/DocumentWindowController+Toolbar.swift:385:45: warning: Unused parameter 'sender'
-md-preview/Document/DocumentWindowController+Toolbar.swift:563:48: warning: Unused parameter 'sender'
-md-preview/Document/MainSplitViewController.swift:209:10: warning: Unused function 'validateMenuItem(_:)'
+md-preview/Document/DocumentWindowController+Toolbar.swift:387:45: warning: Unused parameter 'sender'
+md-preview/Document/DocumentWindowController+Toolbar.swift:565:48: warning: Unused parameter 'sender'
+md-preview/Document/MainSplitViewController.swift:205:10: warning: Unused function 'validateMenuItem(_:)'
 md-preview/Features/FileSearch/FileSearchMatcher.swift:32:9: warning: Unused initializer 'init(relativePath:)'
 md-preview/Features/FileSearch/FileSearchMatcher.swift:47:13: warning: Assign-only property 'score' is assigned, but never used
 md-preview/Features/FileSearch/FileSearchMatcher.swift:86:17: warning: Unused function 'rank(query:candidates:)'
@@ -39,21 +59,36 @@ md-preview/Features/Mermaid/MermaidDiagramPopup.swift:172:41: warning: Unused pa
 md-preview/Features/OpenWith/OpenTargetCatalog.swift:25:10: warning: Unused enum case 'copyAndOpen'
 md-preview/Features/OpenWith/OpenTargetCatalog.swift:260:42: warning: Unused parameter 'editors'
 md-preview/Features/OpenWith/OpenTargetCatalog.swift:262:42: warning: Unused parameter 'llmApps'
-md-preview/Features/Settings/SettingsModel.swift:135:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
-md-preview/Features/Settings/SettingsModel.swift:144:10: warning: Unused function 'resetThemeColors()'
+md-preview/Features/Settings/SettingsModel.swift:142:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
+md-preview/Features/Settings/SettingsModel.swift:151:10: warning: Unused function 'resetThemeColors()'
+md-preview/Features/Settings/SettingsWindowController.swift:185:10: warning: Unused function 'show(pane:)'
 md-preview/Features/Sidebar/SidebarViewController.swift:290:37: warning: Unused parameter 'sender'
 md-preview/Features/Sidebar/SidebarViewController.swift:317:9: warning: Assign-only property 'level' is assigned, but never used
+md-preview/Features/WhatsNew/WhatsNewPolicy.swift:15:6: warning: Unused enum 'WhatsNewPolicy'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:137:10: warning: Unused function 'continueButtonStyle()'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:146:10: warning: Unused function 'secondaryButtonStyle()'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:159:21: warning: Unused class 'WhatsNewHostingController'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:166:6: warning: Unused enum 'WhatsNewWindow'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:20:16: warning: Unused property 'current'
+md-preview/Features/WhatsNew/WhatsNewWindow.swift:47:8: warning: Unused struct 'WhatsNewView'
 md-preview/Rendering/CodeFenceInfo.swift:21:9: warning: Assign-only property 'metadata' is assigned, but never used
-md-preview/Rendering/CodeHighlighter.swift:34:17: warning: Unused function 'useGrammar(source:)'
-md-preview/Rendering/CodeHighlighter.swift:64:17: warning: Unused function 'supports(language:)'
 md-preview/Rendering/CodeHighlighter.swift:164:21: warning: Unused function 'install(source:)'
 md-preview/Rendering/CodeHighlighter.swift:174:21: warning: Assign-only property 'context' is assigned, but never used
+md-preview/Rendering/CodeHighlighter.swift:34:17: warning: Unused function 'useGrammar(source:)'
+md-preview/Rendering/CodeHighlighter.swift:64:17: warning: Unused function 'supports(language:)'
+md-preview/Rendering/EscapingHTMLFormatter.swift:705:18: warning: Unused enum 'TaskCheckboxSource'
+md-preview/Rendering/EscapingHTMLFormatter.swift:735:18: warning: Unused enum 'MarkdownTableEdit'
+md-preview/Rendering/EscapingHTMLFormatter.swift:753:17: warning: Unused function 'applying(_:fromLine:throughLine:in:)'
+md-preview/Rendering/EscapingHTMLFormatter.swift:910:25: warning: Unused function 'normalizeAlignments(_:columnCount:)'
+md-preview/Rendering/EscapingHTMLFormatter.swift:918:25: warning: Unused function 'escapedCell(_:)'
+md-preview/Rendering/EscapingHTMLFormatter.swift:949:25: warning: Unused function 'serialize(rows:alignments:)'
 md-preview/Rendering/MarkdownHTML+Footnotes.swift:23:13: warning: Assign-only property 'label' is assigned, but never used
 md-preview/Rendering/MarkdownWebView+PDFExport.swift:570:43: warning: Unused parameter 'sender'
 md-preview/Rendering/MarkdownWebView+PDFExport.swift:836:11: warning: Unused parameter 'operation'
 md-preview/Rendering/MarkdownWebView+PDFExport.swift:837:9: warning: Unused parameter 'success'
 md-preview/Rendering/MarkdownWebView+PDFExport.swift:838:9: warning: Unused parameter 'contextInfo'
+md-preview/Rendering/ReaderRenderSettings.swift:22:9: warning: Unused property 'fingerprint'
+md-preview/Theme/ThemeColorsSetting.swift:107:10: warning: Unused function 'hasWindowBackgroundOverride(for:)'
 md-preview/Theme/ThemeColorsSetting.swift:91:9: warning: Unused property 'isCustomized'
 md-preview/Theme/ThemeColorsSetting.swift:99:9: warning: Unused property 'hasWindowBackgroundOverride'
-md-preview/Theme/ThemeColorsSetting.swift:107:10: warning: Unused function 'hasWindowBackgroundOverride(for:)'
 quick-look/QuickLookFirstResponderPolicy.swift:31:16: warning: Unused property 'rationale'

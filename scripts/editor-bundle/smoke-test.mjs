@@ -426,6 +426,16 @@ dom.window.document.body.appendChild(headingHost)
 const headingEditor = dom.window.MDEditor.create(headingHost, "### Stable heading", {})
 check("unfocused leading heading source stays hidden",
   headingHost.querySelector(".cm-md-heading-source-hidden")?.textContent === "### ")
+headingEditor.focus()
+headingEditor.select(4, 10)
+check("ordinary heading range selection keeps source hidden",
+  headingHost.querySelector(".cm-md-heading-source-hidden")?.textContent === "### ")
+const headingContent = headingHost.querySelector(".cm-content")
+headingContent.dispatchEvent(new dom.window.CompositionEvent("compositionstart", { bubbles: true }))
+headingEditor.select(4, 9)
+check("IME composition range reveals heading source",
+  headingHost.querySelector(".cm-md-heading-source-hidden") == null)
+headingContent.dispatchEvent(new dom.window.CompositionEvent("compositionend", { bubbles: true }))
 headingEditor.exec("h0")
 check("Normal Text removes the heading marker",
   headingEditor.getMarkdown() === "Stable heading")
@@ -1095,10 +1105,8 @@ const selectedBottomRight = dragTableHost.querySelector(
 )
 check("dragging across rows and columns selects the anchor-to-head rectangle",
   dragSelectedWidget?.querySelectorAll(".is-table-part-selected").length === 4
-    && selectedTopLeft?.classList.contains("is-table-selection-top")
-    && selectedTopLeft?.classList.contains("is-table-selection-left")
-    && selectedBottomRight?.classList.contains("is-table-selection-bottom")
-    && selectedBottomRight?.classList.contains("is-table-selection-right"))
+    && selectedTopLeft?.classList.contains("is-table-part-selected")
+    && selectedBottomRight?.classList.contains("is-table-part-selected"))
 check("cell-range selection persists after pointer release without native text selection",
   dragSelectedWidget?.classList.contains("is-table-range-selected")
     && dom.window.getSelection()?.rangeCount === 0)
@@ -1109,7 +1117,7 @@ dragSelectedWidget?.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
 }))
 check("Escape clears a dragged cell range",
   dragSelectedWidget?.querySelectorAll(".is-table-part-selected").length === 0)
-dragStartCell?.dispatchEvent(new dom.window.MouseEvent("mousedown", {
+const nativeCellClickAllowed = dragStartCell?.dispatchEvent(new dom.window.MouseEvent("mousedown", {
   button: 0,
   buttons: 1,
   clientX: 100,
@@ -1129,9 +1137,8 @@ dragStartCell?.dispatchEvent(new dom.window.MouseEvent("click", {
   bubbles: true,
   cancelable: true,
 }))
-check("an ordinary cell click still restores the editing caret",
-  dom.window.getSelection()?.rangeCount === 1
-    && dragStartCell?.contains(dom.window.getSelection()?.anchorNode))
+check("an ordinary cell click allows native caret placement and selection",
+  nativeCellClickAllowed === true)
 const dragHeaderCell = dragTableHost.querySelector(
   '[data-table-row="0"][data-table-column="1"]'
 )

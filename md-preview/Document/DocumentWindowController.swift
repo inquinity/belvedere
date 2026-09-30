@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import os
 import UniformTypeIdentifiers
 
 
@@ -145,8 +146,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     var searchMode: SearchMode = .contains
     var pendingFindWork: DispatchWorkItem?
     static let findDebounceDelay: TimeInterval = 0.10
-    let tableUndoManager = UndoManager()
-    var isTableUndoSaveInFlight = false
 
     var documentWindow: NSWindow {
         guard let window else {
@@ -227,12 +226,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
             } else {
                 self?.present(url: url)
             }
-        }
-        split.onToggleTaskCheckbox = { [weak self] line, checked in
-            self?.toggleTaskCheckbox(onLine: line, checked: checked)
-        }
-        split.onEditTable = { [weak self] request in
-            self?.applyTableEdit(request)
         }
         documentWindow.contentViewController = split
         documentWindow.setContentSize(NSSize(width: 1100, height: 720))
@@ -360,6 +353,10 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         stopAutoSaveTimer()
         autoSaveFeedbackResetWork?.cancel()
         autoSaveFeedbackResetWork = nil
+        // The closing window is still visible here; check after it is gone.
+        DispatchQueue.main.async {
+            SpareReaderPool.shared.releaseSpareIfNoDocumentsShown()
+        }
     }
 
     func windowWillEnterFullScreen(_ notification: Notification) {
@@ -378,12 +375,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         applyWindowBackgroundTheme()
     }
 
-    func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? {
-        isEditing ? nil : tableUndoManager
-    }
-
     func display(markdown: String, fileURL: URL?) {
-        tableUndoManager.removeAllActions()
         currentFileURL = fileURL
         currentMarkdown = markdown
         resetAutoSaveFeedback()
@@ -395,6 +387,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         updateWindowSubtitle()
         attachToExistingTabGroupIfNeeded()
         documentWindow.makeKeyAndOrderFront(nil)
+        #if DEBUG
+        Logger.perf.debug(
+            "[mdp-perf-open] window-shown t=\(DispatchTime.now().uptimeNanoseconds, privacy: .public)"
+        )
+        #endif
         // Tab placement is settled once the window is shown; a window opened
         // via "Open in New Window" goes back to normal tabbing afterwards
         // (it can host or join tabs on explicit request, but plain opens no
@@ -405,6 +402,8 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         refreshOpenInLLMItem()
         refreshOpenActionsItem()
         updateEditToolbarItem()
+        // Belvedere does not show upstream's What's New window: it describes
+        // Markdown Preview's release, not this app's (see docs/FORK-NOTES.md).
         if let fileURL {
             NSDocumentController.shared.noteNewRecentDocumentURL(fileURL)
             renderCurrentDocument(text: markdown, fileURL: fileURL)
@@ -447,7 +446,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
             return
         }
         let restoredScrollPosition = commitNavigation(to: url, intent: intent)
-        tableUndoManager.removeAllActions()
 
         // Switching to a different file blanks the preview so the previous
         // doc doesn't linger on screen during sheet dismissal + load.
@@ -582,7 +580,8 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         }
     }
 
-    private static let didOfferDefaultHandlerKey = "MarkdownPreview.didOfferAsDefaultHandler"
+    /// Also read by `WhatsNewWindow` as a sign of earlier use.
+    static let didOfferDefaultHandlerKey = "MarkdownPreview.didOfferAsDefaultHandler"
 
     private func offerToBecomeDefaultHandlerIfNeeded() {
         let key = Self.didOfferDefaultHandlerKey

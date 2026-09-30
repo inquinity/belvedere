@@ -86,7 +86,8 @@ boundary shows a placeholder with a one-click, not-remembered **Load** button.
 
 **A document can't draw a fake sign-in prompt.** Text fields, dropdowns, and other form
 controls are stripped from rendered content — a `<form>` that survives sanitization
-elsewhere as inert markup renders as nothing here. Task-list checkboxes still work.
+elsewhere as inert markup renders as nothing here. Task-list checkboxes still render, and
+are ticked in Edit Mode; the reading view is read-only.
 
 **A link never runs or installs something on a click.** A link to an app, script, installer,
 or disk image is shown in Finder instead of started, wherever it points. Links to ordinary
@@ -101,6 +102,7 @@ work after leaving edit mode too.
 - **Native rendering** — `WKWebView` pipeline backed by [swift-markdown](https://github.com/swiftlang/swift-markdown), with heading anchors and link handling. Bare `http://` and `https://` URLs are clickable in the app and Quick Look previews.
 - **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>.
 - **Mermaid diagrams** — fenced `mermaid` code blocks render as diagrams in both the app and Quick Look previews, using a bundled renderer so previews work offline without a CDN request.
+- **Strict line breaks** — single source newlines stay visible by default. Turn on *Settings → General → Reading → Strict line breaks* to let ordinary source lines flow into paragraphs, in the app and in Quick Look.
 - **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source.
 - **Document outline** — sidebar TOC that mirrors your headings; click to jump.
 - **File navigator** — browse Markdown files in the sidebar. Opening a folder (rather than a single file) also sets the containment boundary described above.

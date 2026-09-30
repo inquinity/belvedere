@@ -4,6 +4,43 @@ import XCTest
 
 @MainActor
 final class EditorScrollAnchorTests: XCTestCase {
+    func testTaskCheckboxGeometryMatchesReadMode() async throws {
+        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let source = "Outside the task list\n\n- [x] Independent task\n- [ ] Testing"
+        var measurements: [[Double]] = []
+        for isEditor in [false, true] {
+            let html = isEditor ? EditorHTML.render(markdown: source, editorJavaScript: script)
+                : MarkdownHTML.render(markdown: source, allowsScroll: true).html
+            let harness = WebViewLayoutHarness(html: html, width: 650, isEditor: isEditor, height: 400)
+            defer { harness.close() }
+            _ = try await harness.layout(texts: [], imageCount: 0)
+            let result = try await harness.webView.callAsyncJavaScript("""
+                const rect = label => {
+                    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        const offset = walker.currentNode.textContent.indexOf(label);
+                        if (offset < 0 || walker.currentNode.parentElement.closest('script, style')) continue;
+                        const range = document.createRange();
+                        range.setStart(walker.currentNode, offset); range.setEnd(walker.currentNode, offset + 1);
+                        return {bounds: range.getBoundingClientRect(), element: walker.currentNode.parentElement};
+                    }
+                    throw new Error('Missing label');
+                };
+                const origin = rect('Outside the task list').bounds.left;
+                return ['Independent task', 'Testing'].flatMap(label => {
+                    const text = rect(label);
+                    const line = text.element.closest(isEditor ? '.cm-line' : 'li');
+                    const box = line.querySelector('input[type=checkbox]').getBoundingClientRect();
+                    return [text.bounds.left - box.right, box.left - origin, text.bounds.left - origin, box.width];
+                });
+                """, arguments: ["isEditor": isEditor], in: nil, contentWorld: .page)
+            measurements.append(try XCTUnwrap(result as? [Double]))
+        }
+        for index in measurements[0].indices {
+            XCTAssertEqual(measurements[0][index], measurements[1][index], accuracy: 1, "Geometry component \(index)")
+        }
+    }
+
     func testDocumentControlsFollowThemeAccentInReaderAndEditor() async throws {
         let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
         let source = "Introduction\n\n- Bullet\n\n1. Number\n\n[Link](https://example.com)"
@@ -55,19 +92,15 @@ final class EditorScrollAnchorTests: XCTestCase {
                         const expected = document.createElement('span');
                         expected.style.background = 'color-mix(in srgb, var(--link) 8%, transparent)';
                         document.body.append(expected);
-                        const focusMatches = getComputedStyle(cell).outlineColor === accent
-                            && getComputedStyle(cell).backgroundColor === getComputedStyle(expected).backgroundColor;
+                        const focusMatches = !isEditor || (getComputedStyle(cell).outlineStyle === 'none'
+                            && getComputedStyle(cell).backgroundColor === getComputedStyle(expected).backgroundColor);
                         focusStyle.remove();
                         cell.classList.remove('theme-focus-probe');
                         cell.classList.remove('is-editing');
-                        cell.classList.add('is-table-part-selected', 'is-table-selection-top',
-                            'is-table-selection-right', 'is-table-selection-bottom', 'is-table-selection-left');
-                        expected.style.background = 'color-mix(in srgb, var(--link) 14%, Canvas)';
-                        expected.style.boxShadow = [
-                            'inset 0 1px', 'inset -1px 0', 'inset 0 -1px', 'inset 1px 0'
-                        ].map(edge => edge + ' color-mix(in srgb, var(--link) 52%, transparent)').join(',');
-                        const selectionMatches = getComputedStyle(cell).backgroundColor === getComputedStyle(expected).backgroundColor
-                            && getComputedStyle(cell).boxShadow === getComputedStyle(expected).boxShadow;
+                        cell.classList.add('is-table-part-selected');
+                        expected.style.background = 'color-mix(in srgb, var(--link) 16%, transparent)';
+                        const selectionMatches = !isEditor || (getComputedStyle(cell).backgroundColor === getComputedStyle(expected).backgroundColor
+                            && getComputedStyle(cell).boxShadow === 'none');
                         let checkboxMatches = true;
                         if (!isEditor) {
                             const checkbox = document.createElement('input');
@@ -571,6 +604,54 @@ final class EditorScrollAnchorTests: XCTestCase {
             })()
             """)
         XCTAssertEqual(result as? Bool, true)
+    }
+
+    func testTableInlineFormattingOnlyShowsSourceInFocusedCell() async throws {
+        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let source = "**bold _nested_** and *italic* ~~old~~ ==marked== [**label**](https://example.com) `code`"
+        let markdown = "| Value | Other |\n| --- | --- |\n| \(source) | **neighbor** |"
+        let editor = WebViewLayoutHarness(
+            html: EditorHTML.render(markdown: markdown, editorJavaScript: script),
+            width: 900, isEditor: true, height: 400)
+        defer { editor.close() }
+        _ = try await editor.layout(texts: [], imageCount: 0)
+        let result = try await editor.webView.callAsyncJavaScript("""
+            const cell = document.querySelector('[data-table-row="1"][data-table-column="0"]');
+            const neighbor = document.querySelector('[data-table-row="1"][data-table-column="1"]');
+            const before = window.__mdEditor.getMarkdown();
+            const rendered = () => cell.textContent === 'bold nested and italic old marked label code'
+                && cell.querySelector('.cm-md-strong .cm-md-emphasis')?.textContent === 'nested'
+                && cell.querySelector('.cm-md-strikethrough')?.textContent === 'old'
+                && cell.querySelector('.cm-md-highlight')?.textContent === 'marked'
+                && cell.querySelector('.cm-md-link .cm-md-strong')?.textContent === 'label'
+                && cell.querySelector('code')?.textContent === 'code';
+            const initiallyRendered = rendered();
+            cell.focus();
+            const exactSource = cell.textContent === source && !cell.querySelector('span, code');
+            const neighborRendered = neighbor.textContent === 'neighbor';
+            cell.blur();
+            const restored = rendered() && window.__mdEditor.getMarkdown() === before;
+            cell.focus();
+            cell.textContent = '**replacement**';
+            cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            return initiallyRendered && exactSource && neighborRendered && restored
+                && rendered() && window.__mdEditor.getMarkdown() === before;
+            """, arguments: ["source": source], in: nil, contentWorld: .page)
+        XCTAssertEqual(result as? Bool, true)
+        _ = try await editor.webView.evaluateJavaScript("""
+            (() => {
+                const cell = document.querySelector('[data-table-row="1"][data-table-column="0"]');
+                cell.focus();
+                cell.textContent = '**saved**';
+                cell.blur();
+                return true;
+            })()
+            """)
+        let saved = try await editor.webView.evaluateJavaScript("""
+            window.__mdEditor.getMarkdown().includes('**saved**')
+                && document.querySelector('[data-table-row="1"][data-table-column="0"] .cm-md-strong')?.textContent === 'saved'
+            """)
+        XCTAssertEqual(saved as? Bool, true)
     }
 
     func testTopClearanceIsNonEditingAndScrollsAwayWithDocument() async throws {
