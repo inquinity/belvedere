@@ -26,20 +26,8 @@
 #   Belvedere removed; the file is upstream's and kept untouched.
 # - EscapingHTMLFormatter's MarkdownTableEdit / TaskCheckboxSource helpers are
 #   dead upstream too, left behind by upstream's read-only reading view.
-# - AppDelegate.installCommandLineToolsFromSettings and SettingsWindowController
-#   .show(pane:) / showSettingsWindow(pane:) are reached only from settings UI
-#   this fork removed with the CLI installer.
-# - AppDelegate.validateMenuItem and canFormatMarkdown: AppDelegate does not
-#   conform to NSMenuItemValidation (upstream's own, as on main), so AppKit
-#   never calls it. An upstream bug, noted for a separate fix.
 #
-md-preview/App/AppDelegate.swift:1176:49: warning: Unused parameter 'sender'
-md-preview/App/AppDelegate.swift:322:10: warning: Unused function 'showSettingsWindow(pane:)'
-md-preview/App/AppDelegate.swift:415:10: warning: Unused function 'installCommandLineToolsFromSettings()'
-md-preview/App/AppDelegate.swift:425:50: warning: Unused parameter 'sender'
-md-preview/App/AppDelegate.swift:492:10: warning: Unused function 'validateMenuItem(_:)'
 md-preview/Document/ContentViewController.swift:61:13: warning: Assign-only property 'headingID' is assigned, but never used
-md-preview/Document/DocumentWindowController+EditMode.swift:25:9: warning: Unused property 'canFormatMarkdown'
 md-preview/Document/DocumentWindowController+EditMode.swift:77:43: warning: Unused parameter 'sender'
 md-preview/Document/DocumentWindowController+OpenTargets.swift:169:51: warning: Unused parameter 'sender'
 md-preview/Document/DocumentWindowController+OpenTargets.swift:296:49: warning: Unused parameter 'sender'
@@ -61,7 +49,6 @@ md-preview/Features/OpenWith/OpenTargetCatalog.swift:260:42: warning: Unused par
 md-preview/Features/OpenWith/OpenTargetCatalog.swift:262:42: warning: Unused parameter 'llmApps'
 md-preview/Features/Settings/SettingsModel.swift:142:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
 md-preview/Features/Settings/SettingsModel.swift:151:10: warning: Unused function 'resetThemeColors()'
-md-preview/Features/Settings/SettingsWindowController.swift:185:10: warning: Unused function 'show(pane:)'
 md-preview/Features/Sidebar/SidebarViewController.swift:290:37: warning: Unused parameter 'sender'
 md-preview/Features/Sidebar/SidebarViewController.swift:317:9: warning: Assign-only property 'level' is assigned, but never used
 md-preview/Features/WhatsNew/WhatsNewPolicy.swift:15:6: warning: Unused enum 'WhatsNewPolicy'
