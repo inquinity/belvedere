@@ -671,7 +671,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         answer(DeferredAssetLoader.reasonForInFolderFailure(atPath: file.path)?.rawValue)
     }
 
-    /// Serves one blocked asset after the reader clicked its placeholder (F4).
+    /// Serves one blocked asset after the reader clicked its placeholder (click-to-load).
     ///
     /// This is the only path by which content outside the containment boundary
     /// reaches the page, so it is deliberately narrow. `DeferredAssetLoader`

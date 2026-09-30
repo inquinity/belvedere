@@ -123,7 +123,7 @@ in the app window. Expected, and each line is a separate claim:
   checked.
 - A redirect to a `file:` URL must be refused without reading the file, and a
   redirect chain must stop after three hops. Both need a server that redirects;
-  `docs/FORK-NOTES.md` (F4) records what was verified and how.
+  `docs/FORK-NOTES.md` (*Click-to-load for deferred content*) records what was verified and how.
 - An oversized response — one that declares 100 MB, and one that declares no
   length and never stops — must both come back `load failed: too large`, the
   second with the server reporting a broken pipe. Watch the app's memory in
@@ -203,10 +203,11 @@ check missed.
 
 ## Known limitations — not regressions
 
-- **Remote images do not load, anywhere.** Deliberate: it closes the
-  tracking-pixel hole. README badges appear broken. Deferred improvement is
-  F4, a click-to-load control like a mail client's.
-- **No automatic updates.** Sparkle is removed; new builds are handed out by
-  hand.
+- **Remote images do not load on their own.** Deliberate: it closes the
+  tracking-pixel hole. Each shows as a placeholder naming its host, so README
+  badges look like placeholders. In the app window, **Load** fetches that one
+  image on a click; Quick Look names the image but offers no Load.
+- **No automatic updates.** Sparkle is removed; new versions arrive through
+  `brew upgrade --cask belvedere`.
 - **The command line tools are gone.** The installer is orphaned and its
   Settings button was removed in 1.0.3.

@@ -184,7 +184,7 @@ nonisolated extension MarkdownHTML {
             }
         }, true);
 
-        // Deferred images (F4). Two different blocks land in the same place:
+        // Deferred images (click-to-load). Two different blocks land in the same place:
         // the CSP refuses a remote image so a document cannot beacon on mere
         // open, and md-asset: containment refuses a local file outside the
         // document's folder. Either way the reader sees a placeholder naming

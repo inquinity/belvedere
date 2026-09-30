@@ -18,7 +18,7 @@ import Foundation
 /// convenient and is the wrong unit: a host like a large code-hosting site
 /// speaks for thousands of unrelated authors, so allowing it once would allow
 /// them all, in every document, for ever. Trust belongs to a folder the reader
-/// chose (F3), never to a hostname a document named.
+/// chose (trusted folders), never to a hostname a document named.
 ///
 /// Pure Foundation, so the helper test package covers it.
 nonisolated enum RemoteImageRequestPolicy {

@@ -164,7 +164,7 @@ merged it stops being our diff to carry:
 | The Quick Look preview steals keyboard focus, so arrow keys scroll the document instead of moving the Finder selection | Issue → PR | ✅ **merged** — upstream's own issue [#292](https://github.com/pluk-inc/markdown-preview/issues/292), [PR #370](https://github.com/pluk-inc/markdown-preview/pull/370) landed as `d09f500`, in upstream 0.0.58. Review found ⌘A / ⌘C no longer work without a click, which the PR had claimed they did: key events reach the extension only while its view has focus, and not taking focus is the fix. Accepted as the trade and documented on the PR branch. Same patch we'd carried here since 2026-09-11, so the sync sees it as already applied |
 | Mermaid diagrams draw at 0 × 0 in the app window since upstream made the article a flex column (#376) | Issue → PR | **merged upstream** — [issue #387](https://github.com/pluk-inc/markdown-preview/issues/387), [PR #388](https://github.com/pluk-inc/markdown-preview/pull/388), in Markdown Preview 0.0.57; our carried copy was superseded by the upstream sync. Shipped broken in our 1.2.0; the manual checklist caught it, the automated tests did not, because the width-toggle test's checks held for a 0-wide figure. The PR pins the size. Merged into our `main` from the PR branch |
 | A blocked image is a silent broken image, with no way to see it | PR, after #337 | **planned** — click-to-load: the image renders as a placeholder naming the file, with Load and Load all; only real images are loaded, after the click, and nothing is remembered; Quick Look gets labels only. Tested and shipping here. Kept out of #337 so it does not hold up the security fix, and opened as its own PR as soon as #337 is completed. It must first follow the reworked boundary — the opened project folder, not the document folder — or it would offer Load for images that are now inside |
-| A link could start a program (app, script, installer, disk image) with one click, once containment let the click through | PR | **submitted** — [PR #405](https://github.com/pluk-inc/markdown-preview/pull/405), open. Split out of #337 per review; independent of the containment rework, so it applies against `main` as it stands today rather than waiting on #337 to merge. Same fix as ships here (F12 below), tested on a plain Markdown Preview build with Sentry/Sparkle disabled locally |
+| A link could start a program (app, script, installer, disk image) with one click, once containment let the click through | PR | **submitted** — [PR #405](https://github.com/pluk-inc/markdown-preview/pull/405), open. Split out of #337 per review; independent of the containment rework, so it applies against `main` as it stands today rather than waiting on #337 to merge. Same fix as ships here (legacy F12, under Done in the backlog), tested on a plain Markdown Preview build with Sentry/Sparkle disabled locally |
 
 The `md-asset:` finding goes through GitHub's private vulnerability reporting (enabled
 on upstream), **not** a public issue: it describes an unfixed weakness in a shipping app
@@ -206,28 +206,63 @@ there. Same disposition — worth fixing whenever the pane is next touched.
 
 ## Backlog
 
-Unscheduled — not part of the milestone sequence above, and not blocking M5. `B1` (Mermaid in Quick Look) isn't listed here: it's an upstream bug — fixed in this fork, and tracked in the Upstream contribution track table above rather than duplicated.
+Open work, by type and by the release it is planned for. IDs are per type:
+**F** feature, **S** security, **H** housekeeping, **UF** an upstream feature Belvedere
+is watching or deciding on, **UC** a contribution to upstream. Numbering was reset on
+2026-09-30; the earlier `F`-numbers are kept below as **legacy** IDs, in *Done* and in
+the old → new table, so references in older notes and commits still resolve. `B1`
+(Mermaid in Quick Look) is not listed: it was an upstream bug, tracked in the Upstream
+contribution track above.
 
-| # | Item | Notes |
+Target releases: security fixes as revisions (1.3.1, 1.3.2), features as minor
+releases (1.4, 1.5). Set 2026-09-30.
+
+| ID | Item | Target | Notes |
+|---|---|---|---|
+| **S1** | Leaving edit mode or saving drops the opened-folder boundary | 1.3.1 | Leaving edit mode, or saving, re-renders the same document through `renderCurrentDocument`, which re-evaluates `openedFolderRoot` as if a new document had loaded, instead of `displayCurrentDocument`. View `~/x/A.md`, open folder `~/y`, press ⌘E twice or save: the opened-folder boundary silently drops while the navigator still shows `~/y`. Fails closed (images from the wider folder stop loading). Found in the 1.3.0 code review; `DocumentWindowController+EditSession.swift` (exit and save paths). |
+| **S2** | Boundary parameters still default to `nil` | 1.3.1 | Boundary parameters still default to `nil` at `MainSplitViewController.swift` (`display`, `enterEditMode`), `ContentViewController.display` and `MarkdownWebView.display` — the pattern `AGENTS.md` forbids ("A parameter that enforces a boundary must not default to nil"). Every current caller passes them; remove the defaults so a future caller that forgets fails to compile. `tests/test-mode-transitions.py` calls `enterEditMode(markdown:)` and needs updating with it. Found in the 1.3.0 code review. |
+| **S3** | Launch arguments can be saved as shared settings | 1.3.1 | Legacy-settings migration reads `UserDefaults.standard`, whose search list includes the launch-argument domain, so launching once with `-MarkdownPreview.theme.appliedPreset <name>` persists that theme into the shared group, and `-MarkdownPreview.appearance <mode>` makes `AppearanceMode.migrateLegacyValue` think a shared value exists and skip its migration. Read legacy values from `UserDefaults.standard.persistentDomain(forName:)` instead. Local-only (needs control of the launch). Found in the 1.3.0 code review. |
+| **S4** | Belvedere must never write inside its own app bundle | 1.3.2 | **future security feature, not started.** Belvedere has `files.user-selected.read-write`, so any file it is asked to open, it may save. That includes a file inside `/Applications/Belvedere.app` -- the Acknowledgements page is the obvious one, but Open With or File › Open reach any bundled file, whatever the default Markdown app is. Saving there breaks the app's code seal. macOS's App Management protection stops *other* developers' apps from modifying the bundle, but not the app itself, so Belvedere is the one app that can do this silently. The fix is app-wide, not about one page: treat any document inside `Bundle.main.bundleURL` (resolved, symlinks followed) as read-only -- no edit mode, no Save, Save As… to somewhere else still allowed -- and refuse any other write path there too. Keep the check in a new file, with a one-line call from the edit-mode entry, since `DocumentWindowController+EditSession.swift` is upstream's. Found reviewing the Markdown Acknowledgements page, 2026-09-29. **Narrow guard shipped in 1.3.0:** both build scripts make `Acknowledgements.md` read-only in the built app, so the app's in-place save fallback is refused (permissions are not part of the code seal). It covers that one file only, and an atomic replace would bypass it if the sandbox ever allowed the rename -- the app-wide rule is still to do. |
+| **F1** | Show a link's destination on hover, like a browser's status bar | 1.4 | **not started, requested 2026-09-30.** Hovering a link in the reading view shows where it actually goes in a small bar at the bottom of the window, the way browsers do (Safari's status bar, Chrome's bottom-left bubble), and hides it when the pointer leaves. A convenience, and a security one: link text can say `github.com/…` while the target is somewhere else, and Belvedere is for reading documents someone else sent. Show the **resolved** target, not the text the document wrote: a relative link as the file path it resolves to (from the `md-asset:` base), a web link with its host visible even when long (truncate the middle of the path, never the host), and an internationalised host in punycode, so a look-alike domain cannot pass. Mailto and in-document `#` links shown as such. The page reports hovers through the host bridge (`mouseover`/`mouseout` on `a[href]`) and the window draws a native overlay, so document content cannot style or spoof the bar. App window only — Quick Look has no host bridge. Editor links are out of scope at first. Not security-weakening and not fork-specific, so it could be offered upstream as its own PR. |
+| **F2** | An ⓘ callout for *Highlight outline section under the pointer* | 1.4 | **not started, requested 2026-09-30.** Settings › General › Reading. The name alone does not say what changes: the sidebar outline always highlights one section, and this setting decides which. Reuse `InfoPopoverButton` (the *Line breaks* row's ⓘ), a popover on click with an accessibility label such as "About outline highlighting". Draft text — *Off:* the outline highlights the section you have scrolled to. *On:* it highlights the section under the mouse pointer as you move over the document, and goes back to following the scroll when the pointer leaves. Check that last clause against `ContentViewController.pointerDocumentYDidChange` / `updatePointerTracking` before shipping it. Consider a one-line subtitle too, as *Line breaks* has, e.g. "Which section the outline marks as you read." The row is upstream's `Toggle` in `GeneralSettingsView.swift`, so wrap it in `LabeledContent` the way the *Line breaks* row is, and keep the change to that one row. English strings only, as with *Line breaks*. |
+| **F3** | ⌘R to reload the open file from disk | 1.4 | **Partly done:** Revert to Saved (⌘R) now discards unsaved changes after a confirmation, from the Save-button work. Still missing: re-reading a file with no local changes. See below. |
+| **S5** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | 1.5 | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
+| **UC1** | Offer click-to-load upstream | — | Offer click-to-load for blocked images (legacy F4) to Markdown Preview as its own PR, once the containment PR ([#337](https://github.com/pluk-inc/markdown-preview/pull/337)) is resolved. It must follow the reworked boundary — the opened project folder, not the document folder. See the Upstream contribution track. |
+| **UC2** | Pitch upstream an optional setting to block a document's network egress | — | **not started, low priority** — the maintainer's own idea, offered when closing [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399): *"we may revisit an optional privacy setting or a narrower CSP separately."* Worth a narrow proposal along those lines once someone has time, distinct from and no substitute for `PreviewContentPolicy` here, which stays unconditional regardless of whether this ever lands. If they build it as a user-facing toggle, decide then whether Belvedere adopts it (defaulted to enforced) or leaves the toggle out entirely and keeps its own unconditional enforcement — no reason to pick now. |
+| **UF1** | Render extension registry (upstream PR 429) | — | Upstream's open render-extension-registry PR ([#429](https://github.com/pluk-inc/markdown-preview/pull/429)). Reviewed 2026-09-25: **don't import now** — unreviewed by the maintainer, functional bugs flagged. If it merges and the headings are wanted, take the two extensions without the registry. Criteria for any registry-style feature: static compiled-in assets only, no code from outside the bundle, output still through DOMPurify and the CSP, no new network or filesystem reach. |
+| **H1** | Delete the six Belvedere releases still on the tap repo | — | **Due on or after 2026-10-28.** Left in place when releases moved to `inquinity/belvedere` on 2026-09-28, so nothing mid-flight broke during the switch. The command, and the check to run first, are in `docs/RELEASE-AUTOMATION.md`, decision 6. Irreversible, so do it deliberately rather than as part of some other change. |
+| **H2** | Understand the Greptile review comments on our upstream PRs | — | **not started.** `greptile-apps[bot]` reviews pluk-inc PRs automatically, and its comments land on ours — inline on #337 (`MarkdownWebView.swift`), and in a *Comments Outside Diff* list that is easy to miss outside email. Work out which of its findings on our PRs are real, how much weight the maintainer gives them (does an open finding hold up a merge?), and how to treat outside-diff comments, which attach to whatever the PR branch contains — including upstream code pulled in by *Update branch*. **First triaged, 2026-09-28, on #337:** "Later documents miss snapshots" at `ContentViewController.swift:465`. That is upstream's reopen-snapshot code from #450 (`b0f9668`), merged into the PR branch the same day, not our diff — nothing to do on #337. The finding is accurate (`snapshotSource` is set only while `!webView.hasRequestedDocument`, so only a window's first document is saved), but for Belvedere it points the wrong way: `DocumentSnapshotCache` writes PNGs of the first screen of up to 40 recently opened documents to the app's Caches folder, and this would widen it. **Decided in the 0.0.63 sync (2026-09-29): Belvedere removed the snapshot code entirely** (see *How changes are applied*), so this finding is moot here. |
+| **H3** | Two known click-to-load coverage gaps | — | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
+
+### Done
+
+Kept under their legacy IDs, which older notes and commits use.
+
+| Legacy | Item | Notes |
 |---|---|---|
-| **F1** | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on [`inquinity/belvedere`](https://github.com/inquinity/belvedere/releases), so no token is needed. 1.1.0 through 1.2.4 were first released on the tap repo itself, while the source was still private; moved and backfilled 2026-09-28 once it was public — see `docs/RELEASE-AUTOMATION.md`, decision 6. First published version: 1.1.0. |
-| **F2** | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
-| **F3** | Trusted folders, security-scoped bookmarks, and dropping the `/` read-only entitlement | One item: trusting a folder is the moment to take a bookmark. Absorbs the former F9. Trust is proposed upstream on [#337](https://github.com/pluk-inc/markdown-preview/pull/337). See below. |
-| **F4** | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. Not part of the containment PR (#337); offered upstream as its own PR once that is completed — see the Upstream contribution track. |
-| **F5** | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
-| **F7** | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
-| **F8** | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
-| **F10** | ⌘R to reload the open file from disk | **Partly done:** Revert to Saved (⌘R) now discards unsaved changes after a confirmation, from the Save-button work. Still missing: re-reading a file with no local changes. See below. |
-| **F11** | Two known F4 coverage gaps | Deliberately left: the `too large` label has no page-level test, and duplicate references to one blocked file are untested. See below. |
-| **F12** | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). **Updated:** since the #337 rework landed on `main`, a clicked link is no longer gated by containment at all — the click is the decision, matching upstream. The executable/installer check above is what still stands between a link and `NSWorkspace.shared.open`, and now applies to every link, not only ones containment used to let through. |
-| **F13** | Pitch upstream an optional setting to block a document's network egress | **not started, low priority** — the maintainer's own idea, offered when closing [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399): *"we may revisit an optional privacy setting or a narrower CSP separately."* Worth a narrow proposal along those lines once someone has time, distinct from and no substitute for `PreviewContentPolicy` here, which stays unconditional regardless of whether this ever lands. If they build it as a user-facing toggle, decide then whether Belvedere adopts it (defaulted to enforced) or leaves the toggle out entirely and keeps its own unconditional enforcement — no reason to pick now. |
-| **F14** | Delete the six Belvedere releases still on the tap repo | **Due on or after 2026-10-28.** Left in place when releases moved to `inquinity/belvedere` on 2026-09-28, so nothing mid-flight broke during the switch. The command, and the check to run first, are in `docs/RELEASE-AUTOMATION.md`, decision 6. Irreversible, so do it deliberately rather than as part of some other change. |
-| **F15** | `brew uninstall --zap belvedere` left folders behind | ✅ **fixed in the tap, 2026-09-29** (`05ed469`, "belvedere: zap the Quick Look, group and script folders"). `zap` had trashed only the app's container. It now also covers the Quick Look extension's container, both group containers and the four `~/Library/Application Scripts` folders. It drops the `HTTPStorages` and `Preferences` paths, because a sandboxed app never writes those outside its container. **The stray `~/Library/Preferences/45GJWJVQN2.com.altmansoftwaredesign.belvedere.plist`** holds one key, `MarkdownPreview.appearance`, and was written once, at 22:54 on 2026-09-25, during the 0.0.62 sync. Only an unsandboxed process writes an app-group suite there, which means an unsigned build run directly, not the shipped app. So it stays out of `zap`; it has since been deleted. **The investigation found a real bug, fixed 2026-09-29:** releases through 1.2.4 were signed for an app group literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS makes the folder `--DEVELOPMENT_TEAM-.…`), not the `45GJWJVQN2.…` the code reads. So the app and Quick Look could not share settings. `bin/build.sh` now expands the entitlements and checks the signed group before notarizing; see *`bin/build.sh` signs outside Xcode, so it expands the entitlements itself* under Distribution. Settings actually carrying over to Quick Look is not yet confirmed on screen; the first Developer ID build after the fix is the test. `zap` covers both folder names, since earlier installs keep the `--DEVELOPMENT_TEAM-` ones. |
-| **F16** | Understand the Greptile review comments on our upstream PRs | **not started.** `greptile-apps[bot]` reviews pluk-inc PRs automatically, and its comments land on ours — inline on #337 (`MarkdownWebView.swift`), and in a *Comments Outside Diff* list that is easy to miss outside email. Work out which of its findings on our PRs are real, how much weight the maintainer gives them (does an open finding hold up a merge?), and how to treat outside-diff comments, which attach to whatever the PR branch contains — including upstream code pulled in by *Update branch*. **First triaged, 2026-09-28, on #337:** "Later documents miss snapshots" at `ContentViewController.swift:465`. That is upstream's reopen-snapshot code from #450 (`b0f9668`), merged into the PR branch the same day, not our diff — nothing to do on #337. The finding is accurate (`snapshotSource` is set only while `!webView.hasRequestedDocument`, so only a window's first document is saved), but for Belvedere it points the wrong way: `DocumentSnapshotCache` writes PNGs of the first screen of up to 40 recently opened documents to the app's Caches folder, and this would widen it. **Decided in the 0.0.63 sync (2026-09-29): Belvedere removed the snapshot code entirely** (see *How changes are applied*), so this finding is moot here. |
-| **F17** | Belvedere must never write inside its own app bundle | **future security feature, not started.** Belvedere has `files.user-selected.read-write`, so any file it is asked to open, it may save. That includes a file inside `/Applications/Belvedere.app` -- the Acknowledgements page is the obvious one, but Open With or File › Open reach any bundled file, whatever the default Markdown app is. Saving there breaks the app's code seal. macOS's App Management protection stops *other* developers' apps from modifying the bundle, but not the app itself, so Belvedere is the one app that can do this silently. The fix is app-wide, not about one page: treat any document inside `Bundle.main.bundleURL` (resolved, symlinks followed) as read-only -- no edit mode, no Save, Save As… to somewhere else still allowed -- and refuse any other write path there too. Keep the check in a new file, with a one-line call from the edit-mode entry, since `DocumentWindowController+EditSession.swift` is upstream's. Found reviewing the Markdown Acknowledgements page, 2026-09-29. **Narrow guard shipped in 1.3.0:** both build scripts make `Acknowledgements.md` read-only in the built app, so the app's in-place save fallback is refused (permissions are not part of the code seal). It covers that one file only, and an atomic replace would bypass it if the sandbox ever allowed the rename -- the app-wide rule is still to do. |
-| **F18** | Show a link's destination on hover, like a browser's status bar | **not started, requested 2026-09-30.** Hovering a link in the reading view shows where it actually goes in a small bar at the bottom of the window, the way browsers do (Safari's status bar, Chrome's bottom-left bubble), and hides it when the pointer leaves. A convenience, and a security one: link text can say `github.com/…` while the target is somewhere else, and Belvedere is for reading documents someone else sent. Show the **resolved** target, not the text the document wrote: a relative link as the file path it resolves to (from the `md-asset:` base), a web link with its host visible even when long (truncate the middle of the path, never the host), and an internationalised host in punycode, so a look-alike domain cannot pass. Mailto and in-document `#` links shown as such. The page reports hovers through the host bridge (`mouseover`/`mouseout` on `a[href]`) and the window draws a native overlay, so document content cannot style or spoof the bar. App window only — Quick Look has no host bridge. Editor links are out of scope at first. Not security-weakening and not fork-specific, so it could be offered upstream as its own PR. |
-| **F19** | An ⓘ callout for *Highlight outline section under the pointer* | **not started, requested 2026-09-30.** Settings › General › Reading. The name alone does not say what changes: the sidebar outline always highlights one section, and this setting decides which. Reuse `InfoPopoverButton` (the *Line breaks* row's ⓘ), a popover on click with an accessibility label such as "About outline highlighting". Draft text — *Off:* the outline highlights the section you have scrolled to. *On:* it highlights the section under the mouse pointer as you move over the document, and goes back to following the scroll when the pointer leaves. Check that last clause against `ContentViewController.pointerDocumentYDidChange` / `updatePointerTracking` before shipping it. Consider a one-line subtitle too, as *Line breaks* has, e.g. "Which section the outline marks as you read." The row is upstream's `Toggle` in `GeneralSettingsView.swift`, so wrap it in `LabeledContent` the way the *Line breaks* row is, and keep the change to that one row. English strings only, as with *Line breaks*. |
-| ~~F9~~ | Trusted folders | Folded into F3 — trust and bookmarks are the same act seen twice. |
+| F1 | Homebrew tap ([`inquinity/homebrew-tap`](https://github.com/inquinity/homebrew-tap)) | ✅ done — **public**, not private: discoverability, not authentication, is the intended limit on who installs it. `brew install --cask inquinity/tap/belvedere`. DMGs are GitHub Releases on [`inquinity/belvedere`](https://github.com/inquinity/belvedere/releases), so no token is needed. 1.1.0 through 1.2.4 were first released on the tap repo itself, while the source was still private; moved and backfilled 2026-09-28 once it was public — see `docs/RELEASE-AUTOMATION.md`, decision 6. First published version: 1.1.0. |
+| F2 | CSP on the app preview page and editor (`PreviewContentPolicy`) | ✅ done and verified — math and editing confirmed working after the CSP landed. |
+| F4 | Click-to-load for deferred content | ✅ **local case done** — out-of-boundary images render as a placeholder with Load, verified end to end in the running app. Remote images are labelled but not loadable; see below. Not part of the containment PR (#337); offered upstream as its own PR once that is completed — see the Upstream contribution track. |
+| F5 | Manual-test `.md` files need pass/fail criteria a human can read off the screen | ✅ done — `EXPECT`/`FAIL IF` notes in every fixture, plus `docs/MANUAL-TEST-CHECKLIST.md` for upstream's `samples/`. See below |
+| F7 | Application menu still said "Markdown Preview" | ✅ done — see below. Its two adjacent findings ("Check for Updates…", "Send Anonymous Crash Reports") are also resolved — both removed from the menu on request, see below. |
+| F8 | Pick a final product name and icon | ✅ done — **Belvedere**, with the bundle identifier changed to match. Icon is Split Signal / Geometric B (concept 2). See below. |
+| F12 | A link could start a program | `activateLink` in `MarkdownWebView.swift` hands a clicked link's target to `NSWorkspace.shared.open` once containment allows it — and containment says the file is inside the document's folder, not that the document may *start* it. A relative link to `tools/setup.command` therefore ran it on one click. **Fixed:** a target the system would run or install (app bundle, Unix executable, installer, disk image) is now shown in Finder after a confirmation. **Correction:** this row previously said absolute `file://` links were the problem — they are not reachable that way, because `ALLOWED_URI_REGEXP` strips `file:` hrefs before a document is rendered. That path is hardened anyway, upstream in [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337). **Updated:** since the #337 rework landed on `main`, a clicked link is no longer gated by containment at all — the click is the decision, matching upstream. The executable/installer check above is what still stands between a link and `NSWorkspace.shared.open`, and now applies to every link, not only ones containment used to let through. |
+| F15 | `brew uninstall --zap belvedere` left folders behind | ✅ **fixed in the tap, 2026-09-29** (`05ed469`, "belvedere: zap the Quick Look, group and script folders"). `zap` had trashed only the app's container. It now also covers the Quick Look extension's container, both group containers and the four `~/Library/Application Scripts` folders. It drops the `HTTPStorages` and `Preferences` paths, because a sandboxed app never writes those outside its container. **The stray `~/Library/Preferences/45GJWJVQN2.com.altmansoftwaredesign.belvedere.plist`** holds one key, `MarkdownPreview.appearance`, and was written once, at 22:54 on 2026-09-25, during the 0.0.62 sync. Only an unsandboxed process writes an app-group suite there, which means an unsigned build run directly, not the shipped app. So it stays out of `zap`; it has since been deleted. **The investigation found a real bug, fixed 2026-09-29:** releases through 1.2.4 were signed for an app group literally named `$(DEVELOPMENT_TEAM).com.altmansoftwaredesign.belvedere` (macOS makes the folder `--DEVELOPMENT_TEAM-.…`), not the `45GJWJVQN2.…` the code reads. So the app and Quick Look could not share settings. `bin/build.sh` now expands the entitlements and checks the signed group before notarizing; see *`bin/build.sh` signs outside Xcode, so it expands the entitlements itself* under Distribution. Settings actually carrying over to Quick Look is not yet confirmed on screen; the first Developer ID build after the fix is the test. `zap` covers both folder names, since earlier installs keep the `--DEVELOPMENT_TEAM-` ones. |
+| F9 | Trusted folders | Folded into legacy F3, now S5 — trust and bookmarks are the same act seen twice. |
+
+### Legacy → new IDs (open items)
+
+| Legacy | New |
+|---|---|
+| F3 | S5 |
+| F10 | F3 |
+| F11 | H3 |
+| F13 | UC2 |
+| F14 | H1 |
+| F16 | H2 |
+| F17 | S4 |
+| F18 | F1 |
+| F19 | F2 |
 
 **Stale expectations, and the practice written to stop them.** Five times in this
 repository a fixture or a README has asserted the *opposite* of current behaviour:
@@ -249,7 +284,7 @@ branch as-is. Upstream has the same problem and a better example of it than any 
 their `README.md` claimed Mermaid rendered in both surfaces while it was broken in Quick
 Look, and that mismatch was read as documentation drift rather than as the bug it was.
 
-**F11 — the two F4 gaps left open on purpose.** An audit of the deferred-image behaviour
+**H3 — the two click-to-load gaps left open on purpose.** An audit of the deferred-image behaviour
 space closed four gaps and left these two, recorded so they are decisions rather than
 oversights.
 
@@ -272,7 +307,7 @@ this could take.
 Both are small. They are listed because "we know and chose not to" is a different state
 from "nobody looked", and the difference is invisible six months later.
 
-**F10 — ⌘R to reload the open file.** Requested as a missing feature; it is really a
+**F3 — ⌘R to reload the open file.** Requested as a missing feature; it is really a
 half-present one.
 
 **Update — partly done.** The Save-button work submitted upstream ([PR #379](https://github.com/pluk-inc/markdown-preview/pull/379), already on
@@ -360,7 +395,7 @@ is written down rather than left to that.
 
 ### Deferred, with reasons
 
-**F2 — CSP on the app preview page and editor. Implemented as
+**CSP on the app preview page and editor (legacy F2). Implemented as
 `md-preview/Rendering/PreviewContentPolicy.swift`.** With
 `com.apple.security.network.client` proven un-removable, this is the control that stops a
 document reaching the network, not the sandbox.
@@ -415,7 +450,7 @@ only, since the keys are the identifiers `L()` looks up.
 group, discarded preferences and another LaunchServices re-registration, all for a string
 no user sees. The mismatch is intentional; do not "tidy" it.
 
-**F4 — click-to-load for deferred content.** Quick Look blocks remote images outright
+**Click-to-load for deferred content (legacy F4).** Quick Look blocks remote images outright
 (M3b), which is right for a surface reached by pressing space on a file you did not
 choose. The app window is a deliberate act, so the answer there is the one mail clients
 settled on: do not load, show the reader what was withheld, and offer it. Containment
@@ -503,7 +538,7 @@ the whole of the consent. What the click then buys is deliberately small:
 - **One image per click, and no memory of it.** "Trust this host" is the obvious feature
   and the wrong unit. A large code-hosting host speaks for thousands of unrelated authors,
   so allowing it once would allow all of them, in every document, for ever. Trust belongs
-  to a folder the reader chose (F3); a hostname a document named is not a choice the
+  to a folder the reader chose (trusted folders, S5); a hostname a document named is not a choice the
   reader made. **Load all** is therefore local-only — one click standing in for many is
   reasonable for files already on the disk, not for requests to hosts nobody has looked
   at.
@@ -566,7 +601,7 @@ survive a morph update, a click asks the host exactly once with a non-relative U
 refusal is shown in place.
 
 **This item stands alone.** No trust, no persistence, no configuration, nothing to manage.
-A user who never touches F3 still gets working documents from this. That independence is
+A user who never touches trusted folders (S5) still gets working documents from this. That independence is
 the reason it is worth building first.
 
 **Quick Look gets none of it.** There is no chrome to put the affordance in and nothing to
@@ -574,7 +609,7 @@ persist a decision to, and a Load button in a panel that vanishes on the next sp
 would train people to click grants without reading them. See "Quick Look is a different
 surface" below.
 
-**F8 — the name is Belvedere, and the bundle identifier moved with it.** `MDView` was
+**The name is Belvedere (legacy F8), and the bundle identifier moved with it.** `MDView` was
 always provisional: a quick pick to stop the Dock collision with upstream. Belvedere is a
 lookout built for the view, which is what this is, and it survived a collision check that
 Mirador did not.
@@ -606,7 +641,7 @@ itself, every fork build script that names the built app, and the identifier ass
 that matters after the earlier incident where a regex joined entries by dropping
 newlines.
 
-**F5 — manual-test `.md` files didn't say what "pass" looks like. Done, both ways.**
+**Manual-test `.md` files (legacy F5) didn't say what "pass" looks like. Done, both ways.**
 Every fixture written for this fork explained the threat to a *developer*; none told a
 person looking at the rendered page how to tell a pass from a failure. Opening
 `inline-html.md` and eyeballing it gave no way to confirm the credential-harvesting
@@ -638,7 +673,7 @@ blocked it, and the Mermaid-in-Quick-Look example still described a fixed bug as
 accepted limitation. Documentation that tells a tester the wrong expectation is worse than
 none — it converts a real regression into an expected result.
 
-**F7 — the Application menu still said "Markdown Preview." Done.** The M2b rename only
+**The Application menu (legacy F7) still said "Markdown Preview." Done.** The M2b rename only
 touched `Localizable.strings`, which covers everything looked up through `L()` — the
 Settings pane, dialogs, tooltips. It does not cover `MainMenu.xib`'s own menu items
 ("Quit", "About", "Hide", the app menu's title and submenu), which macOS resolves
@@ -802,7 +837,7 @@ This is the first time the fork has taken a behaviour change back from upstream 
 sending one, and it is the cheap outcome the contribution track exists to produce: the
 Mermaid fix is no longer a diff this fork carries.
 
-**F3 — trusted folders, security-scoped bookmarks, and the `/` read-only entitlement.**
+**S5 — trusted folders, security-scoped bookmarks, and the `/` read-only entitlement.**
 Three things that were tracked separately and are one piece of work.
 
 Both targets carry `com.apple.security.temporary-exception.files.absolute-path.read-only`
@@ -832,7 +867,7 @@ store the resolved path, so a trusted folder cannot become a redirect. Warn when
 candidate covers an unusually large tree. Never auto-trust, and never offer "trust the
 parent". Prompt lazily — when a document actually reaches outside its folder, not when a
 folder is opened — because a prompt on open becomes a toll gate people dismiss without
-reading. **Quick Look never honours trust**, for the reasons under F4.
+reading. **Quick Look never honours trust**, for the reasons under click-to-load (legacy F4).
 
 **The management pane.** Claude Code stores this shape in `~/.claude.json`: a map keyed by
 absolute path, one boolean per entry (`hasTrustDialogAccepted`), plain text and
@@ -847,12 +882,12 @@ nothing. Readable JSON in the app container, not an opaque blob. Revocation can 
 effect on the next render.
 
 **The seam worth remembering:** trust is about folders, and remote images are about hosts.
-F4's placeholder is shared between them, but a trusted folder says nothing about
+Click-to-load's placeholder is shared between them, but a trusted folder says nothing about
 `example.com`. Remote content is click-to-load and stays that way: a per-host grant was
 considered and rejected, because one hostname can stand for thousands of unrelated
-authors (see F4). Folders are a unit a reader can actually mean; hosts are not.
+authors (see click-to-load). Folders are a unit a reader can actually mean; hosts are not.
 
-**Sequencing.** F4 first, since it stands alone and needs no policy. Then this. Trust is
+**Sequencing.** Click-to-load first (done), since it stands alone and needs no policy. Then this. Trust is
 proposed upstream as the middle of three layers on #337; if they take it, it arrives
 through them, and if they decline it becomes a fork feature.
 
@@ -919,7 +954,7 @@ reading view on every surface, and ticking a task happens in Edit Mode.)
 ## Quick Look is a different surface
 
 The two surfaces have drifted apart deliberately, and the divergence has now caused
-confusion three times — the CSP split (F2/M3b), the containment scope (M4), and the vendor
+confusion three times — the CSP split (legacy F2, M3b), the containment scope (M4), and the vendor
 loading mode behind B1. Collected here so it is one lookup rather than three.
 
 | | Quick Look | App window |
@@ -930,7 +965,7 @@ loading mode behind B1. Collected here so it is one lookup rather than three.
 | Local images | rewritten to `data:` / `cid:` | served over `md-asset:` |
 | CSP `img-src` | `data: cid:` | `md-asset: data:` |
 | CSP `script-src` | `'unsafe-inline'` | `'unsafe-inline' md-asset:` |
-| Containment | document folder, always | document folder, or an opened folder containing it; trust proposed (F3) |
+| Containment | document folder, always | document folder, or an opened folder containing it; trust proposed (S5) |
 | Editing, tabs, PDF export | none | yes |
 
 Identical in both: `default-src 'none'`, remote images blocked, and the same DOMPurify
@@ -943,8 +978,8 @@ nothing to persist a decision to, and no deliberate act to attach a grant to. So
 policy is self-contained: everything the page needs is embedded before it loads, and
 nothing it asks for afterwards is honoured.
 
-**Every grant-shaped feature is app-window-only, permanently.** Click-to-load (F4) and
-trust (F3) both need a button, a re-render and somewhere to remember a decision. A preview
+**Every grant-shaped feature is app-window-only, permanently.** Click-to-load (legacy F4) and
+trust (S5) both need a button, a re-render and somewhere to remember a decision. A preview
 panel has none of those, and a Load button in a panel that vanishes on the next space
 press would be worse than no button — it trains the reflex to click grants without reading
 them. This is not a limitation to close later; it is the design.

@@ -683,7 +683,7 @@ nonisolated extension MarkdownHTML {
         text-decoration: line-through;
     }
     li.task-list-item > p:first-of-type { display: inline; margin-top: 0; }
-    /* Deferred images (F4). The placeholder has to read as "withheld,
+    /* Deferred images (click-to-load). The placeholder has to read as "withheld,
        here is the file, here is the action" rather than as a broken image,
        because a broken image is what the reader is trying to distinguish it
        from. */

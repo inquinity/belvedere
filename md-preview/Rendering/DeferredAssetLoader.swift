@@ -22,8 +22,8 @@ import Foundation
 /// - **A size cap**, so a click cannot pull a multi-gigabyte file into memory
 ///   and base64 it.
 /// - **No persistence.** The caller grants one asset at a time and forgets it
-///   when the document closes; see `docs/FORK-NOTES.md` (F4). Durable grants
-///   are trusted folders (F3), which are a different decision made about a
+///   when the document closes; see `docs/FORK-NOTES.md`, click-to-load. Durable
+///   grants are trusted folders, which are a different decision made about a
 ///   folder rather than about an image.
 nonisolated enum DeferredAssetLoader {
 
