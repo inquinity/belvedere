@@ -59,6 +59,12 @@
 > - **Fork tasks run through `just`** (`brew install just`; `just --list`). The recipes
 >   in `justfile` wrap the `bin/` scripts — `just build`, `just release <seg>`,
 >   `just publish --go`. Releasing is documented in `docs/RELEASE-AUTOMATION.md`.
+> - **Upstream changes Belvedere reshaped or declined are recorded in
+>   [docs/Upstream-Changed.md](docs/Upstream-Changed.md)** — reopen snapshots removed,
+>   the What's New window never shown, *Strict line breaks* shown as a *Line breaks*
+>   choice, upstream's performance workflows deleted. Read it before a sync so a merge
+>   does not undo one, and add a section for each sync. Release notes describe what
+>   changed for readers, never what was declined.
 > - **Review all incoming upstream changes for security** Use the `security-oss-app-reviewer` skill and focus on incoming changes.
 > - **`README.md` is Belvedere's own, not preserved from upstream.** Unlike `AGENTS.md`
 >   (whose body below this block *is* upstream's, verbatim), `README.md` was rewritten to

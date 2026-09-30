@@ -45,9 +45,6 @@ Look are upstream's work.
   usual.
 - A document cannot draw form controls — no text fields, dropdowns or other inputs
   that could imitate a sign-in prompt. Task-list checkboxes still render.
-- Opening a document leaves no picture of it behind. Markdown Preview saves an image
-  of each document's first screen to disk so it can reopen faster; Belvedere does
-  not have that code.
 
 **Ahead of Markdown Preview**
 
@@ -64,7 +61,6 @@ Proposed to Markdown Preview and carried here until it merges them:
   Markdown Preview instead of replacing it.
 - The command-line tools installer is removed, along with the permission to control
   Terminal that it needed.
-- No *What's New* window: Markdown Preview's describes its own releases.
 - The About box states the network posture above. Its **Acknowledgements** link
   credits Markdown Preview and every open-source component the app includes, with
   the license each is used under.

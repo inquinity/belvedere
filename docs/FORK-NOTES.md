@@ -78,6 +78,12 @@ git fetch upstream
 git merge upstream/main              # merge, never rebase
 ```
 
+Before merging, read `docs/Upstream-Changed.md`: it lists every upstream change
+Belvedere took with changes or declined, and what keeps each decision in place. After
+merging, add a section there for this sync — what was reshaped, declined or kept
+ours, and why. Release notes say what changed for readers; that file says what was
+decided.
+
 **Merge, never rebase.** `main` is published and others may build from it; rebasing
 means force-pushing over history they hold. `git rerere` is enabled in this clone so
 each conflict resolution is recorded once and replayed on later merges — if you clone
@@ -126,6 +132,8 @@ the smallest permanent conflict surface:
 | Sparkle | **Excise** | `SPUStandardUpdaterController` / `SPUUpdater` are concrete types with KVO observers bound to them; faking them is more fragile than deleting. The plist keys and `mach-lookup` entitlements have to change regardless. |
 | Reopen snapshots (upstream 0.0.63) | **Excise** — delete `DocumentSnapshotCache.swift` and its call sites in `ContentViewController`, `MainSplitViewController`, `DocumentWindowController` and `MarkdownDocument`; keep the spare reader and the no-user-fonts change from the same upstream commit | It wrote a PNG of each opened document's first screen to the app's Caches, up to 40, never removed when the document closed or was deleted — a plaintext copy of exactly the plain notes most likely to be private. An off switch would still ship the code; the maintainer called the code itself a liability. Expect conflicts on syncs that touch those files; keep it out, and `ForkPostureTests` fails if it returns |
 | What's New window (upstream 0.0.63) | **Orphan** — leave `Features/WhatsNew/` untouched; remove only the launch hook, the Help-menu item and the automatic presentation | It describes Markdown Preview's releases, links to upstream's GitHub, and compares upstream's build numbers (66+) with ours (13+), so it would open for every Belvedere user on every upstream bump. Unreferenced files cost nothing on merges; `ForkPostureTests` fails if anything presents it |
+| Strict line breaks (upstream 0.0.63) | **Reshape** — keep upstream's setting and renderer; replace its toggle in `GeneralSettingsView` with a *Line breaks* popup (*Keep as typed* / *Join into paragraphs*) and an ⓘ popover from the fork's `InfoPopoverButton` | "Strict" reads as the opposite of what it does. Same stored key, so Quick Look and upstream's rendering are untouched; only one row of an upstream pane differs |
+| Performance CI workflows (upstream 0.0.59–0.0.62) | **Delete** `.github/workflows/performance*.yml`; keep `scripts/bench` and `tests/performance` | The fork does not use upstream's benchmark reporting, and the workflows would run on macOS runners for every push and post PR comments with write scope. Re-delete if a sync brings them back |
 
 **There is deliberately dead code in this fork.** The CLI installer in `AppDelegate.swift`
 and the emptied reporter bodies are intentional — they are load-bearing for cheap merges,
