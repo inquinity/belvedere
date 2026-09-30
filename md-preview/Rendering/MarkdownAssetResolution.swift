@@ -3,6 +3,7 @@
 //  md-preview
 //
 
+import Darwin
 import Foundation
 import Markdown
 
@@ -87,6 +88,48 @@ nonisolated enum MarkdownAssetResolution {
         return candidate
     }
 
+    /// Opens, validates, and reads `assetURL` as one operation, so the file
+    /// whose containment is checked is exactly the file whose bytes come
+    /// back — never a path that is checked here and reopened elsewhere as a
+    /// second, possibly different filesystem object by the time that happens.
+    ///
+    /// A symlink swapped between validating a path string and later handing
+    /// that same string to `Data(contentsOf:)` is a classic
+    /// time-of-check-to-time-of-use gap. `open` below resolves the whole
+    /// symlink chain once, atomically, to a fixed file; `fcntl(F_GETPATH)`
+    /// reads back what that open actually resolved to, and both the
+    /// containment check and the read act on that one open file — nothing
+    /// that happens to the path afterward can matter, because the descriptor
+    /// no longer refers to a path, it refers to the inode `open` found.
+    ///
+    /// The path is filtered first, with no file access, so a document cannot
+    /// make the app `open` an arbitrary path -- a FIFO or a tty would block
+    /// the scheme handler's queue, and with it every later load for the page.
+    /// `O_NONBLOCK` covers the same case if a filtered path is swapped for one
+    /// between the filter and the open; the check on the open descriptor
+    /// below remains the one that counts.
+    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL)? {
+        guard let candidate = fileURL(for: assetURL, containedIn: documentFolder) else { return nil }
+        let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+
+        var pathBuffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+        guard fcntl(fd, F_GETPATH, &pathBuffer) == 0 else { return nil }
+        let resolved = URL(fileURLWithPath: pathBuffer.withUnsafeBufferPointer {
+            String(cString: $0.baseAddress!)
+        })
+        guard isContained(resolved, in: documentFolder) else { return nil }
+
+        guard let data = try? FileHandle(fileDescriptor: fd, closeOnDealloc: false).readToEnd() else {
+            return nil
+        }
+        return (data, resolved)
+    }
+
     /// The file an `md-asset:` URL names, **with no containment check**.
     ///
     /// `fileURL(for:containedIn:)` above uses this and applies the boundary,
@@ -121,7 +164,12 @@ nonisolated enum MarkdownAssetResolution {
     static func isContained(_ candidate: URL, in folder: URL) -> Bool {
         let candidatePath = candidate.standardizedFileURL.resolvingSymlinksInPath().path
         let folderPath = folder.standardizedFileURL.resolvingSymlinksInPath().path
-        return candidatePath == folderPath || candidatePath.hasPrefix(folderPath + "/")
+        if candidatePath == folderPath { return true }
+        // folderPath is "/" at the volume root, which already ends in the
+        // separator — appending another would require a descendant path to
+        // start with "//" and reject every real one.
+        let prefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+        return candidatePath.hasPrefix(prefix)
     }
 
     // MARK: - Image storage helpers

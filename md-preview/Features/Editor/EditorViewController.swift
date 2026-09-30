@@ -74,7 +74,31 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         updateUnderPageBackgroundColor()
     }
 
-    func load(markdown: String, assetBaseURL: URL? = nil, containmentRoot: URL? = nil) {
+    /// Applies a changed containment boundary to the document already open in
+    /// the editor, without touching its content — cursor, selection, scroll
+    /// position, and undo history all survive. For when the boundary itself
+    /// moved (the reader opened a different folder, or the open document was
+    /// renamed or moved to a different folder) but the document's content on
+    /// screen didn't change; `load(markdown:assetBaseURL:containmentRoot:)`
+    /// is for the document itself changing.
+    ///
+    /// Also refreshes the live page's `<base>` href, not just the Swift-side
+    /// and scheme-handler boundaries — `<base>` is what the browser resolves
+    /// a relative `src="../foo.png"` against, so leaving it stale would keep
+    /// resolving (or failing to resolve) assets against the folder the
+    /// document just left.
+    func updateContainmentRoot(_ containmentRoot: URL?, assetBaseURL: URL?) {
+        currentContainmentRoot = containmentRoot?.standardizedFileURL
+        currentAssetBaseURL = assetBaseURL?.standardizedFileURL
+        assetScheme.setContainmentRoot(currentContainmentRoot)
+        assetScheme.setBaseURL(currentAssetBaseURL)
+        let baseHref = currentAssetBaseURL.map(MarkdownAssetResolution.baseHref(forFolder:)) ?? ""
+        webView.evaluateJavaScript(
+            "window.__mdSetBaseHref && window.__mdSetBaseHref(\(EditorHTML.jsStringLiteral(baseHref)))"
+        )
+    }
+
+    func load(markdown: String, assetBaseURL: URL?, containmentRoot: URL?) {
         hasChanges = false
         currentAssetBaseURL = assetBaseURL?.standardizedFileURL
         currentContainmentRoot = containmentRoot?.standardizedFileURL
