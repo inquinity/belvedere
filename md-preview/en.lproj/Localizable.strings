@@ -341,5 +341,11 @@
 "Wrap long lines with one click. Code blocks now use rounded cards that show their language." = "Wrap long lines with one click. Code blocks now use rounded cards that show their language.";
 
 /* Reading preferences */
-"Strict line breaks" = "Strict line breaks";
-"Join ordinary source lines into flowing paragraphs. Turn this off to preserve every line break. Applies to reading view and Quick Look previews." = "Join ordinary source lines into flowing paragraphs. Turn this off to preserve every line break. Applies to reading view and Quick Look previews.";
+"Line breaks" = "Line breaks";
+"How a single new line in the source is shown." = "How a single new line in the source is shown.";
+"Keep as typed" = "Keep as typed";
+"Join into paragraphs" = "Join into paragraphs";
+"About line breaks" = "About line breaks";
+"each new line starts a new line, the way GitHub shows comments and issues." = "each new line starts a new line, the way GitHub shows comments and issues.";
+"lines run together until a blank line, the way standard Markdown and GitHub README files work." = "lines run together until a blank line, the way standard Markdown and GitHub README files work.";
+"Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look." = "Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look.";

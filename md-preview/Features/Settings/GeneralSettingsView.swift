@@ -21,11 +21,35 @@ struct GeneralSettingsView: View {
                     Text(L("Size of rendered Markdown in document windows."))
                 }
 
-                Toggle(isOn: $model.strictLineBreaks) {
-                    Text(L("Strict line breaks"))
-                    Text(L("Join ordinary source lines into flowing paragraphs. Turn this off to preserve every line break. Applies to reading view and Quick Look previews."))
+                // Upstream's "Strict line breaks" toggle, as a choice between two
+                // named behaviours: "strict" read as the opposite of what it did.
+                // Same stored Bool, so no migration and Quick Look is unchanged.
+                LabeledContent {
+                    HStack(spacing: 6) {
+                        Picker(L("Line breaks"), selection: $model.strictLineBreaks) {
+                            Text(L("Keep as typed")).tag(false)
+                            Text(L("Join into paragraphs")).tag(true)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .fixedSize()
+
+                        InfoPopoverButton(accessibilityLabel: L("About line breaks")) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(L("Keep as typed")).bold()
+                                    + Text(": ")
+                                    + Text(L("each new line starts a new line, the way GitHub shows comments and issues."))
+                                Text(L("Join into paragraphs")).bold()
+                                    + Text(": ")
+                                    + Text(L("lines run together until a blank line, the way standard Markdown and GitHub README files work."))
+                                Text(L("Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look."))
+                            }
+                        }
+                    }
+                } label: {
+                    Text(L("Line breaks"))
+                    Text(L("How a single new line in the source is shown."))
                 }
-                .accessibilityLabel(L("Strict line breaks"))
 
                 Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
 
