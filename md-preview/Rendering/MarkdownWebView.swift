@@ -643,20 +643,32 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// reader asked what went wrong rather than for the image.
     fileprivate func classifyDeferredFailure(token: String, src: String) {
         func answer(_ reason: String?) {
-            let value = reason.map { "'\($0)'" } ?? "null"
+            let value = reason.map { javaScriptStringLiteral($0) } ?? "null"
             webView.evaluateJavaScript(
-                "window.MdPreview && MdPreview.explainDeferredFailure('\(token)', \(value));"
+                "window.MdPreview && MdPreview.explainDeferredFailure(\(javaScriptStringLiteral(token)), \(value));"
             ) { _, _ in }
         }
+        // Only a file the scheme handler itself would have served may be
+        // examined, judged by the same rule: its boundary, with `..` resolved
+        // and symlinks followed. The page's own "is it in the folder?" check is
+        // a string prefix, and `..%2F` decodes to a real `..` after it -- a
+        // prefix test here once let a document probe any file on disk, and
+        // hang the app reading a huge one, without a click.
         guard let url = URL(string: src),
-              let path = DeferredAssetLoader.localPath(
-                  for: url, scheme: MarkdownAssetScheme.scheme
-              ),
-              let base = currentAssetBase,
-              // Belt and braces: only in-folder paths, whatever the page said.
-              path.hasPrefix(base.standardizedFileURL.path + "/")
+              let base = currentAssetBase
         else { return answer(nil) }
-        answer(DeferredAssetLoader.reasonForInFolderFailure(atPath: path)?.rawValue)
+        let boundary = currentContainmentRoot ?? base
+        let file: URL?
+        if url.scheme == MarkdownAssetScheme.scheme {
+            file = MarkdownAssetResolution.fileURL(for: url, containedIn: boundary)
+        } else if url.isFileURL,
+                  MarkdownAssetResolution.isContained(url.standardizedFileURL, in: boundary) {
+            file = url.standardizedFileURL
+        } else {
+            file = nil
+        }
+        guard let file else { return answer(nil) }
+        answer(DeferredAssetLoader.reasonForInFolderFailure(atPath: file.path)?.rawValue)
     }
 
     /// Serves one blocked asset after the reader clicked its placeholder (F4).
