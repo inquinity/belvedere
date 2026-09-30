@@ -36,6 +36,8 @@ struct InfoPopoverButton<Content: View>: View {
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             content
                 .font(.callout)
+                // Wrapped Text centres its lines unless told otherwise.
+                .multilineTextAlignment(.leading)
                 .frame(width: 320, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(14)
