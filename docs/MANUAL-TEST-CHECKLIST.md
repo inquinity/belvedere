@@ -169,12 +169,14 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | The security line breaks after "on its own." in **both** | Two different guarantees — the app, then document content. They should not run together |
 | The repository link opens `github.com/inquinity/belvedere` | |
 | **Acknowledgements**, below it — with a little space between the two links in the menu panel — opens `Acknowledgements.md` in the default Markdown app: one line each for Markdown Preview, swift-markdown, swift-cmark and the six JavaScript libraries, "*X* is used under the *license*", each license a link to that project's repository | A file rather than an in-app window, on purpose: the standard About panel opens its links itself, so a file is the one target both About surfaces can share. The license texts are not on the page by design; they ship in `Contents/Resources` |
-| With Belvedere as the default Markdown app, open **Acknowledgements**, press ⌘E, type a character and save (⌘S, then accept the save panel that asks for permission). The save must fail, and `codesign --verify --deep --strict /Applications/Belvedere.app` must still pass | The page lives inside the signed bundle and is read-only there; a save that succeeds has broken the app's code seal |
+| Open **Acknowledgements** (About ▸ Acknowledgements, or File ▸ Open… on `/Applications/Belvedere.app/Contents/Resources/Acknowledgements.md`) and press ⌘E: an explanation appears and there is **no editor**. Then `codesign --verify --deep --strict /Applications/Belvedere.app` must still pass | The page lives inside the signed bundle. Since 1.3.1 a bundled document cannot be edited at all, so there is nothing to save; before that a read-only flag was the only guard |
+| On that same page choose **Save As…** and pick your Desktop: the copy is written and the window follows it, and the copy *can* be edited. Choosing a location inside `Belvedere.app` in the panel is refused with the same explanation | Save As… to a copy is the supported way to change a bundled page |
+| With any document, File ▸ Export (HTML) and choose a folder inside `Belvedere.app`: refused, nothing written | The export panel is one of the places the guard is applied |
 | In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and "Acknowledgements" (致谢) have not been checked by a native reader** |
 
 ## 5. Saving and leaving edit mode
 
-From the Save-button work submitted upstream ([PR #379](https://github.com/pluk-inc/markdown-preview/pull/379)), carried here ahead of the merge.
+From the Save-button work, offered upstream in [PR #379](https://github.com/pluk-inc/markdown-preview/pull/379) and closed there without merging, so it is ours alone.
 
 | Check | Why |
 |---|---|

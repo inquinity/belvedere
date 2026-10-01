@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 
 extension DocumentWindowController {
     func enterEditMode(autofocus: Bool = false) {
+        guard allowsEditingCurrentFile() else { return }
         guard let split = mainSplit, !split.isEditingDocument,
               let markdown = editorDraftMarkdown ?? currentMarkdown else {
             NSSound.beep()
@@ -269,6 +270,11 @@ extension DocumentWindowController {
         panel.prompt = NSLocalizedString("Save", comment: "Untitled Markdown file save panel button")
         panel.beginSheetModal(for: documentWindow) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else {
+                completion(.cancelled)
+                return
+            }
+            guard !AppBundleWriteGuard.isInsideAppBundle(url) else {
+                self.presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
                 completion(.cancelled)
                 return
             }
@@ -828,6 +834,8 @@ extension DocumentWindowController {
     }
 
     private func write(_ text: String, to url: URL) -> Bool {
+        // The last backstop: no path reaches the app bundle's files from here.
+        guard !AppBundleWriteGuard.isInsideAppBundle(url) else { return false }
         // Atomic first (safe against partial writes); a file-scoped sandbox
         // grant can deny the temp-file rename, so fall back to in-place.
         do {

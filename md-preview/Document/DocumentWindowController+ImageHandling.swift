@@ -42,6 +42,7 @@ extension DocumentWindowController {
                                    editor: EditorViewController,
                                    from: Int,
                                    to: Int) throws {
+        try AppBundleWriteGuard.requireOutsideAppBundle(markdownURL)
         let imageURL = try MarkdownAssetResolution.savePastedImage(
             data,
             forMarkdownFile: markdownURL

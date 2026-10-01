@@ -10,4 +10,9 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **Belvedere will not change its own files.** Editing or saving a document that is part
+  of the application, such as the Acknowledgements page, is refused with an
+  explanation, because it would break the app's signature. Save As… to a copy still
+  works.
+- **Images from an opened folder keep loading after you save** or leave edit mode.
+  Before, a document from outside the folder you had opened lost them again.
