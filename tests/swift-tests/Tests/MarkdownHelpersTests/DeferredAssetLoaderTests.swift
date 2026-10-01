@@ -98,7 +98,7 @@ final class DeferredAssetLoaderTests: XCTestCase {
     }
 }
 
-/// The URL a granted click resolves to. This is where F4's worst bug lived:
+/// The URL a granted click resolves to. This is where F2's worst bug lived:
 /// the page sent the raw `src` attribute, so the host received a relative path
 /// and answered "unavailable" for every image the reader asked for.
 final class DeferredAssetPathTests: XCTestCase {

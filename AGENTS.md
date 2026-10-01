@@ -26,7 +26,7 @@
 > - **Sparkle is excised**, so the EdDSA key, the notary-profile pairing, `SUPublicEDKey`
 >   and the `SUFeedURL` under "Release references" below are all moot here. The Sparkle
 >   `mach-lookup` entitlements are gone too. The read-only filesystem exception is not
->   moot — see S5 (trusted folders) in the fork notes.
+>   moot — see S7 (trusted folders) in the fork notes.
 > - **"Codex development workflow" below describes upstream's maintainer** — their
 >   Codex model pin, their shell, their PR habits. None of it is a rule for this fork.
 > - The fork carries **deliberately dead code** — an orphaned CLI installer and stubbed

@@ -137,7 +137,7 @@ final class ForkPostureTests: XCTestCase {
             """
             A URL session appeared outside the granted image fetch. Whatever it \
             is for, the About box now says something untrue: check \
-            docs/FORK-NOTES.md (F4) before deciding this test is wrong.
+            docs/FORK-NOTES.md (F2) before deciding this test is wrong.
             """
         )
     }

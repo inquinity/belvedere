@@ -6,7 +6,7 @@ import XCTest
 /// Drives the shipped page script in a real WKWebView and asserts that a
 /// blocked image actually becomes a placeholder.
 ///
-/// **Why this exists:** the first cut of F4 shipped with the hook on the wrong
+/// **Why this exists:** the first cut of F2 shipped with the hook on the wrong
 /// tree — it ran against morphdom's detached `next` element, where images never
 /// load and no `error` event ever fires — and on a path that document opening
 /// does not take. Every existing test still passed, because they only asserted
@@ -90,7 +90,7 @@ final class DeferredImageRenderingTests: XCTestCase {
             """
             A blocked image did not become a placeholder, so the reader gets a \
             broken-image icon with no explanation and no remedy — which is the \
-            whole point of F4.
+            whole point of F2.
             """
         )
     }
@@ -362,8 +362,8 @@ final class DeferredImageRenderingTests: XCTestCase {
     }
 
     /// Grants are per document, per session. A reader who loaded something
-    /// once has not consented to it loading forever, and F4 deliberately
-    /// remembers nothing — durable grants are F3.
+    /// once has not consented to it loading forever, and F2 deliberately
+    /// remembers nothing — durable grants are S7.
     @MainActor
     func testGrantsDoNotPersistIntoAFreshRender() async throws {
         let webView = try await harness()
