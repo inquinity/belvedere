@@ -11,7 +11,11 @@
 
 import AppKit
 
-/// Decides whether a path is inside the running app's bundle.
+/// Decides whether a path is inside an application bundle: the running app's,
+/// or any folder named `*.app`. The second half matters as much as the first:
+/// an installed Belvedere is the same developer as a dev build run from
+/// somewhere else, so macOS lets one modify the other, and a build in
+/// `build/` can open and save a file in `/Applications/Belvedere.app`.
 ///
 /// Symlinks are followed and the comparison ignores case, because the default
 /// volume format does: `/applications/belvedere.app/...` is the same place. A
@@ -22,7 +26,7 @@ nonisolated enum AppBundleWriteGuard {
 
     struct WriteRefused: LocalizedError {
         var errorDescription: String? {
-            NSLocalizedString("Belvedere cannot write inside its own application.",
+            NSLocalizedString("Belvedere will not write inside an application.",
                               comment: "Refusal to write into the app bundle")
         }
         var recoverySuggestion: String? {
@@ -40,8 +44,14 @@ nonisolated enum AppBundleWriteGuard {
         }
     }
 
+    /// True when any folder on the way to `url` is an application bundle,
+    /// judged by its `.app` name after symlinks are resolved.
+    static func isInsideAnyAppBundle(_ url: URL) -> Bool {
+        resolved(url).contains { $0.lowercased().hasSuffix(".app") }
+    }
+
     static func isInsideAppBundle(_ url: URL) -> Bool {
-        isInside(url, bundle: Bundle.main.bundleURL)
+        isInside(url, bundle: Bundle.main.bundleURL) || isInsideAnyAppBundle(url)
     }
 
     /// Throws `WriteRefused` for a destination inside the app bundle.

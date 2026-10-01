@@ -23,7 +23,7 @@ extension DocumentWindowController {
     func presentBundleWriteRefusal(_ error: AppBundleWriteGuard.WriteRefused) {
         let alert = NSAlert(error: error)
         alert.informativeText = [
-            NSLocalizedString("This document is part of Belvedere, and changing it would break the application.",
+            NSLocalizedString("This document is part of an application, and changing it would break that application.",
                               comment: "Refusal to edit a document inside the app bundle"),
             error.recoverySuggestion,
         ].compactMap { $0 }.joined(separator: " ")

@@ -343,6 +343,6 @@
 /* Reading preferences */
 
 /* Refusing to write inside the app bundle */
-"Belvedere cannot write inside its own application." = "Belvedere 无法写入其自身的应用程序。";
+"Belvedere will not write inside an application." = "Belvedere 不会写入应用程序内部。";
 "Choose a location outside the application, such as your Documents folder." = "请选择应用程序之外的位置，例如“文稿”文件夹。";
-"This document is part of Belvedere, and changing it would break the application." = "此文稿是 Belvedere 的一部分，更改它会损坏应用程序。";
+"This document is part of an application, and changing it would break that application." = "此文稿属于某个应用程序，更改它会损坏该应用程序。";

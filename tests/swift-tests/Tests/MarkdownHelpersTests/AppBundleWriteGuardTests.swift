@@ -75,6 +75,35 @@ final class AppBundleWriteGuardTests: XCTestCase {
         XCTAssertTrue(inside(root.appendingPathComponent("BELVEDERE.APP/Contents/Resources/x.md")))
     }
 
+    /// The case that got through in testing: a dev build run from `build/`
+    /// opened and saved a file in the installed `/Applications/Belvedere.app`.
+    func testAnotherApplicationBundleIsInside() throws {
+        let other = root.appendingPathComponent("Other/Belvedere.app/Contents/Resources")
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        let file = other.appendingPathComponent("Acknowledgements.md")
+        XCTAssertTrue(AppBundleWriteGuard.isInsideAnyAppBundle(file))
+        XCTAssertTrue(AppBundleWriteGuard.isInsideAppBundle(file))
+        XCTAssertTrue(AppBundleWriteGuard.isInsideAppBundle(other.appendingPathComponent("New.md")))
+        XCTAssertTrue(AppBundleWriteGuard.isInsideAppBundle(
+            root.appendingPathComponent("Other/SOMETHING.APP/Contents/x.md")))
+    }
+
+    func testNamesThatMerelyContainAppAreOutside() {
+        for name in ["Belvedere.app-old/x.md", "Belvedere.application/x.md", "my.apps/x.md",
+                     "happy/x.md", "app/x.md"] {
+            XCTAssertFalse(AppBundleWriteGuard.isInsideAppBundle(root.appendingPathComponent(name)),
+                           name)
+        }
+    }
+
+    func testASymlinkIntoAnotherApplicationBundleIsInside() throws {
+        let other = root.appendingPathComponent("Other/Thing.app/Contents")
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        let link = root.appendingPathComponent("shortcut")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: other)
+        XCTAssertTrue(AppBundleWriteGuard.isInsideAppBundle(link.appendingPathComponent("x.md")))
+    }
+
     func testRequireOutsideThrowsOnlyForTheRunningBundle() throws {
         // The test process is not Belvedere, so an ordinary path passes.
         XCTAssertNoThrow(try AppBundleWriteGuard.requireOutsideAppBundle(root.appendingPathComponent("a.md")))
