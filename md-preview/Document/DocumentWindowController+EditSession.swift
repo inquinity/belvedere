@@ -552,7 +552,7 @@ extension DocumentWindowController {
         if let url = currentFileURL {
             markdownDocument?.replaceContents(markdown: markdown, fileURL: url)
             if !exitAfter {
-                renderCurrentDocument(text: markdown, fileURL: url)
+                displayCurrentDocument(text: markdown, fileURL: url)
             }
         }
         if !exitAfter {
@@ -634,7 +634,7 @@ extension DocumentWindowController {
         split.exitEditMode(waitForPreviewRender: rerender,
                            renderPreview: { [weak self] in
             guard rerender, let self, let markdown = self.currentMarkdown else { return }
-            self.renderCurrentDocument(text: markdown, fileURL: self.currentFileURL)
+            self.displayCurrentDocument(text: markdown, fileURL: self.currentFileURL)
         }, overlayHidden: overlayHidden) { [weak self] in
             guard let self else {
                 completion()
@@ -710,7 +710,7 @@ extension DocumentWindowController {
 
     func rerenderCurrentPreview() {
         guard let url = currentFileURL, let markdown = currentMarkdown else { return }
-        renderCurrentDocument(text: markdown, fileURL: url)
+        displayCurrentDocument(text: markdown, fileURL: url)
     }
 
     private func presentExternalEditConflict(

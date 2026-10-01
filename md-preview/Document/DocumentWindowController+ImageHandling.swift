@@ -263,7 +263,7 @@ extension DocumentWindowController {
                     self.editorChangeRevision = 0
                     self.hasUnsavedEditorChanges = false
                 }
-                self.renderCurrentDocument(text: updated, fileURL: markdownURL)
+                self.displayCurrentDocument(text: updated, fileURL: markdownURL)
             case let .reloaded(externalMarkdown):
                 self.restoreRenamedImage(from: destination, to: imageURL)
                 self.adoptExternalMarkdown(
