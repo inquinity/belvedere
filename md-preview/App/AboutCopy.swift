@@ -23,16 +23,34 @@ enum AboutCopy {
     /// Localizing rather than hardcoding is how the whole rename works.
     static var applicationName: String { L("Markdown Preview") }
 
-    /// Marketing version only. The build number is deliberately not shown:
-    /// `bin/build.sh` bumps CURRENT_PROJECT_VERSION by exactly one whenever
-    /// MARKETING_VERSION changes and never on its own, so it is a bijection
-    /// with the version and carries no information the version does not.
+    /// Marketing version, plus a marker on anything that is not a release.
+    /// The build number is deliberately not shown: `bin/build.sh` bumps
+    /// CURRENT_PROJECT_VERSION by exactly one whenever MARKETING_VERSION
+    /// changes and never on its own, so it is a bijection with the version
+    /// and carries no information the version does not.
+    ///
+    /// That is true of releases only. Every build from a branch carries the
+    /// version of the release it started from, so `bin/build.sh` stamps the
+    /// commit into `BelvedereBuildStamp`, and `--release` stamps "release".
+    /// A build with no stamp -- one run from Xcode -- still says it is a dev
+    /// build, rather than passing for a release.
     ///
     /// Bare, with no "Version" prefix: the standard About panel supplies that
     /// word itself, so a prefixed string there renders as "Version Version
     /// 1.1.0". The in-app pane has no such label and uses `versionSummary`.
     static var versionNumber: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        versionLabel(
+            version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—",
+            stamp: Bundle.main.infoDictionary?["BelvedereBuildStamp"] as? String
+        )
+    }
+
+    static func versionLabel(version: String, stamp: String?) -> String {
+        switch stamp {
+        case "release": version
+        case let stamp? where !stamp.isEmpty: "\(version) (dev \(stamp))"
+        default: "\(version) (dev build)"
+        }
     }
 
     /// The version as its own complete line, for surfaces that do not add a

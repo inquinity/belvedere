@@ -919,6 +919,14 @@ and never on its own, so across every release it is a bijection with the version
 — `1.0.0`→1 through `1.1.0`→8 — and told the reader nothing the version did not.
 `CFBundleVersion` stays in the plist, since macOS wants it.
 
+That holds for releases only: a build from a branch carries the version of the
+release it started from, so About could not say which build you were running.
+`bin/build.sh` therefore writes `BelvedereBuildStamp` into the built bundle's
+Info.plist (never the source tree): `release` under `--release`, otherwise the
+short commit, with `+` for a dirty tree. `AboutCopy.versionLabel` shows nothing
+extra for `release`, `(dev <commit>)` for any other stamp, and `(dev build)` when
+there is none — a build run from Xcode, which does not go through `bin/build.sh`.
+
 ## The Mermaid HUD regression (shipped in 1.0.4 and 1.0.5)
 
 The sanitizer hardening added `button` to `FORBID_TAGS`. `MarkdownHTML+Mermaid`

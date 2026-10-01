@@ -217,6 +217,24 @@ protect_bundled_documents() {
     chmod a-w "$document"
 }
 
+# Record what this build is, so About can tell a dev build from the release
+# it started from: they share a version number. "release" under --release,
+# otherwise the short commit, with a trailing + when the tree has uncommitted
+# changes. Written into the built bundle's Info.plist, so it must run before
+# signing, and never touches the source tree.
+stamp_build() {
+    local app_path=$1 stamp
+    if [[ "$release_flag" == "true" ]]; then
+        stamp="release"
+    else
+        stamp="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null)" || stamp="unknown"
+        [[ -n "$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null)" ]] && stamp="$stamp+"
+    fi
+    /usr/libexec/PlistBuddy -c "Add :BelvedereBuildStamp string $stamp" \
+        "$app_path/Contents/Info.plist" \
+        || die "could not stamp $app_path/Contents/Info.plist"
+}
+
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
 # someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
 # the app this script already built rather than re-archiving, since there is
@@ -321,6 +339,7 @@ main() {
     cp -R "$built_app" "$output_app"
     [[ -d "$appex_path" ]] || die "build did not embed $appex_path"
     protect_bundled_documents "$output_app"
+    stamp_build "$output_app"
 
     if can_notarize; then
         print_colored "$COLOR_BRIGHTYELLOW" "* Signing with Developer ID"
