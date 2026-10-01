@@ -43,6 +43,7 @@ NOTARY_PROFILE="${NOTARY_PROFILE:-altman-notary}"
 
 update_segment=""
 release_flag=false
+build_stamp=""
 work_dir=""
 
 usage() {
@@ -233,6 +234,7 @@ stamp_build() {
     /usr/libexec/PlistBuddy -c "Add :BelvedereBuildStamp string $stamp" \
         "$app_path/Contents/Info.plist" \
         || die "could not stamp $app_path/Contents/Info.plist"
+    build_stamp=$stamp
 }
 
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
@@ -363,6 +365,12 @@ main() {
     fi
 
     print_colored "$COLOR_GREEN" "Done: $output_app"
+    # The same text About shows, so a tester can match the two.
+    if [[ "$build_stamp" == "release" ]]; then
+        print_colored "$COLOR_GREEN" "Build: Version $version"
+    else
+        print_colored "$COLOR_GREEN" "Build: Version $version (dev $build_stamp)"
+    fi
 
     [[ "$release_flag" == "true" ]] && package_dmg "$output_app" "$version"
 
