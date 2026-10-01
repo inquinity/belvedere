@@ -206,6 +206,11 @@ extension DocumentWindowController {
             NSSound.beep()
             return
         }
+        // An image reached through an opened folder can sit inside the app bundle.
+        guard !AppBundleWriteGuard.isInsideAppBundle(imageURL) else {
+            presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
+            return
+        }
         let extensionName = imageURL.pathExtension
         let enteredExtension = URL(fileURLWithPath: trimmed).pathExtension
         guard enteredExtension.isEmpty

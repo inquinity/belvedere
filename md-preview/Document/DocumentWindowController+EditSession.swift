@@ -800,6 +800,13 @@ extension DocumentWindowController {
         to url: URL,
         completion: @escaping (EditedMarkdownSaveResult) -> Void
     ) {
+        // Not the permission panel below: that would present a refusal as a
+        // sandbox problem the reader could fix by choosing the file again.
+        guard !AppBundleWriteGuard.isInsideAppBundle(url) else {
+            presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
+            completion(.cancelled)
+            return
+        }
         if write(text, to: url) {
             completion(.saved)
             return
