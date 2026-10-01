@@ -389,3 +389,11 @@
 
 /* Table fullscreen control. */
 "Expand Table" = "Expand Table";
+
+/* Reading text alignment */
+"Text alignment" = "Text alignment";
+"Left" = "Left";
+"Center" = "Center";
+"Right" = "Right";
+"Justified" = "Justified";
+"Alignment applies to prose in reading view and Quick Look. Automatic follows the document. Code, tables and explicit HTML alignment are preserved." = "Alignment applies to prose in reading view and Quick Look. Automatic follows the document. Code, tables and explicit HTML alignment are preserved.";

@@ -121,6 +121,7 @@
 				Rendering/ReaderLayoutSetting.swift,
 				Rendering/RemoteImageRequestPolicy.swift,
 				Rendering/StrictLineBreaksSetting.swift,
+				Rendering/TextAlignmentSetting.swift,
 				Rendering/URLSchemeTaskCallbackGate.swift,
 				Rendering/WebViewNavigationPolicy.swift,
 			);

@@ -271,7 +271,8 @@ nonisolated enum MarkdownHTML {
                          documentFont: DocumentFontSetting = .current,
                          readerLayout: ReaderLayoutSetting = .current,
                          strictLineBreaks: Bool = StrictLineBreaksSetting.current,
-                         markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current) -> String {
+                         markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current,
+                         textAlignment: TextAlignmentSetting = .current) -> String {
         render(markdown: markdown,
                allowsScroll: allowsScroll,
                assetBaseHref: assetBaseHref,
@@ -280,7 +281,8 @@ nonisolated enum MarkdownHTML {
                documentFont: documentFont,
                readerLayout: readerLayout,
                strictLineBreaks: strictLineBreaks,
-               markdownFlavor: markdownFlavor).html
+               markdownFlavor: markdownFlavor,
+               textAlignment: textAlignment).html
     }
 
     static func render(markdown: String,
@@ -294,6 +296,7 @@ nonisolated enum MarkdownHTML {
                        readerLayout: ReaderLayoutSetting = .current,
                        strictLineBreaks: Bool = StrictLineBreaksSetting.current,
                        markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current,
+                       textAlignment: TextAlignmentSetting = .current,
                        warmup: Bool = false,
                        preloadsMathAndCode: Bool = false,
                        pageTopClearance: CGFloat = 0,
@@ -479,6 +482,7 @@ nonisolated enum MarkdownHTML {
         \(contentWidthOverride)
         \(documentFontOverride)
         \(readerLayoutBlock)
+        \(textAlignment.styleBlock)
         \(sanitizerBlock)
         \(morphBlock)
         \(hostBridgeScript)

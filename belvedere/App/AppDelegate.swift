@@ -138,6 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             || model.themeColors != ThemeColorsSetting.current
             || model.documentFont != DocumentFontSetting.current
             || model.readerLayout != ReaderLayoutSetting.current
+            || model.textAlignment != TextAlignmentSetting.current
             || model.strictLineBreaks != StrictLineBreaksSetting.current
             || model.markdownFlavor != MarkdownFlavorSetting.current
         guard changed else { return }
@@ -368,6 +369,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         let resolved = ThemePreset.applied().requiredAppearance ?? mode
         AppearanceMode.current = resolved
         applyAppearanceMode(resolved, reloadPreviews: true)
+    }
+
+    func applyTextAlignmentSetting(_ setting: TextAlignmentSetting) {
+        guard setting != TextAlignmentSetting.current else { return }
+        TextAlignmentSetting.current = setting
+        reloadDocumentPreviewsForSettingChange()
     }
 
     /// Saves the default for single new lines. It reaches new windows and tabs
