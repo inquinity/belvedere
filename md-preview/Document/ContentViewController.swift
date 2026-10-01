@@ -208,8 +208,8 @@ final class ContentViewController: NSViewController {
     func display(
         markdown: String,
         sourceURL: URL?,
-        assetBaseURL: URL? = nil,
-        containmentRoot: URL? = nil
+        assetBaseURL: URL?,
+        containmentRoot: URL?
     ) {
         exportSource = ExportSource(
             markdown: markdown,

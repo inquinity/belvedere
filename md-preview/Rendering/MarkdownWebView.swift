@@ -417,10 +417,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             ?? MarkdownAssetResolution.rootBaseHref
     }
 
-    /// `containmentRoot` bounds asset loads and link targets. Left `nil` — as
+    /// `containmentRoot` bounds asset loads and link targets. Passed `nil` — as
     /// Quick Look and the warmup page leave it — the document's own folder
     /// bounds them, which is the narrowest answer.
-    func display(markdown: String, assetBaseURL: URL? = nil, containmentRoot: URL? = nil) {
+    func display(markdown: String, assetBaseURL: URL?, containmentRoot: URL?) {
         pendingContentProcessReload?.cancel()
         pendingContentProcessReload = nil
         currentMarkdown = markdown
