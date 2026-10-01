@@ -203,7 +203,10 @@ shortcut yet. Open `tests/fixtures/relative-assets/post.md` first.
 | With every window closed, File ▸ Open Folder… still works and opens a window on the folder | It is the app's own command, not a window's |
 | Search for Document with no folder open shows **Open Folder…**, and the button opens this same panel | It used to open the Open… panel |
 
-Dropping a folder on the window or the Dock icon is not covered yet.
+| Drop a folder on the Belvedere icon in the Dock: the folder opens, and the sidebar roots on it | `Info.plist` now declares folders as something it can open. Launch Services reads that when the app is first registered, so after a rebuild it may need `lsregister -f` on the app |
+| Right-click a folder in Finder: Belvedere is listed under Open With, but is not the default | It is ranked Alternate, so it must never take over folders |
+
+Dropping a folder on a window is not covered yet.
 
 ## 5c. Editing a table
 

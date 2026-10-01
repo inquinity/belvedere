@@ -35,6 +35,26 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    // MARK: - Opening folders
+
+    /// A folder dropped on the Dock icon, or sent with Open With, is only
+    /// accepted if the app declares it can open one. It must be ranked
+    /// Alternate: Owner would make Belvedere the default app for every folder
+    /// in Finder. Nothing here has an `NSDocumentClass`, because a folder never
+    /// becomes a document: `MarkdownDocumentController` and the app delegate
+    /// route it to `openFolder` first.
+    func testInfoPlistAcceptsFoldersWithoutClaimingThem() throws {
+        let info = try plist(at: "Info.plist")
+        let types = try XCTUnwrap(info["CFBundleDocumentTypes"] as? [[String: Any]])
+        let folder = try XCTUnwrap(
+            types.first { ($0["LSItemContentTypes"] as? [String])?.contains("public.folder") == true },
+            "Info.plist no longer declares public.folder, so the Dock icon rejects a dropped folder."
+        )
+        XCTAssertEqual(folder["LSHandlerRank"] as? String, "Alternate",
+                       "Folders must be ranked Alternate, or Belvedere becomes the default for every folder.")
+        XCTAssertNil(folder["NSDocumentClass"], "A folder is never a document.")
+    }
+
     // MARK: - Network egress
 
     /// Both targets need this entitlement and neither can give it up.
