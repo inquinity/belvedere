@@ -323,6 +323,7 @@
 "No matching files" = "No matching files";
 "Open a folder to search its files" = "Open a folder to search its files";
 "Open Folder…" = "Open Folder…";
+"Choose a folder to open" = "Choose a folder to open";
 "Showing the first %d files in this project" = "Showing the first %d files in this project";
 "↑↓ browse · ↩ open · ⌘↩ new tab · ⌥↩ new window" = "↑↓ browse · ↩ open · ⌘↩ new tab · ⌥↩ new window";
 "Search for Document" = "Search for Document";

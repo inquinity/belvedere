@@ -189,6 +189,22 @@ From the Save-button work, offered upstream in [PR #379](https://github.com/pluk
 | Menu states: Save and Revert to Saved **off** with nothing changed; Save As… **on** for any open document | Revert also stays off for an untitled document — there is nothing on disk to go back to |
 | Settings › General › Editing › *Leave edit mode without asking to save* restores the silent exit | Off by default; takes effect on the next exit without reopening the window |
 
+## 5b. Opening a folder
+
+**File ▸ Open Folder…** has its own panel that can only choose folders. It has no
+shortcut yet. Open `tests/fixtures/relative-assets/post.md` first.
+
+| Check | Why |
+|---|---|
+| File ▸ Open Folder… is in the File menu, right after Open… | Added with the fix for opening folders from inside the app |
+| Pick `tests/fixtures` and press **Open**: the sidebar roots on `fixtures` and the shared logo in `post.md` renders | The folder widens the document's boundary |
+| With nothing selected in the panel, **Open** is enabled and chooses the folder being shown | The old Open… panel disabled it, so a reader could not choose the folder they were in |
+| Selecting a folder in the panel and pressing **Open** chooses it and does not drill in | The reported fault in Open… |
+| With every window closed, File ▸ Open Folder… still works and opens a window on the folder | It is the app's own command, not a window's |
+| Search for Document with no folder open shows **Open Folder…**, and the button opens this same panel | It used to open the Open… panel |
+
+Dropping a folder on the window or the Dock icon is not covered yet.
+
 ## 5c. Editing a table
 
 Open `tests/fixtures/editor/table-cells.md` and follow the numbered sections in it; each

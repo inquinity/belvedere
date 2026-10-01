@@ -114,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installFormatMenu()
         installNewTabMenuItem()
         installSearchForDocumentMenuItem()
+        installOpenFolderMenuItem()
         installFileExportMenuItems()
         installGoMenu()
         installSettingsMenuItem()
@@ -827,6 +828,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let openIndex = fileMenu.items
             .firstIndex { $0.action == #selector(openDocument(_:)) }
         fileMenu.insertItem(item, at: openIndex.map { $0 + 1 } ?? 0)
+    }
+
+    /// Open Folder… sits right after Open…, with no shortcut: ⇧⌘O belongs to
+    /// Search for Document, and the key is still to be chosen. It is the app's
+    /// own item, so it works with no document window open.
+    private func installOpenFolderMenuItem() {
+        guard let fileMenu = topLevelSubmenu(matching: Self.fileMenuTitles),
+              fileMenu.items.first(where: {
+                  $0.action == #selector(chooseFolderToOpen)
+              }) == nil else { return }
+
+        let item = NSMenuItem(title: L("Open Folder…"),
+                              action: #selector(chooseFolderToOpen),
+                              keyEquivalent: "")
+        item.target = self
+        let openIndex = fileMenu.items
+            .firstIndex { $0.action == #selector(openDocument(_:)) }
+        fileMenu.insertItem(item, at: openIndex.map { $0 + 1 } ?? 0)
+    }
+
+    /// Asks for a folder and opens it. A panel of its own rather than the Open…
+    /// panel: this one can only choose folders, so **Open** takes the selected
+    /// folder, or the folder being shown when nothing is selected, instead of
+    /// drilling into it. The Search for Document empty state calls this too.
+    @objc func chooseFolderToOpen() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = L("Choose a folder to open")
+        panel.prompt = L("Open")
+        let open: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            self?.openFolder(url)
+        }
+        if let window = activeDocumentWindowController?.documentWindow {
+            panel.beginSheetModal(for: window, completionHandler: open)
+        } else {
+            panel.begin(completionHandler: open)
+        }
     }
 
     private func installFileExportMenuItems() {

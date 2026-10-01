@@ -33,7 +33,7 @@ extension DocumentWindowController {
             self?.openSearchResult(url, in: target)
         }
         palette.onRequestOpenFolder = { [weak self] in
-            self?.openDocument(nil)
+            (NSApp.delegate as? AppDelegate)?.chooseFolderToOpen()
         }
         palette.onDismiss = { [weak self] in self?.fileSearchPalette = nil }
         fileSearchPalette = palette
