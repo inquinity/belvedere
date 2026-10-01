@@ -23,6 +23,18 @@ changes are applied".
 
 Upstream PR numbers below refer to `pluk-inc/markdown-preview`.
 
+## Standing removals — keep them out on every sync
+
+Files upstream carries that Belvedere deleted. A merge that finds upstream changed one
+reports a modify/delete conflict; resolve it by keeping the deletion.
+
+- `.github/FUNDING.yml` — it put a Sponsor button on this repository that sent money
+  to upstream's maintainer. `docs/sponsors/` (their sponsors' logos) goes with it.
+- `.agents/skills/amore-cli/` and its `.claude/skills/` link, and the `amore-cli` entry
+  in `skills-lock.json` — documentation for Amore, upstream's distribution tool, which
+  this fork does not use.
+- `docs/markdown-logo.svg` — upstream's logo; nothing here references it.
+
 ---
 
 ## Markdown Preview 0.0.63 — synced 2026-09-29, ships in Belvedere 1.3.0
