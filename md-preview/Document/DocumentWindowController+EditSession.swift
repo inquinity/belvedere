@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 
 extension DocumentWindowController {
     func enterEditMode(autofocus: Bool = false) {
+        guard allowsEditingCurrentFile() else { return }
         guard let split = mainSplit, !split.isEditingDocument,
               let markdown = editorDraftMarkdown ?? currentMarkdown else {
             NSSound.beep()
@@ -269,6 +270,11 @@ extension DocumentWindowController {
         panel.prompt = NSLocalizedString("Save", comment: "Untitled Markdown file save panel button")
         panel.beginSheetModal(for: documentWindow) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else {
+                completion(.cancelled)
+                return
+            }
+            guard !AppBundleWriteGuard.isInsideAppBundle(url) else {
+                self.presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
                 completion(.cancelled)
                 return
             }
@@ -552,7 +558,7 @@ extension DocumentWindowController {
         if let url = currentFileURL {
             markdownDocument?.replaceContents(markdown: markdown, fileURL: url)
             if !exitAfter {
-                renderCurrentDocument(text: markdown, fileURL: url)
+                displayCurrentDocument(text: markdown, fileURL: url)
             }
         }
         if !exitAfter {
@@ -634,7 +640,7 @@ extension DocumentWindowController {
         split.exitEditMode(waitForPreviewRender: rerender,
                            renderPreview: { [weak self] in
             guard rerender, let self, let markdown = self.currentMarkdown else { return }
-            self.renderCurrentDocument(text: markdown, fileURL: self.currentFileURL)
+            self.displayCurrentDocument(text: markdown, fileURL: self.currentFileURL)
         }, overlayHidden: overlayHidden) { [weak self] in
             guard let self else {
                 completion()
@@ -710,7 +716,7 @@ extension DocumentWindowController {
 
     func rerenderCurrentPreview() {
         guard let url = currentFileURL, let markdown = currentMarkdown else { return }
-        renderCurrentDocument(text: markdown, fileURL: url)
+        displayCurrentDocument(text: markdown, fileURL: url)
     }
 
     private func presentExternalEditConflict(
@@ -794,6 +800,13 @@ extension DocumentWindowController {
         to url: URL,
         completion: @escaping (EditedMarkdownSaveResult) -> Void
     ) {
+        // Not the permission panel below: that would present a refusal as a
+        // sandbox problem the reader could fix by choosing the file again.
+        guard !AppBundleWriteGuard.isInsideAppBundle(url) else {
+            presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
+            completion(.cancelled)
+            return
+        }
         if write(text, to: url) {
             completion(.saved)
             return
@@ -828,6 +841,8 @@ extension DocumentWindowController {
     }
 
     private func write(_ text: String, to url: URL) -> Bool {
+        // The last backstop: no path reaches the app bundle's files from here.
+        guard !AppBundleWriteGuard.isInsideAppBundle(url) else { return false }
         // Atomic first (safe against partial writes); a file-scoped sandbox
         // grant can deny the temp-file rename, so fall back to in-place.
         do {

@@ -611,6 +611,14 @@ private final class ExportPrintPanel: NSPrintPanel {
                 }
                 return
             }
+            guard !AppBundleWriteGuard.isInsideAppBundle(url) else {
+                NSAlert(error: AppBundleWriteGuard.WriteRefused())
+                    .beginSheetModal(for: printSheetWindow)
+                if let printSheetController = self.printSheetController {
+                    self.configureSaveButton(on: printSheetController)
+                }
+                return
+            }
 
             switch format {
             case .html:

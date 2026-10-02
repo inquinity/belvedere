@@ -135,7 +135,7 @@ final class SanitizerNegativeTests: XCTestCase {
             improvement, not a failure — it means ALLOWED_URI_REGEXP was \
             tightened, so this assertion should be inverted and the CSP left \
             as defence in depth. Note the count includes deferred placeholders: \
-            F4 replaces a remote image that failed to load with one naming it, \
+            F2 replaces a remote image that failed to load with one naming it, \
             so the raw <img> count alone stopped being a proxy for what the \
             sanitizer kept. \(survivors.raw)
             """
@@ -237,7 +237,7 @@ final class SanitizerNegativeTests: XCTestCase {
                 // Our own affordances are excluded by class. That is not a
                 // loophole: `button` is in FORBID_TAGS, so document content
                 // cannot produce one at all, and any button present is markup
-                // this app injected after sanitising (F4's deferred-image
+                // this app injected after sanitising (F2's deferred-image
                 // placeholder).
                 // `button` is not counted: the app emits its own (the Mermaid
                 // HUD, the code-copy control), so a surviving button is not

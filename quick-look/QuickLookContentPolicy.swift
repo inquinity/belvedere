@@ -22,7 +22,7 @@ import Foundation
 ///
 /// The main app's preview is a different shape — it serves vendor scripts and
 /// images over the `md-asset:` scheme — and is not covered here. See
-/// docs/FORK-NOTES.md (F2).
+/// docs/FORK-NOTES.md (S1).
 enum QuickLookContentPolicy {
 
     /// `'unsafe-inline'` is unavoidable: the host bridge, the DOMPurify

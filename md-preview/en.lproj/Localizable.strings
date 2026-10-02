@@ -349,3 +349,8 @@
 "each new line starts a new line, the way GitHub shows comments and issues." = "each new line starts a new line, the way GitHub shows comments and issues.";
 "lines run together until a blank line, the way standard Markdown and GitHub README files work." = "lines run together until a blank line, the way standard Markdown and GitHub README files work.";
 "Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look." = "Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look.";
+
+/* Refusing to write inside the app bundle */
+"Belvedere will not write inside an application." = "Belvedere will not write inside an application.";
+"Choose a location outside the application, such as your Documents folder." = "Choose a location outside the application, such as your Documents folder.";
+"This document is part of an application, and changing it would break that application." = "This document is part of an application, and changing it would break that application.";

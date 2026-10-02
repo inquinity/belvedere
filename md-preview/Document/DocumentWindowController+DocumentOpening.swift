@@ -223,7 +223,10 @@ extension DocumentWindowController {
         displayCurrentDocument(text: text, fileURL: fileURL)
     }
 
-    private func displayCurrentDocument(text: String, fileURL: URL?) {
+    /// Shows the document already on screen again, without reconsidering the
+    /// opened folder. Use this for a save, a mode switch or an image edit;
+    /// use `renderCurrentDocument` only when a different document has loaded.
+    func displayCurrentDocument(text: String, fileURL: URL?) {
         let documentFolder = fileURL?.deletingLastPathComponent()
         (documentWindow.contentViewController as? MainSplitViewController)?
             .display(markdown: text,

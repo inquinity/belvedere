@@ -117,7 +117,7 @@ swift += '''
     let zoomController = Controller()
     let preview = zoomController.contentViewController!
     preview.webView.pageZoom = 1.5
-    let editor = zoomController.enterEditMode(markdown: "Keep this editor open")
+    let editor = zoomController.enterEditMode(markdown: "Keep this editor open", assetBaseURL: nil, containmentRoot: nil)
     precondition(editor.pageZoom == 1.5, "Editor must inherit zoom on entry")
     editor.editorDidBecomeReady?()
     editor.scrollCallback?()
@@ -149,7 +149,7 @@ swift += '''
     DispatchQueue.main.pending.forEach { $0() }
     precondition(!a.isEditorVisible, "Exit during preparation must cancel reveal")
     let exitGeneration = a.editModeGeneration
-    _ = a.enterEditMode(markdown: "new entry")
+    _ = a.enterEditMode(markdown: "new entry", assetBaseURL: nil, containmentRoot: nil)
     precondition(a.editModeGeneration == exitGeneration, "Entry invalidated a pending exit")
     precondition(a.isEditingDocument, "Pending exit lost its editing state")
     a.cachedEditorViewController!.anchorCallback?(SourceScrollAnchor())
@@ -168,7 +168,7 @@ swift += '''
                    completion: {
         precondition(!b.isEditingDocument, "Navigation must wait until editing has ended")
         navigationStarts += 1
-        _ = b.enterEditMode(markdown: "next file")
+        _ = b.enterEditMode(markdown: "next file", assetBaseURL: nil, containmentRoot: nil)
     })
     b.cachedEditorViewController!.anchorCallback?(SourceScrollAnchor())
     precondition(renderStarts == 1, "Render-wait exit must start rendering before reveal")

@@ -14,6 +14,27 @@ import XCTest
 /// `QuickLookContentPolicyTests`.
 final class ForkPostureTests: XCTestCase {
 
+    // MARK: - The app bundle is never written
+
+    /// `AppBundleWriteGuard` only protects the places that call it, so a call
+    /// removed in a later change would pass every other test and quietly let
+    /// the app save into its own signed bundle again. Each place that writes a
+    /// file the reader chose, or moves one, must still name the guard.
+    func testEveryWriteSiteStillCallsTheAppBundleGuard() throws {
+        let sites = [
+            ("md-preview/Document/DocumentWindowController+EditSession.swift", 4),
+            ("md-preview/Document/DocumentWindowController+ImageHandling.swift", 2),
+            ("md-preview/Rendering/MarkdownWebView+PDFExport.swift", 1),
+        ]
+        for (path, minimum) in sites {
+            let calls = try text(at: path).components(separatedBy: "AppBundleWriteGuard").count - 1
+            XCTAssertGreaterThanOrEqual(
+                calls, minimum,
+                "\(path) names AppBundleWriteGuard \(calls) times, expected at least \(minimum). A write site lost its guard."
+            )
+        }
+    }
+
     // MARK: - Network egress
 
     /// Both targets need this entitlement and neither can give it up.
@@ -137,7 +158,7 @@ final class ForkPostureTests: XCTestCase {
             """
             A URL session appeared outside the granted image fetch. Whatever it \
             is for, the About box now says something untrue: check \
-            docs/FORK-NOTES.md (F4) before deciding this test is wrong.
+            docs/FORK-NOTES.md (F2) before deciding this test is wrong.
             """
         )
     }

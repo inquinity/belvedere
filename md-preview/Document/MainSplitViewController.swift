@@ -86,7 +86,7 @@ final class MainSplitViewController: NSSplitViewController {
                  fileName: String,
                  url: URL?,
                  assetBaseURL: URL?,
-                 containmentRoot: URL? = nil) {
+                 containmentRoot: URL?) {
         contentViewController?.display(
             markdown: markdown,
             sourceURL: url,
@@ -343,8 +343,8 @@ final class MainSplitViewController: NSSplitViewController {
 
     @discardableResult
     func enterEditMode(markdown: String,
-                       assetBaseURL: URL? = nil,
-                       containmentRoot: URL? = nil,
+                       assetBaseURL: URL?,
+                       containmentRoot: URL?,
                        autofocus: Bool = false) -> EditorViewController {
         // Do not invalidate an exit that still owes its caller a completion.
         if isEditorExiting, let editor = cachedEditorViewController { return editor }

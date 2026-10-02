@@ -34,7 +34,7 @@ inlines images as `data:`/`cid:`.
 > blocked by CSP on both surfaces so that opening a document never tells its
 > author you read it.
 >
-> This expectation was **inverted in M3b/F2**: the fixture previously said this
+> This expectation was **inverted in M3b/S1**: the fixture previously said this
 > image "must keep working". Blocking it on open is the deliberate cost of
 > closing the tracking-pixel hole; click-to-load gives README badges back to
 > anyone who wants them, one at a time.
@@ -62,7 +62,7 @@ inlines images as `data:`/`cid:`.
 > This is the shared-image layout that motivated the whole design: a
 > `shared-images/` folder one level up, referenced from several documents.
 > Nothing is remembered, so reopening this file blocks it again. A durable
-> grant is trusted folders (F3).
+> grant is trusted folders (S7).
 
 ![shared logo](../shared-images/logo.png)
 

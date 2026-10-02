@@ -35,7 +35,7 @@ Two things to know before reading, or you will misjudge a pass:
 > The placeholder is expected and is *not* a sanitiser failure. It comes from
 > `<img src="x" onerror="…">`, the probe below: DOMPurify strips the **handler**
 > and keeps the element, which is the correct outcome — the attack is the
-> handler, not the image. F4 then labels a reference that cannot load instead
+> handler, not the image. F2 then labels a reference that cannot load instead
 > of leaving a bare broken-image icon.
 >
 > Scripts cannot show themselves, so absence is the only visible evidence here

@@ -341,3 +341,8 @@
 "Wrap long lines with one click. Code blocks now use rounded cards that show their language." = "一键为长代码行换行。代码块现采用圆角卡片设计，并显示其语言。";
 
 /* Reading preferences */
+
+/* Refusing to write inside the app bundle */
+"Belvedere will not write inside an application." = "Belvedere 不会写入应用程序内部。";
+"Choose a location outside the application, such as your Documents folder." = "请选择应用程序之外的位置，例如“文稿”文件夹。";
+"This document is part of an application, and changing it would break that application." = "此文稿属于某个应用程序，更改它会损坏该应用程序。";

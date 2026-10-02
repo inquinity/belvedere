@@ -42,6 +42,7 @@ extension DocumentWindowController {
                                    editor: EditorViewController,
                                    from: Int,
                                    to: Int) throws {
+        try AppBundleWriteGuard.requireOutsideAppBundle(markdownURL)
         let imageURL = try MarkdownAssetResolution.savePastedImage(
             data,
             forMarkdownFile: markdownURL
@@ -205,6 +206,11 @@ extension DocumentWindowController {
             NSSound.beep()
             return
         }
+        // An image reached through an opened folder can sit inside the app bundle.
+        guard !AppBundleWriteGuard.isInsideAppBundle(imageURL) else {
+            presentBundleWriteRefusal(AppBundleWriteGuard.WriteRefused())
+            return
+        }
         let extensionName = imageURL.pathExtension
         let enteredExtension = URL(fileURLWithPath: trimmed).pathExtension
         guard enteredExtension.isEmpty
@@ -263,7 +269,7 @@ extension DocumentWindowController {
                     self.editorChangeRevision = 0
                     self.hasUnsavedEditorChanges = false
                 }
-                self.renderCurrentDocument(text: updated, fileURL: markdownURL)
+                self.displayCurrentDocument(text: updated, fileURL: markdownURL)
             case let .reloaded(externalMarkdown):
                 self.restoreRenamedImage(from: destination, to: imageURL)
                 self.adoptExternalMarkdown(

@@ -7,6 +7,11 @@ set -euo pipefail
 # pluk-inc's hosting account and signing identity. This fork has neither, and
 # distributes by handing the DMG over directly -- see docs/INTERNAL-INSTALL.md.
 #
+# Not stamped: bin/build.sh --release writes BelvedereBuildStamp, but this
+# script exports an app Xcode has already signed, so editing its Info.plist
+# afterwards would break the seal. A build from here reads "(dev build)" in
+# About. Use bin/build.sh --release for anything that ships.
+#
 # Source of truth:
 #   Version.xcconfig  -> MARKETING_VERSION, CURRENT_PROJECT_VERSION
 #   CHANGELOG.md      -> a "## [X.Y.Z]" entry must exist for the version
