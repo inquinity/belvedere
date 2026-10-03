@@ -247,6 +247,7 @@ work (F9) moved to 1.4 so that 1.3.1 stays a fixes-only release.
 ### Done
 
 Ordered by the release each shipped in. Release **1.3.1 is not yet published**.
+| **H9** | Keep stray Belvedere builds out of the application list | — | ✅ `bin/clean-app-registrations.sh` (`just clean-apps`) lists every Belvedere app and Quick Look extension Launch Services knows about and unregisters all but the installed `/Applications/Belvedere.app`. A dry run unless `--apply`; `--delete-builds` also removes this repository's `build/`, its Xcode DerivedData and leftover temp build folders, never another session's scratch. Found 2026-10-03: 75 stale entries, mostly from `bin/build.sh`, which builds in a temp folder it deletes without unregistering. **Not done:** having `bin/build.sh` unregister its own temp build as it exits, which would stop it recurring. |
 
 | ID | Item | Shipped in | Notes |
 |---|---|---|---|
