@@ -189,6 +189,19 @@ From the Save-button work, offered upstream in [PR #379](https://github.com/pluk
 | Menu states: Save and Revert to Saved **off** with nothing changed; Save As… **on** for any open document | Revert also stays off for an untitled document — there is nothing on disk to go back to |
 | Settings › General › Editing › *Leave edit mode without asking to save* restores the silent exit | Off by default; takes effect on the next exit without reopening the window |
 
+## 5c. Editing a table
+
+Open `tests/fixtures/editor/table-cells.md` and follow the numbered sections in it; each
+carries its own **EXPECT** and **FAIL IF**. Do this on every macOS version you ship for,
+and always on a new one.
+
+| Check | Why |
+|---|---|
+| Section 1: clicking a formatted cell reveals its Markdown with the caret where you clicked | Nine automated tests of this failed on macOS 27 because the test harness had no window, not because of the editor. They pass now, but only a real window on macOS 27 proves the editor itself |
+| Sections 2 to 5: drag-select, format, link and leave edit mode | The remaining automated table tests cover these with synthetic events |
+
+Not covered by this fixture: row and column editing, pasting a table, and right-to-left or CJK cells.
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
