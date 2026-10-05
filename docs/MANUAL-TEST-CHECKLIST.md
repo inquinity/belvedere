@@ -233,7 +233,7 @@ Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scro
 | The same, switching back to **Full Width** | |
 | Open a second window: it is still Full Width. Only the first window changed | View ▸ Content Width is per window and is not saved |
 | Quit and reopen: the window is Full Width again | Not saved |
-| Settings › General › **Default content width** ▸ Quick Look Width: windows you have not changed switch, the one you changed by hand keeps its own, and the position holds | The default applies to every window without its own choice |
+| Settings › General › **Default content width** ▸ Quick Look Width: **no open window or tab changes**; open a new window and a new tab: both use Quick Look Width | The default reaches new windows and tabs only. Open ones keep the width they opened with |
 | With the View menu open, the check mark is on the front window's width, and moves when you switch windows | The menu follows the front window, not the default |
 | Press ⌘E in each width: the editor column matches, and changing the width while editing re-flows it and keeps your place | The editor follows the same width |
 | Change **Font** in Settings while scrolled halfway: the position holds | Any setting that re-renders the page had the same jump |

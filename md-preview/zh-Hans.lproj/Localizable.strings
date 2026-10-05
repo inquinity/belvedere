@@ -343,4 +343,4 @@
 "Quick Look Width" = "快速查看宽度";
 "Wraps lines in the same places as a Quick Look preview." = "按快速查看预览的方式换行。";
 "Uses the whole window and follows it as you resize." = "使用整个窗口，并随窗口大小变化。";
-"View ▸ Content Width changes only the front window, and is not saved." = "“视图 ▸ 内容宽度”只更改最前面的窗口，且不会保存。";
+"New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved." = "新窗口和新标签页将使用此宽度。已打开的窗口保持不变；可通过“视图 ▸ 内容宽度”更改单个窗口（不会保存）。";

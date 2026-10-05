@@ -59,7 +59,7 @@ struct GeneralSettingsView: View {
                     }
                 }
                 Text(model.contentWidth.explanation + " "
-                     + L("View ▸ Content Width changes only the front window, and is not saved."))
+                     + L("New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {

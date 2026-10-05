@@ -20,7 +20,7 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   whole window and follow it as you resize. The capped column, called Normal before, is now **Quick
   Look Width**, because it wraps lines where a Quick Look preview does. **View ▸ Content Width**
   changes the front window only and is not saved; **Settings › General › Default content width**
-  sets it for every window. Anyone who had chosen the old Normal width will see Full Width until they
+  is the width new windows and tabs open with, and windows that are already open keep theirs. Anyone who had chosen the old Normal width will see Full Width until they
   choose Quick Look Width.
 - **Changing the width, font or line-break setting keeps your place** instead of jumping back to the
   top of the document, in the reading view and the editor.

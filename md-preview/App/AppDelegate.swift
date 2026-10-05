@@ -343,11 +343,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         reloadDocumentPreviewsForSettingChange()
     }
 
+    /// Saves the default width. It reaches new windows and tabs only: a window
+    /// that is already open keeps the width it has, so nothing is re-rendered.
     func applyContentWidthSetting(_ setting: ContentWidthSetting) {
         guard setting != ContentWidthSetting.current else { return }
         ContentWidthSetting.current = setting
         syncContentWidthMenuState()
-        reloadDocumentPreviewsForSettingChange()
     }
 
     /// Applies a font chosen in Settings. Open documents re-render rather than
@@ -487,7 +488,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let setting = ContentWidthSetting(rawValue: rawValue),
               let controller = activeDocumentWindowController else { return }
 
-        controller.setContentWidthOverride(setting)
+        controller.setContentWidth(setting)
         syncContentWidthMenuState()
     }
 
@@ -1114,9 +1115,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// The check marks follow the front window, which can differ from the
-    /// saved default if that window has chosen its own width.
+    /// saved default: a window keeps the width it opened with.
     private func syncContentWidthMenuState() {
-        let setting = activeDocumentWindowController?.effectiveContentWidth ?? .current
+        let setting = activeDocumentWindowController?.contentWidth ?? .current
         quickLookContentWidthMenuItem?.state = setting == .quickLook ? .on : .off
         fullContentWidthMenuItem?.state = setting == .fullWidth ? .on : .off
     }

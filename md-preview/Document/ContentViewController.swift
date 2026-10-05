@@ -27,9 +27,11 @@ final class ContentViewController: NSViewController {
     private var webViewFullWidthConstraints: [NSLayoutConstraint] = []
     private var pendingFlashWork: DispatchWorkItem?
     private var pendingPreviewScrollAnchor: SourceScrollAnchor?
-    /// This window's own width, set from View ▸ Content Width. Never saved, and
-    /// it ends with the window; `nil` follows the saved default.
-    private(set) var contentWidthOverride: ContentWidthSetting?
+    /// This window's width. It is the saved default as it was when the window
+    /// opened, and only View ▸ Content Width changes it afterwards: a later
+    /// change of the saved default reaches new windows and tabs, not this one.
+    /// Never saved itself.
+    private(set) var contentWidth: ContentWidthSetting = .current
     private var shouldApplyPendingAnchorOnHeight = false
     private var pendingNavigationScrollTarget: NavigationScrollTarget?
     private var shouldApplyNavigationTargetOnHeight = false
@@ -205,7 +207,7 @@ final class ContentViewController: NSViewController {
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
         ])
-        webView.contentWidthSetting = effectiveContentWidth
+        webView.contentWidthSetting = contentWidth
         applyContentWidthMode()
         container.appearanceDidChange = { [weak self] in
             self?.updateUnderPageBackgroundColor()
@@ -399,19 +401,11 @@ final class ContentViewController: NSViewController {
         }
     }
 
-    /// The width this window shows: its own choice if it made one, else the
-    /// saved default.
-    var effectiveContentWidth: ContentWidthSetting {
-        contentWidthOverride ?? .current
-    }
-
-    /// Sets this window's width for the session. Choosing the saved default
-    /// clears the override, so the window follows the default again.
-    func setContentWidthOverride(_ setting: ContentWidthSetting) {
-        let previous = effectiveContentWidth
-        contentWidthOverride = setting == ContentWidthSetting.current ? nil : setting
+    /// Sets this window's width for the session.
+    func setContentWidth(_ setting: ContentWidthSetting) {
         // Picking the width already shown changes nothing, so do not re-render.
-        guard effectiveContentWidth != previous else { return }
+        guard setting != contentWidth else { return }
+        contentWidth = setting
         reloadPreviewForSettingChange()
     }
 
@@ -427,7 +421,7 @@ final class ContentViewController: NSViewController {
         if pendingSectionAnchor != nil {
             applyContentWidthMode()
             view.layoutSubtreeIfNeeded()
-            webView.contentWidthSetting = effectiveContentWidth
+            webView.contentWidthSetting = contentWidth
             webView.reloadPreviewForSettingChange()
             return
         }
@@ -439,7 +433,7 @@ final class ContentViewController: NSViewController {
             // Switching width resizes the web view itself. Let that layout finish
             // before the page reloads.
             self.view.layoutSubtreeIfNeeded()
-            self.webView.contentWidthSetting = self.effectiveContentWidth
+            self.webView.contentWidthSetting = self.contentWidth
             self.pendingSectionAnchor = anchor
             self.sectionAnchorRetries = 0
             self.webView.reloadPreviewForSettingChange()
@@ -657,7 +651,7 @@ final class ContentViewController: NSViewController {
     /// full-bleed layout. See the loadView comment for why centering lives
     /// at the constraint layer instead of CSS.
     private func applyContentWidthMode() {
-        switch effectiveContentWidth {
+        switch contentWidth {
         case .quickLook:
             NSLayoutConstraint.deactivate(webViewFullWidthConstraints)
             NSLayoutConstraint.activate(webViewCenteredConstraints)

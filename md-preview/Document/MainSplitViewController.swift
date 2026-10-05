@@ -271,19 +271,20 @@ final class MainSplitViewController: NSSplitViewController {
         contentViewController?.applyReaderLayout()
     }
 
-    /// The width this window shows: its own override, else the saved default.
-    var effectiveContentWidth: ContentWidthSetting {
-        contentViewController?.effectiveContentWidth ?? .current
+    /// The width this window shows. It was the saved default when the window
+    /// opened and changes only through View ▸ Content Width.
+    var contentWidth: ContentWidthSetting {
+        contentViewController?.contentWidth ?? .current
     }
 
-    func setContentWidthOverride(_ setting: ContentWidthSetting) {
-        contentViewController?.setContentWidthOverride(setting)
-        cachedEditorViewController?.applyContentWidth(effectiveContentWidth)
+    func setContentWidth(_ setting: ContentWidthSetting) {
+        contentViewController?.setContentWidth(setting)
+        cachedEditorViewController?.applyContentWidth(contentWidth)
     }
 
     func reloadPreviewForSettingChange() {
         contentViewController?.reloadPreviewForSettingChange()
-        cachedEditorViewController?.applyContentWidth(effectiveContentWidth)
+        cachedEditorViewController?.applyContentWidth(contentWidth)
     }
 
     /// Pushes a theme color change into the preview and, when one exists,
@@ -359,7 +360,7 @@ final class MainSplitViewController: NSSplitViewController {
         // Do not invalidate an exit that still owes its caller a completion.
         if isEditorExiting, let editor = cachedEditorViewController { return editor }
         if let editor = editorViewController {
-            editor.applyContentWidth(effectiveContentWidth)
+            editor.applyContentWidth(contentWidth)
             editor.load(markdown: markdown,
                         assetBaseURL: assetBaseURL,
                         containmentRoot: containmentRoot)
@@ -376,7 +377,7 @@ final class MainSplitViewController: NSSplitViewController {
             editorVC = cachedEditorViewController
         } else {
             editorVC = EditorViewController()
-            editorVC.contentWidth = effectiveContentWidth
+            editorVC.contentWidth = contentWidth
             editorVC.loadViewIfNeeded()
             editorVC.view.translatesAutoresizingMaskIntoConstraints = false
             editorVC.view.alphaValue = 0
@@ -415,7 +416,7 @@ final class MainSplitViewController: NSSplitViewController {
             self.revealEditorIfPrepared(editorVC)
         }
         editorVC.applyPageZoom(previewZoom)
-        editorVC.applyContentWidth(effectiveContentWidth)
+        editorVC.applyContentWidth(contentWidth)
         editorVC.load(markdown: markdown, assetBaseURL: assetBaseURL, containmentRoot: containmentRoot)
         contentViewController?.sourceScrollAnchor { [weak self, weak editorVC] anchor in
             guard let self, let editorVC, self.editModeGeneration == generation,

@@ -351,4 +351,4 @@
 "Quick Look Width" = "Quick Look Width";
 "Wraps lines in the same places as a Quick Look preview." = "Wraps lines in the same places as a Quick Look preview.";
 "Uses the whole window and follows it as you resize." = "Uses the whole window and follows it as you resize.";
-"View ▸ Content Width changes only the front window, and is not saved." = "View ▸ Content Width changes only the front window, and is not saved.";
+"New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved." = "New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved.";
