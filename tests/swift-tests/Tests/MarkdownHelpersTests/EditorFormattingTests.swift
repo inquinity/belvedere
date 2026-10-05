@@ -149,8 +149,16 @@ final class EditorFormattingTests: XCTestCase {
                     start.dispatchEvent(new KeyboardEvent('keydown',
                         {key, shiftKey: shift, bubbles: true, cancelable: true}));
                     // The edited path focuses after two animation frames; the
-                    // harness drives its own frame clock.
-                    for (let step = 0; step < 6; step++) { window.__layoutTestFrame(); await wait(30); }
+                    // harness drives its own frame clock. Wait for the result
+                    // rather than a fixed time, so a slow machine does not fail.
+                    const deadline = Date.now() + 3000;
+                    while (Date.now() < deadline) {
+                        window.__layoutTestFrame();
+                        await wait(20);
+                        const candidate = cellAt(to);
+                        if (candidate && document.activeElement === candidate
+                            && !window.getSelection().isCollapsed) break;
+                    }
                     const target = cellAt(to);
                     const selection = window.getSelection();
                     return JSON.stringify({
@@ -170,6 +178,47 @@ final class EditorFormattingTests: XCTestCase {
                 XCTAssertEqual(values["collapsed"] as? Bool, false, label)
             }
         }
+    }
+
+    /// Tab from the last cell adds a row and focuses its first, empty cell.
+    /// There is nothing to select, so the selection is a caret, not a range.
+    func testTabFromTheLastCellAddsARowAndFocusesIt() async throws {
+        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let editor = WebViewLayoutHarness(
+            html: EditorHTML.render(markdown: "| One | Two |\n| --- | --- |\n| a | b |", editorJavaScript: script),
+            width: 600, isEditor: true, height: 400)
+        defer { editor.close() }
+        _ = try await editor.layout(texts: [], imageCount: 0)
+        let result = try await editor.webView.callAsyncJavaScript("""
+            const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+            const cellAt = (row, column) => document.querySelector(
+                `[data-table-row="${row}"][data-table-column="${column}"]`);
+            const last = cellAt(1, 1);
+            last.focus();
+            last.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true}));
+            const deadline = Date.now() + 3000;
+            while (Date.now() < deadline) {
+                window.__layoutTestFrame();
+                await wait(20);
+                const added = cellAt(2, 0);
+                if (added && document.activeElement === added) break;
+            }
+            const added = cellAt(2, 0);
+            return JSON.stringify({
+                added: added !== null,
+                focused: added !== null && document.activeElement === added,
+                text: added ? added.textContent : null,
+                collapsed: window.getSelection().isCollapsed,
+                rows: document.querySelectorAll('[data-table-column="0"]').length,
+            });
+            """, in: nil, contentWorld: .page)
+        let json = try XCTUnwrap(result as? String)
+        let values = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        XCTAssertEqual(values["added"] as? Bool, true, json)
+        XCTAssertEqual(values["focused"] as? Bool, true, json)
+        XCTAssertEqual(values["text"] as? String, "", json)
+        XCTAssertEqual(values["collapsed"] as? Bool, true, json)
+        XCTAssertEqual(values["rows"] as? Int, 3, json)
     }
 
     func testTablePointerSelectionKeepsNativeTextRangeAndFormattingTarget() async throws {
