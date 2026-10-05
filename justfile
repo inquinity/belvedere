@@ -29,6 +29,10 @@ build-release *args:
 install *args:
     bin/install.sh {{ args }}
 
+# Unregister stray Belvedere builds from Launch Services. Dry run unless you pass --apply.
+clean-apps *args:
+    bin/clean-app-registrations.sh {{ args }}
+
 # Zip the built app into ./dist.
 bundle *args:
     bin/bundle.sh {{ args }}

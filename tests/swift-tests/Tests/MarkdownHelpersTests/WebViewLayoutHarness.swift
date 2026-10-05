@@ -29,6 +29,7 @@ final class WebViewLayoutHarness {
     }
 
     let webView: WKWebView
+    private let hostWindow: NSWindow
     private let html: String
     private let isEditor: Bool
 
@@ -65,11 +66,22 @@ final class WebViewLayoutHarness {
         webView = WKWebView(frame: CGRect(x: 0, y: 0, width: width, height: height),
                             configuration: configuration)
         webView.pageZoom = zoom
+        // A page that is not in a window is never active: on macOS 27 WebKit
+        // then delivers no focus events, so a focused table cell never reveals
+        // its Markdown and the editor tests that click or focus see rendered
+        // text. Hosting the view in a borderless window far off screen gives it
+        // the same active page a reader has, without showing anything.
+        hostWindow = NSWindow(contentRect: CGRect(x: -30000, y: -30000, width: width, height: height),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        hostWindow.isReleasedWhenClosed = false
+        hostWindow.contentView = webView
+        hostWindow.orderFront(nil)
         webView.loadHTMLString(html, baseURL: nil)
     }
 
     func close() {
         webView.stopLoading()
+        hostWindow.orderOut(nil)
     }
 
     func layout(texts: [String], imageCount: Int,
