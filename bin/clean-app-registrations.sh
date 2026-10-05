@@ -86,7 +86,7 @@ validate_environment() {
 registered_paths() {
     "$LSREGISTER" -dump 2>/dev/null \
         | sed -n -E 's/^path:[[:space:]]+(.*) \(0x[0-9a-f]+\)$/\1/p' \
-        | grep -E '/(Belvedere|Belvedere \(Dev\)|Markdown Preview)\.app$|/quick-look\.appex$' \
+        | grep -E '/(Belvedere|Belvedere \(Dev\)|Markdown Preview)\.app$|/belvedere-quick-look\.appex$' \
         | sort -u
 }
 
@@ -106,7 +106,7 @@ deletable_root_for() {
     case "$app_path" in
         "$PROJECT_ROOT"/build/*) printf '%s' "$PROJECT_ROOT/build" ;;
         "$PROJECT_ROOT"/build.noindex/*) printf '%s' "$PROJECT_ROOT/build.noindex" ;;
-        "$HOME"/Library/Developer/Xcode/DerivedData/md-preview-*/*)
+        "$HOME"/Library/Developer/Xcode/DerivedData/belvedere-*/*)
             printf '%s' "${app_path%%/Build/*}" ;;
         /private/var/folders/*/T/tmp.*/DerivedData/*)
             printf '%s' "${app_path%%/DerivedData/*}" ;;

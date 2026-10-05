@@ -1,1 +1,1 @@
-../../../../quick-look/InlineLocalAssets.swift
+../../../../belvedere-quick-look/InlineLocalAssets.swift

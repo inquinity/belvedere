@@ -4,7 +4,7 @@
 #
 # Resets the Quick Look daemon + cache, opens a `qlmanage -p` preview of the
 # sample, and samples RSS/CPU of qlmanage, QuickLookUIService, and the
-# quick-look appex every 500 ms. If the Debug build's PreviewProvider perf
+# belvedere-quick-look appex every 500 ms. If the Debug build's PreviewProvider perf
 # logging is registered, provide start→finish wall-time is captured too.
 #
 # Usage:
@@ -14,7 +14,7 @@
 # its appex serves .md previews — open the built app once, or:
 #   /System/Library/Frameworks/CoreServices.framework/Frameworks/\
 #     LaunchServices.framework/Support/lsregister -f <path/to/app>
-# Verify with: pluginkit -m -p com.apple.quicklook.preview | grep md-preview
+# Verify with: pluginkit -m -p com.apple.quicklook.preview | grep belvedere
 # ("+" marks the elected appex; `pluginkit -e use -i <appex-bundle-id>` to
 # elect the Debug build. See README.md.)
 
@@ -87,7 +87,7 @@ TICKS="$(awk -v d="$DURATION" -v i="$INTERVAL" 'BEGIN{printf "%d", d/i}')"
 for ((t = 0; t < TICKS; t++)); do
     sample_role qlmanage "$QL_PID"
     sample_role qluiservice "$(pgrep -f 'QuickLookUIService' 2>/dev/null | tr '\n' ' ')"
-    sample_role appex "$(pgrep -f 'quick-look' 2>/dev/null | tr '\n' ' ')"
+    sample_role appex "$(pgrep -f 'belvedere-quick-look' 2>/dev/null | tr '\n' ' ')"
     sleep "$INTERVAL"
 done
 
@@ -121,7 +121,7 @@ awk -v L="$LABEL" -v S="$NAME" '
 
 if ! grep -q 'mdp-perf-ql' "$LOGFILE"; then
     echo "note: no [mdp-perf-ql] lines captured — is the Debug appex elected?" >&2
-    echo "      pluginkit -m -p com.apple.quicklook.preview | grep md-preview" >&2
+    echo "      pluginkit -m -p com.apple.quicklook.preview | grep belvedere" >&2
     echo "      pluginkit -e use -i doc.md-preview.dev.quick-look" >&2
 fi
 

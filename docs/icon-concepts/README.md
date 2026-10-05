@@ -1,7 +1,7 @@
 # Markdown Preview icon concepts
 
 This is a concept round only. None of these files is wired into the app, and the
-shipping `md-preview/AppIcon.icon` has not been changed.
+shipping `belvedere/AppIcon.icon` has not been changed.
 
 The comparison board renders each concept at 112 px, close to the Dock-scale
 example used for this review. The individual PNGs are deliberately oversized

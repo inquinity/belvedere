@@ -35,11 +35,11 @@ VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build.noindex}"
 DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
 
-SCHEME="md-preview"
+SCHEME="belvedere"
 APP_NAME="Belvedere"
-APPEX_NAME="quick-look"
-APP_ENTITLEMENTS="$PROJECT_ROOT/md-preview/md-preview.entitlements"
-APPEX_ENTITLEMENTS="$PROJECT_ROOT/quick-look/quick-look.entitlements"
+APPEX_NAME="belvedere-quick-look"
+APP_ENTITLEMENTS="$PROJECT_ROOT/belvedere/belvedere.entitlements"
+APPEX_ENTITLEMENTS="$PROJECT_ROOT/belvedere-quick-look/belvedere-quick-look.entitlements"
 DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-45GJWJVQN2}"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application: Altman Software Design, LLC ($DEVELOPMENT_TEAM)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-altman-notary}"
@@ -318,8 +318,8 @@ main() {
     local built_app="$derived_data/Build/Products/Release/$APP_NAME.app"
     local output_app="$OUTPUT_DIR/$APP_NAME.app"
     local appex_path="$output_app/Contents/PlugIns/$APPEX_NAME.appex"
-    local app_entitlements="$work_dir/md-preview.entitlements"
-    local appex_entitlements="$work_dir/quick-look.entitlements"
+    local app_entitlements="$work_dir/belvedere.entitlements"
+    local appex_entitlements="$work_dir/belvedere-quick-look.entitlements"
 
     # Before compiling, so a setting it cannot expand fails in seconds.
     render_entitlements "$APP_ENTITLEMENTS" "$app_entitlements"
@@ -327,7 +327,7 @@ main() {
 
     print_colored "$COLOR_BRIGHTYELLOW" "* Compiling"
     xcodebuild build \
-        -project "$PROJECT_ROOT/md-preview.xcodeproj" \
+        -project "$PROJECT_ROOT/belvedere.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration Release \
         -destination 'platform=macOS' \

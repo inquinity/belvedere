@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/MarkdownHTML+KaTeX.swift
+../../../../belvedere/Rendering/MarkdownHTML+KaTeX.swift

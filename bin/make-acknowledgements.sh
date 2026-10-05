@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build md-preview/Acknowledgements.md, the page the About box's
+# Build belvedere/Acknowledgements.md, the page the About box's
 # Acknowledgements link opens.
 #
 # It names each open-source component the app includes and the license it is
 # used under, linked to that license in the component's own repository -- a
 # short page someone can actually read. It does not reproduce the license
-# texts. They ship in the app on their own, as md-preview/Licenses/* and each
-# md-preview/Vendor/<library>/*LICENSE*, which is what meets the MIT, BSD and
+# texts. They ship in the app on their own, as belvedere/Licenses/* and each
+# belvedere/Vendor/<library>/*LICENSE*, which is what meets the MIT, BSD and
 # Apache requirement that the notice travel with every copy. A link to GitHub
 # alone would not: the file there can change, or disappear, and does not
 # travel with the copy.
@@ -33,7 +33,7 @@ print_colored() {
 }
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_PATH="md-preview/Acknowledgements.md"
+OUTPUT_PATH="belvedere/Acknowledgements.md"
 
 # One entry per component, in reading order:
 #   "<component>|<license, as Markdown>|<notice paths, comma-separated>|<version source>"
@@ -50,15 +50,15 @@ OUTPUT_PATH="md-preview/Acknowledgements.md"
 # swift-markdown and swift-cmark have no version file here -- Package.resolved
 # is not committed -- so recheck their tags by hand when the package updates.
 ENTRIES=(
-    "Markdown Preview|[MIT License](https://github.com/pluk-inc/markdown-preview/blob/main/LICENSE)|md-preview/Licenses/Markdown-Preview-LICENSE.txt|"
-    "swift-markdown|[Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.8.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.8.0/NOTICE.txt)|md-preview/Licenses/swift-markdown-LICENSE.txt,md-preview/Licenses/swift-markdown-NOTICE.txt|"
-    "swift-cmark|[BSD 2-Clause License](https://github.com/swiftlang/swift-cmark/blob/0.8.0/COPYING), with some files under the MIT License|md-preview/Licenses/swift-cmark-COPYING.txt|"
-    "CodeMirror|[MIT License](https://code.haverbeke.berlin/codemirror/basic-setup/src/branch/main/LICENSE)|md-preview/Vendor/CodeMirror/CodeMirror-LICENSE.txt|"
-    "DOMPurify|[Apache License 2.0 or Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.2/LICENSE)|md-preview/Vendor/DOMPurify/DOMPurify-LICENSE.txt|md-preview/Vendor/DOMPurify/purify.min.js"
-    "highlight.js|[BSD 3-Clause License](https://github.com/highlightjs/highlight.js/blob/11.10.0/LICENSE), with its Terraform grammar under the [MIT License](https://github.com/taga3s/highlightjs-terraform/blob/v1.0.7/LICENSE)|md-preview/Vendor/Highlight/Highlight-LICENSE.txt|md-preview/Vendor/Highlight/Highlight-VERSION"
-    "KaTeX|[MIT License](https://github.com/KaTeX/KaTeX/blob/v0.16.45/LICENSE)|md-preview/Vendor/KaTeX/KaTeX-LICENSE.txt|md-preview/Vendor/KaTeX/VERSION"
-    "Mermaid|[MIT License](https://github.com/mermaid-js/mermaid/blob/mermaid@11.15.0/LICENSE)|md-preview/Vendor/Mermaid/LICENSE|md-preview/Vendor/Mermaid/Mermaid-VERSION"
-    "morphdom|[MIT License](https://github.com/patrick-steele-idem/morphdom/blob/v2.7.8/LICENSE)|md-preview/Vendor/Morphdom/Morphdom-LICENSE.txt|md-preview/Vendor/Morphdom/Morphdom-VERSION"
+    "Markdown Preview|[MIT License](https://github.com/pluk-inc/markdown-preview/blob/main/LICENSE)|belvedere/Licenses/Markdown-Preview-LICENSE.txt|"
+    "swift-markdown|[Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.8.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.8.0/NOTICE.txt)|belvedere/Licenses/swift-markdown-LICENSE.txt,belvedere/Licenses/swift-markdown-NOTICE.txt|"
+    "swift-cmark|[BSD 2-Clause License](https://github.com/swiftlang/swift-cmark/blob/0.8.0/COPYING), with some files under the MIT License|belvedere/Licenses/swift-cmark-COPYING.txt|"
+    "CodeMirror|[MIT License](https://code.haverbeke.berlin/codemirror/basic-setup/src/branch/main/LICENSE)|belvedere/Vendor/CodeMirror/CodeMirror-LICENSE.txt|"
+    "DOMPurify|[Apache License 2.0 or Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.2/LICENSE)|belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt|belvedere/Vendor/DOMPurify/purify.min.js"
+    "highlight.js|[BSD 3-Clause License](https://github.com/highlightjs/highlight.js/blob/11.10.0/LICENSE), with its Terraform grammar under the [MIT License](https://github.com/taga3s/highlightjs-terraform/blob/v1.0.7/LICENSE)|belvedere/Vendor/Highlight/Highlight-LICENSE.txt|belvedere/Vendor/Highlight/Highlight-VERSION"
+    "KaTeX|[MIT License](https://github.com/KaTeX/KaTeX/blob/v0.16.45/LICENSE)|belvedere/Vendor/KaTeX/KaTeX-LICENSE.txt|belvedere/Vendor/KaTeX/VERSION"
+    "Mermaid|[MIT License](https://github.com/mermaid-js/mermaid/blob/mermaid@11.15.0/LICENSE)|belvedere/Vendor/Mermaid/LICENSE|belvedere/Vendor/Mermaid/Mermaid-VERSION"
+    "morphdom|[MIT License](https://github.com/patrick-steele-idem/morphdom/blob/v2.7.8/LICENSE)|belvedere/Vendor/Morphdom/Morphdom-LICENSE.txt|belvedere/Vendor/Morphdom/Morphdom-VERSION"
 )
 
 mode="write"
@@ -152,12 +152,12 @@ validate_sources() {
                 || die "$entry_component ships $shipped_version, but its license link names another version."
         fi
     done
-    for candidate_path in "$PROJECT_ROOT"/md-preview/Licenses/*; do
+    for candidate_path in "$PROJECT_ROOT"/belvedere/Licenses/*; do
         [[ -f "$candidate_path" ]] || continue
         is_listed "${candidate_path#"$PROJECT_ROOT"/}" \
             || die "${candidate_path#"$PROJECT_ROOT"/} is not listed in ENTRIES."
     done
-    for library_dir in "$PROJECT_ROOT"/md-preview/Vendor/*/; do
+    for library_dir in "$PROJECT_ROOT"/belvedere/Vendor/*/; do
         for candidate_path in "$library_dir"*LICENSE*; do
             [[ -f "$candidate_path" ]] || die "${library_dir#"$PROJECT_ROOT"/} has no license file."
             is_listed "${candidate_path#"$PROJECT_ROOT"/}" \

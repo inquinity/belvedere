@@ -1,1 +1,1 @@
-../../../../md-preview/Preferences/TabOpeningPolicy.swift
+../../../../belvedere/Preferences/TabOpeningPolicy.swift

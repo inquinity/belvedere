@@ -4,7 +4,7 @@ set -euo pipefail
 # Build a folder you can copy to another Mac to run the Swift tests there.
 #
 # The tests locate their sources and fixtures relative to the repository
-# layout, so the kit keeps that layout: md-preview/, quick-look/,
+# layout, so the kit keeps that layout: belvedere/, belvedere-quick-look/,
 # tests/swift-tests/ and tests/fixtures/, plus run-tests.sh and a README at the
 # top. It is a copy of the working tree, not of a commit, and KIT-INFO.txt says
 # which commit it started from and whether the tree had uncommitted changes.
@@ -25,7 +25,7 @@ print_colored() {
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/dist}"
-KIT_SOURCES=(md-preview quick-look tests/swift-tests tests/fixtures)
+KIT_SOURCES=(belvedere belvedere-quick-look tests/swift-tests tests/fixtures)
 
 make_archive=false
 dry_run=false
@@ -80,7 +80,7 @@ write_kit_info() {
     } > "$kit_dir/KIT-INFO.txt"
 }
 
-# Symlinks in the test package point back into md-preview/ and quick-look/ by
+# Symlinks in the test package point back into belvedere/ and belvedere-quick-look/ by
 # relative path. A dangling one would not fail until swift test tried to build.
 check_symlinks() {
     local kit_dir=$1 broken

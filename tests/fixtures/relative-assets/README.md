@@ -7,7 +7,7 @@ contributors can reproduce the QL test described in the PR.
 ## How to use
 
 ```bash
-xcodebuild -project md-preview.xcodeproj -scheme md-preview \
+xcodebuild -project belvedere.xcodeproj -scheme belvedere \
     -configuration Debug build
 qlmanage -r && qlmanage -r cache
 open -R tests/fixtures/relative-assets/post.md   # reveal in Finder
@@ -37,6 +37,6 @@ Expectations:
   with no Load button: nothing blocked it, it simply is not there. The preview does not
   crash.
 
-If sandbox denials show up in Console.app filtered by `quick-look`, the
+If sandbox denials show up in Console.app filtered by `belvedere-quick-look`, the
 extension's read access to siblings is being refused before the
 `cid:`/`QLPreviewReply.attachments` rewrite can read the files.

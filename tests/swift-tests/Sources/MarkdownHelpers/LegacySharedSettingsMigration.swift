@@ -1,1 +1,1 @@
-../../../../md-preview/App/LegacySharedSettingsMigration.swift
+../../../../belvedere/App/LegacySharedSettingsMigration.swift

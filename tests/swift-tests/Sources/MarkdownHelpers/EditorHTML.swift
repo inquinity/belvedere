@@ -1,1 +1,1 @@
-../../../../md-preview/Features/Editor/EditorHTML.swift
+../../../../belvedere/Features/Editor/EditorHTML.swift

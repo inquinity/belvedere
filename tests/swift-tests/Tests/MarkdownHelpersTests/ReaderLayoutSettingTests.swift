@@ -69,7 +69,7 @@ final class ReaderLayoutSettingTests: XCTestCase {
         ReaderLayoutSetting.write(ReaderLayoutSetting(), to: defaults)
         XCTAssertEqual(defaults.dictionaryRepresentation()
             .keys
-            .filter { $0.hasPrefix("MarkdownPreview.readerLayout") },
+            .filter { $0.hasPrefix("belvedere.readerLayout") },
                        [])
         XCTAssertEqual(ReaderLayoutSetting.read(from: defaults), ReaderLayoutSetting())
     }
@@ -82,9 +82,9 @@ final class ReaderLayoutSettingTests: XCTestCase {
         defaults.removePersistentDomain(forName: suiteName)
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        defaults.set(99.0, forKey: "MarkdownPreview.readerLayout.lineSpacing")
-        defaults.set(-500.0, forKey: "MarkdownPreview.readerLayout.characterSpacing")
-        defaults.set(999.0, forKey: "MarkdownPreview.readerLayout.margins")
+        defaults.set(99.0, forKey: "belvedere.readerLayout.lineSpacing")
+        defaults.set(-500.0, forKey: "belvedere.readerLayout.characterSpacing")
+        defaults.set(999.0, forKey: "belvedere.readerLayout.margins")
         let setting = ReaderLayoutSetting.read(from: defaults)
 
         XCTAssertEqual(setting.lineSpacing, ReaderLayoutSetting.lineSpacingRange.upperBound)

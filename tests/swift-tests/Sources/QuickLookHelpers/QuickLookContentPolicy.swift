@@ -1,1 +1,1 @@
-../../../../quick-look/QuickLookContentPolicy.swift
+../../../../belvedere-quick-look/QuickLookContentPolicy.swift

@@ -1,1 +1,1 @@
-../../../../quick-look/QuickLookEditingCommands.swift
+../../../../belvedere-quick-look/QuickLookEditingCommands.swift

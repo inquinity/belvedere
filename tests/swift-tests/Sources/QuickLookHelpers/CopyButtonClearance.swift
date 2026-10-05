@@ -1,1 +1,1 @@
-../../../../quick-look/CopyButtonClearance.swift
+../../../../belvedere-quick-look/CopyButtonClearance.swift

@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/MarkdownHTML+Highlight.swift
+../../../../belvedere/Rendering/MarkdownHTML+Highlight.swift

@@ -34,7 +34,7 @@ reports a modify/delete conflict; resolve it by keeping the deletion.
   in `skills-lock.json` — documentation for Amore, upstream's distribution tool, which
   this fork does not use.
 - `docs/markdown-logo.svg` — upstream's logo; nothing here references it.
-- `md-preview/zh-Hans.lproj/` — the Chinese localization, removed in 2.0 because nobody here
+- `belvedere/zh-Hans.lproj/` — the Chinese localization, removed in 2.0 because nobody here
   can maintain it. Upstream still updates these files; a merge that touches them reports a
   modify/delete conflict, so keep the deletion. Do not add new Chinese keys.
 
@@ -52,7 +52,7 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
   popup instead, called *Single new lines* since 1.4: *Break (like a comment)* (off) or *Reflow (like a
   README)* (on, **the default since 1.4**; it was *Keep as typed* before, as upstream still has it),
   with an ⓘ popover explaining both (`InfoPopoverButton`, a fork file). It is the
-  same stored Bool, `MarkdownPreview.strictLineBreaks`, so Quick Look and the renderer
+  same stored Bool, `belvedere.strictLineBreaks`, so Quick Look and the renderer
   are upstream's, unchanged. English strings only; upstream's two keys are removed
   from the `.strings` file.
   *On the next sync:* `GeneralSettingsView.swift` will conflict if upstream touches

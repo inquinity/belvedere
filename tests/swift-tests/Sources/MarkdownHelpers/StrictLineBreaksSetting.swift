@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/StrictLineBreaksSetting.swift
+../../../../belvedere/Rendering/StrictLineBreaksSetting.swift

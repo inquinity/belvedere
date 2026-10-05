@@ -1,1 +1,1 @@
-../../../../quick-look/QuickLookFirstResponderPolicy.swift
+../../../../belvedere-quick-look/QuickLookFirstResponderPolicy.swift

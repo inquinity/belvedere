@@ -924,7 +924,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             repository.deleteLastPathComponent()
         }
         let bundleURL = repository
-            .appendingPathComponent("md-preview/Vendor/CodeMirror/mdedit.min.js")
+            .appendingPathComponent("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let bundle = try String(contentsOf: bundleURL, encoding: .utf8)
             .replacingOccurrences(of: "</script>", with: "<\\/script>")
         let source = """
@@ -1860,7 +1860,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             vendorLoading: .lazy
         )
         let highlightJS = try TestVendor.script(
-            "md-preview/Vendor/Highlight/highlight.min.js"
+            "belvedere/Vendor/Highlight/highlight.min.js"
         )
         let html = """
         <!DOCTYPE html>
@@ -1925,7 +1925,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             .joined(separator: "\n\n")
         let rendered = MarkdownHTML.render(markdown: markdown, vendorLoading: .lazy)
         let highlightJS = try TestVendor.script(
-            "md-preview/Vendor/Highlight/highlight.min.js"
+            "belvedere/Vendor/Highlight/highlight.min.js"
         )
         let html = """
         <!DOCTYPE html>
@@ -1990,7 +1990,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let highlightURL = repositoryRoot
-            .appendingPathComponent("md-preview/Vendor/Highlight/highlight.min.js")
+            .appendingPathComponent("belvedere/Vendor/Highlight/highlight.min.js")
         let highlightJS = try String(contentsOf: highlightURL, encoding: .utf8)
             .replacingOccurrences(of: "</script", with: "<\\/script")
         let html = """
@@ -2252,7 +2252,7 @@ final class MarkdownHTMLRenderTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let katexURL = repositoryRoot
-            .appendingPathComponent("md-preview/Vendor/KaTeX/katex.min.js")
+            .appendingPathComponent("belvedere/Vendor/KaTeX/katex.min.js")
         let katexJS = try String(contentsOf: katexURL, encoding: .utf8)
             .replacingOccurrences(of: "</script", with: "<\\/script")
         let html = """
