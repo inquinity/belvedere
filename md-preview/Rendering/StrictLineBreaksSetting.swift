@@ -38,10 +38,6 @@ nonisolated enum SingleNewLineStyle: CaseIterable {
     case reflow
     case breakAtLine
 
-    init(joinsLines: Bool) {
-        self = joinsLines ? .reflow : .breakAtLine
-    }
-
     var joinsLines: Bool { self == .reflow }
 
     var title: String {
