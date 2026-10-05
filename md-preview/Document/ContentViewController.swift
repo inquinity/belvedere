@@ -404,7 +404,10 @@ final class ContentViewController: NSViewController {
     /// Sets this window's width for the session. Choosing the saved default
     /// clears the override, so the window follows the default again.
     func setContentWidthOverride(_ setting: ContentWidthSetting) {
+        let previous = effectiveContentWidth
         contentWidthOverride = setting == ContentWidthSetting.current ? nil : setting
+        // Picking the width already shown changes nothing, so do not re-render.
+        guard effectiveContentWidth != previous else { return }
         reloadPreviewForSettingChange()
     }
 
@@ -413,6 +416,15 @@ final class ContentViewController: NSViewController {
     /// window is captured first and put back once the new page has laid out,
     /// which is what keeps the reader where they were.
     func reloadPreviewForSettingChange() {
+        // A reload already waiting to restore a place: the live page is the new,
+        // still-loading one, so reading an anchor from it would give the top and
+        // replace the right one. Keep the pending place and just reload.
+        if shouldApplyPendingAnchorOnHeight, pendingPreviewScrollAnchor != nil {
+            applyContentWidthMode()
+            webView.contentWidthSetting = effectiveContentWidth
+            webView.reloadPreviewForSettingChange()
+            return
+        }
         // Captured before anything changes: the anchor is read from the layout
         // the reader was looking at, not from the one about to replace it.
         sourceScrollAnchor { [weak self] anchor in

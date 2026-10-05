@@ -11,8 +11,8 @@ import Foundation
 /// Article layout. `current` is the saved default for every document window;
 /// a window can override it for itself without saving (View ▸ Content Width).
 /// Quick Look always renders the centered column; this only drives the app.
-/// Lives here (not AppDelegate.swift) because this file is compiled into
-/// both targets and the setting is read at render time below.
+/// A file of its own, compiled into both targets, because MarkdownWebView.swift
+/// (which both targets build) reads it when it renders a page.
 enum ContentWidthSetting: String, CaseIterable {
     /// Capped at the column Quick Look uses (820 px) and centered, so a
     /// document wraps in the same places in the app and in a Quick Look
