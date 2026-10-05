@@ -172,7 +172,6 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | Open **Acknowledgements** (About ▸ Acknowledgements) and press ⌘E: an explanation appears and there is **no editor**. Repeat with File ▸ Open… on the same file in **another** Belvedere, such as `/Applications/Belvedere.app/Contents/Resources/Acknowledgements.md` while you run a build from `build/`: also refused. Then `codesign --verify --deep --strict` on both apps must still pass | The page lives inside a signed bundle, and a dev build and an installed Belvedere are the same developer, so one can modify the other. Since 1.3.1 any document inside an application bundle cannot be edited, so there is nothing to save; before that a read-only flag was the only guard. Testing only the running app's own copy missed this once |
 | On that same page choose **Save As…** and pick your Desktop: the copy is written and the window follows it, and the copy *can* be edited. Choosing a location inside `Belvedere.app` in the panel is refused with the same explanation | Save As… to a copy is the supported way to change a bundled page |
 | With any document, File ▸ Export (HTML) and choose a folder inside `Belvedere.app`: refused, nothing written | The export panel is one of the places the guard is applied |
-| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and "Acknowledgements" (致谢) have not been checked by a native reader** |
 
 ## 5. Saving and leaving edit mode
 
@@ -241,7 +240,7 @@ Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scro
 | View ▸ **Single New Lines** ▸ **Break (like a comment)** shows the source line ends in that window only; a second window and a new tab still reflow; back to **Reflow** reflows, and the place holds | Per window, not saved |
 | Settings › General › **Single new lines** ▸ Break: no open window changes; a new window and a new tab show the source line ends | The default reaches new windows and tabs only |
 
-Not covered here: the zh-Hans strings, which nobody has checked, and Quick Look itself, which does not change.
+Not covered here: Quick Look itself, which does not change.
 
 ## 6. Release build
 

@@ -1017,10 +1017,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func installViewMenuItemIcons() {
         guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles) else { return }
         let icons: [(titles: Set<String>, symbol: String)] = [
-            (["Actual Size", "实际大小"], "magnifyingglass"),
-            (["Zoom In", "放大"], "plus.magnifyingglass"),
-            (["Zoom Out", "缩小"], "minus.magnifyingglass"),
-            (["Always on Top", "始终置顶"], "pin")
+            (["Actual Size"], "magnifyingglass"),
+            (["Zoom In"], "plus.magnifyingglass"),
+            (["Zoom Out"], "minus.magnifyingglass"),
+            (["Always on Top"], "pin")
         ]
         for (titles, symbol) in icons {
             guard let item = viewMenu.items.first(where: { titles.contains($0.title) }),
@@ -1365,16 +1365,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         topLevelMenuItem(matching: titles)?.submenu
     }
 
-    private static let fileMenuTitles: Set<String> = ["File", "文件"]
-    private static let viewMenuTitles: Set<String> = ["View", "显示"]
-    private static let windowMenuTitles: Set<String> = ["Window", "窗口"]
-    private static let formatMenuTitles: Set<String> = ["Format", "格式"]
-    private static let goMenuTitles: Set<String> = ["Go", "前往"]
-    private static let appearanceMenuTitles: Set<String> = ["Appearance", "外观"]
-    private static let contentWidthMenuTitles: Set<String> = ["Content Width", "内容宽度"]
-    private static let singleNewLineMenuTitles: Set<String> = ["Single New Lines", "单个换行"]
-    private static let showSidebarMenuTitles: Set<String> = ["Show Sidebar", "显示边栏"]
-    private static let actualSizeMenuTitles: Set<String> = ["Actual Size", "实际大小"]
+    private static let fileMenuTitles: Set<String> = ["File"]
+    private static let viewMenuTitles: Set<String> = ["View"]
+    private static let windowMenuTitles: Set<String> = ["Window"]
+    private static let formatMenuTitles: Set<String> = ["Format"]
+    private static let goMenuTitles: Set<String> = ["Go"]
+    private static let appearanceMenuTitles: Set<String> = ["Appearance"]
+    private static let contentWidthMenuTitles: Set<String> = ["Content Width"]
+    private static let singleNewLineMenuTitles: Set<String> = ["Single New Lines"]
+    private static let showSidebarMenuTitles: Set<String> = ["Show Sidebar"]
+    private static let actualSizeMenuTitles: Set<String> = ["Actual Size"]
 }
 
 

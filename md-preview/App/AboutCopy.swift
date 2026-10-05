@@ -67,8 +67,8 @@ enum AboutCopy {
     ///
     /// The panel is narrow enough that the one-line form wraps mid-clause. The
     /// break is a separate localized string rather than surgery on `tagline`
-    /// -- splitting at ", with" would work in English and do nothing in
-    /// zh-Hans, which has no such comma -- so a translator places it where the
+    /// -- splitting at ", with" would work in English and do nothing in a
+    /// language without such a comma -- so a translator places it where the
     /// sentence actually allows. The in-app pane is wide enough and keeps the
     /// unbroken form.
     static var taglineWrapped: String {

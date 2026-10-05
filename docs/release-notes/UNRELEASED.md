@@ -22,6 +22,9 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   changes the front window only and is not saved; **Settings › General › Default content width**
   is the width new windows and tabs open with, and windows that are already open keep theirs. Anyone who had chosen the old Normal width will see Full Width until they
   choose Quick Look Width.
+- **Belvedere is English only.** The Chinese translation is removed, because no one here can keep it
+  current and a half-translated interface is worse than a consistent one. Documents in any language
+  still display normally.
 - **Lines now run together by default, as in standard Markdown, and each window can choose.** A single
   new line in the source is a space, so a hard-wrapped file reflows to the window the way a README
   shows on GitHub, in the app and in Quick Look. The setting is now **Single new lines**, with
