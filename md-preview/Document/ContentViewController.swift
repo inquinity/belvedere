@@ -50,6 +50,10 @@ final class ContentViewController: NSViewController {
     // Heading top offsets in CSS pixels, indexed by heading id. Compared in
     // CSS units so page zoom doesn't invalidate them.
     private var headingOffsetsCSS: [CGFloat] = []
+    /// Where the reader was before a re-render, as a place in a section rather
+    /// than a pixel or a source position. See `captureSectionAnchor`.
+    private var pendingSectionAnchor: SectionAnchor?
+    private var sectionAnchorRetries = 0
     private var lastActiveHeadingID: Int?
     private var pendingHeadingOffsetsRefresh: DispatchWorkItem?
 
@@ -412,36 +416,85 @@ final class ContentViewController: NSViewController {
     }
 
     /// Re-renders the page for a setting baked into it (width, font, line
-    /// breaks). A new page starts at the top, so the text at the top of the
-    /// window is captured first and put back once the new page has laid out,
-    /// which is what keeps the reader where they were.
+    /// breaks). A new page starts at the top, so the reader's place is captured
+    /// first, as the section they are in and how far through it they are, and
+    /// put back once the new page has laid out. Headings are stable across a
+    /// re-flow where pixels and source positions are not.
     func reloadPreviewForSettingChange() {
         // A reload already waiting to restore a place: the live page is the new,
-        // still-loading one, so reading an anchor from it would give the top and
+        // still-loading one, so reading a place from it would give the top and
         // replace the right one. Keep the pending place and just reload.
-        if shouldApplyPendingAnchorOnHeight, pendingPreviewScrollAnchor != nil {
+        if pendingSectionAnchor != nil {
             applyContentWidthMode()
             view.layoutSubtreeIfNeeded()
             webView.contentWidthSetting = effectiveContentWidth
             webView.reloadPreviewForSettingChange()
             return
         }
-        // Captured before anything changes: the anchor is read from the layout
-        // the reader was looking at, not from the one about to replace it.
-        sourceScrollAnchor { [weak self] anchor in
+        // Captured before anything changes, from the layout the reader was
+        // looking at and not the one about to replace it.
+        captureSectionAnchor { [weak self] anchor in
             guard let self else { return }
             self.applyContentWidthMode()
             // Switching width resizes the web view itself. Let that layout finish
-            // before the page reloads, or the place is restored against the old
-            // width and the page re-flows to the new one afterwards.
+            // before the page reloads.
             self.view.layoutSubtreeIfNeeded()
             self.webView.contentWidthSetting = self.effectiveContentWidth
-            if let anchor {
-                self.pendingPreviewScrollAnchor = anchor
-                self.shouldApplyPendingAnchorOnHeight = true
-            }
+            self.pendingSectionAnchor = anchor
+            self.sectionAnchorRetries = 0
             self.webView.reloadPreviewForSettingChange()
+            // The restore happens when the new page reports its headings.
+            self.scheduleHeadingOffsetsRefresh()
         }
+    }
+
+    /// A place in a document: the heading above the top of the window and the
+    /// fraction of the way from it to the next heading (or the end). With no
+    /// heading above, the fraction is of the way to the first one.
+    private struct SectionAnchor {
+        let headingIndex: Int?
+        let fraction: CGFloat
+    }
+
+    private func captureSectionAnchor(completion: @escaping (SectionAnchor) -> Void) {
+        let metrics = webView.scrollMetrics
+        let zoom = max(pageZoom, 0.001)
+        let top = metrics.position / zoom
+        let documentHeight = metrics.documentHeight / zoom
+        webView.collectHeadingOffsets { offsets in
+            func fraction(_ y: CGFloat, from start: CGFloat, to end: CGFloat) -> CGFloat {
+                end > start ? min(max((y - start) / (end - start), 0), 1) : 0
+            }
+            guard let index = offsets.lastIndex(where: { $0 <= top + 1 }) else {
+                completion(SectionAnchor(headingIndex: nil,
+                                         fraction: fraction(top, from: 0, to: offsets.first ?? documentHeight)))
+                return
+            }
+            let end = index + 1 < offsets.count ? offsets[index + 1] : documentHeight
+            completion(SectionAnchor(headingIndex: index,
+                                     fraction: fraction(top, from: offsets[index], to: end)))
+        }
+    }
+
+    /// Scrolls to a captured place using freshly measured heading offsets.
+    /// Returns false when the new page has not reported its headings yet.
+    private func restoreSectionAnchor(_ anchor: SectionAnchor, offsets: [CGFloat]) -> Bool {
+        let zoom = max(pageZoom, 0.001)
+        let documentHeight = webView.scrollMetrics.documentHeight / zoom
+        let start: CGFloat
+        let end: CGFloat
+        if let index = anchor.headingIndex {
+            guard index < offsets.count else { return false }
+            start = offsets[index]
+            end = index + 1 < offsets.count ? offsets[index + 1] : documentHeight
+        } else {
+            start = 0
+            end = offsets.first ?? documentHeight
+        }
+        guard documentHeight > 0 else { return false }
+        let target = (start + anchor.fraction * max(end - start, 0)) * zoom
+        webView.scrollDocument(to: target, topMargin: 0, duration: 0)
+        return true
     }
 
     /// Repaints the native page background and restyles the loaded preview
@@ -753,6 +806,20 @@ final class ContentViewController: NSViewController {
         webView.collectHeadingOffsets { [weak self] offsets in
             guard let self else { return }
             self.headingOffsetsCSS = offsets
+            if let anchor = self.pendingSectionAnchor {
+                // Not while the old page is still the live one: headings read from
+                // it would restore the place into a page that is about to go.
+                if self.webView.isPageReady,
+                   self.restoreSectionAnchor(anchor, offsets: offsets) {
+                    self.pendingSectionAnchor = nil
+                } else if self.sectionAnchorRetries < 60 {
+                    // The new page has not loaded or laid out its headings yet.
+                    self.sectionAnchorRetries += 1
+                    self.scheduleHeadingOffsetsRefresh()
+                } else {
+                    self.pendingSectionAnchor = nil
+                }
+            }
             self.evaluateActiveHeading()
         }
     }

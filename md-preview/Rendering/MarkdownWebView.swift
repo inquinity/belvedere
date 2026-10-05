@@ -184,7 +184,9 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// The width this view's page is rendered for. The window sets it: it is the
     /// saved default unless the window has overridden it for itself.
     var contentWidthSetting: ContentWidthSetting = .current
-    private var isPageReady = false
+    /// Whether the current page has finished loading. False from the moment a
+    /// page is discarded until its replacement has loaded.
+    private(set) var isPageReady = false
     // Bumped on every display() call so a slower render finishing after a
     // newer one is dropped instead of clobbering the latest article.
     private var renderGeneration: UInt64 = 0
