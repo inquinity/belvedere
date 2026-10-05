@@ -794,6 +794,9 @@ nonisolated extension MarkdownHTML {
            sideways before it mangles them. */
         overflow-wrap: break-word;
     }
+    /* Inline code sets `anywhere` itself, so a column of nothing but code spans
+       (a Command column) would still shrink to one letter. */
+    th code, td code { overflow-wrap: break-word; }
     th { font-weight: 600; }
     :is(th, td)[align="center"] { text-align: center; }
     :is(th, td)[align="right"] { text-align: right; }
