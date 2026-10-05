@@ -64,6 +64,9 @@ private struct FileExportSource {
     let markdown: String
     let sourceURL: URL?
     let assetBaseURL: URL?
+    /// The window's own choice, so an exported file matches the page on screen
+    /// and not the saved default, which an open window does not follow.
+    let strictLineBreaks: Bool
     /// Supplied by `MarkdownWebView`, which owns the live page PNG is captured
     /// from. Reports `nil` on success.
     let writePNG: (URL, @escaping (Error?) -> Void) -> Void
@@ -73,7 +76,8 @@ private struct FileExportSource {
             from: markdown,
             allowsScroll: true,
             assetBaseHref: assetBaseURL?.absoluteString,
-            vendorLoading: .inline
+            vendorLoading: .inline,
+            strictLineBreaks: strictLineBreaks
         )
         try html.write(to: url, atomically: true, encoding: .utf8)
     }
@@ -1010,6 +1014,7 @@ extension MarkdownWebView {
             markdown: markdown,
             sourceURL: sourceURL,
             assetBaseURL: assetBaseURL,
+            strictLineBreaks: strictLineBreaks,
             writePNG: { [weak self] url, completion in
                 self?.writePNG(to: url, completion: completion)
             }

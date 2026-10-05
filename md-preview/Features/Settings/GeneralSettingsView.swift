@@ -43,7 +43,6 @@ struct GeneralSettingsView: View {
                                         + Text(style.explanation)
                                 }
                                 Text(L("Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look."))
-                                Text(L("New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved."))
                             }
                         }
                     }
@@ -51,6 +50,9 @@ struct GeneralSettingsView: View {
                     Text(L("Single new lines"))
                     Text(L("How a single new line in the source is shown."))
                 }
+                Text(L("New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
 

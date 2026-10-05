@@ -211,8 +211,7 @@ final class ContentViewController: NSViewController {
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
         ])
-        webView.contentWidthSetting = contentWidth
-        webView.strictLineBreaks = strictLineBreaks
+        syncWebViewRenderSettings()
         applyContentWidthMode()
         container.appearanceDidChange = { [weak self] in
             self?.updateUnderPageBackgroundColor()
@@ -406,6 +405,13 @@ final class ContentViewController: NSViewController {
         }
     }
 
+    /// Hands the web view this window's own width and single-new-line style,
+    /// which its next render uses.
+    private func syncWebViewRenderSettings() {
+        webView.contentWidthSetting = contentWidth
+        webView.strictLineBreaks = strictLineBreaks
+    }
+
     /// Sets how this window shows single new lines, for the session.
     func setStrictLineBreaks(_ joins: Bool) {
         guard joins != strictLineBreaks else { return }
@@ -433,8 +439,7 @@ final class ContentViewController: NSViewController {
         if pendingSectionAnchor != nil {
             applyContentWidthMode()
             view.layoutSubtreeIfNeeded()
-            webView.contentWidthSetting = contentWidth
-            webView.strictLineBreaks = strictLineBreaks
+            syncWebViewRenderSettings()
             webView.reloadPreviewForSettingChange()
             return
         }
@@ -446,8 +451,7 @@ final class ContentViewController: NSViewController {
             // Switching width resizes the web view itself. Let that layout finish
             // before the page reloads.
             self.view.layoutSubtreeIfNeeded()
-            self.webView.contentWidthSetting = self.contentWidth
-            self.webView.strictLineBreaks = self.strictLineBreaks
+            self.syncWebViewRenderSettings()
             self.pendingSectionAnchor = anchor
             self.sectionAnchorRetries = 0
             self.webView.reloadPreviewForSettingChange()
