@@ -137,45 +137,6 @@ struct SourceScrollAnchor {
     }
 }
 
-/// User-selectable article layout, persisted across launches. Quick Look
-/// always renders the centered column; this setting only drives the app.
-/// Lives here (not AppDelegate.swift) because this file is compiled into
-/// both targets and the setting is read at render time below.
-enum ContentWidthSetting: String, CaseIterable {
-    case normal
-    case fullWidth
-
-    private static let defaultsKey = "MarkdownPreview.contentWidth"
-
-    static var current: ContentWidthSetting {
-        get {
-            UserDefaults.standard.string(forKey: defaultsKey)
-                .flatMap(ContentWidthSetting.init(rawValue:)) ?? .normal
-        }
-        set {
-            if newValue == .normal {
-                UserDefaults.standard.removeObject(forKey: defaultsKey)
-            } else {
-                UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
-            }
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .normal: return NSLocalizedString("Normal", comment: "Content width")
-        case .fullWidth: return NSLocalizedString("Full Width", comment: "Content width")
-        }
-    }
-
-    var renderWidth: MarkdownHTML.ContentWidth {
-        switch self {
-        case .normal: return .hostCentered
-        case .fullWidth: return .full
-        }
-    }
-}
-
 struct FindResult {
     let top: CGFloat?
     let bottom: CGFloat?
@@ -220,6 +181,9 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         }
     }
     private var loadedFingerprint: RendererFingerprint?
+    /// The width this view's page is rendered for. The window sets it: it is the
+    /// saved default unless the window has overridden it for itself.
+    var contentWidthSetting: ContentWidthSetting = .current
     private var isPageReady = false
     // Bumped on every display() call so a slower render finishing after a
     // newer one is dropped instead of clobbering the latest article.
@@ -441,7 +405,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         let baseHref = currentBaseHref
         renderGeneration &+= 1
         let generation = renderGeneration
-        let contentWidth = ContentWidthSetting.current.renderWidth
+        let contentWidth = contentWidthSetting.renderWidth
         let themeOverrides = Self.currentThemeOverrides()
         Task { @concurrent [weak self] in
             let rendered = Self.timedRender(label: "display",

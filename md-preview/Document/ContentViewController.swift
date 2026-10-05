@@ -27,6 +27,9 @@ final class ContentViewController: NSViewController {
     private var webViewFullWidthConstraints: [NSLayoutConstraint] = []
     private var pendingFlashWork: DispatchWorkItem?
     private var pendingPreviewScrollAnchor: SourceScrollAnchor?
+    /// This window's own width, set from View ▸ Content Width. Never saved, and
+    /// it ends with the window; `nil` follows the saved default.
+    private(set) var contentWidthOverride: ContentWidthSetting?
     private var shouldApplyPendingAnchorOnHeight = false
     private var pendingNavigationScrollTarget: NavigationScrollTarget?
     private var shouldApplyNavigationTargetOnHeight = false
@@ -198,6 +201,7 @@ final class ContentViewController: NSViewController {
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
         ])
+        webView.contentWidthSetting = effectiveContentWidth
         applyContentWidthMode()
         container.appearanceDidChange = { [weak self] in
             self?.updateUnderPageBackgroundColor()
@@ -391,9 +395,36 @@ final class ContentViewController: NSViewController {
         }
     }
 
+    /// The width this window shows: its own choice if it made one, else the
+    /// saved default.
+    var effectiveContentWidth: ContentWidthSetting {
+        contentWidthOverride ?? .current
+    }
+
+    /// Sets this window's width for the session. Choosing the saved default
+    /// clears the override, so the window follows the default again.
+    func setContentWidthOverride(_ setting: ContentWidthSetting) {
+        contentWidthOverride = setting == ContentWidthSetting.current ? nil : setting
+        reloadPreviewForSettingChange()
+    }
+
+    /// Re-renders the page for a setting baked into it (width, font, line
+    /// breaks). A new page starts at the top, so the text at the top of the
+    /// window is captured first and put back once the new page has laid out,
+    /// which is what keeps the reader where they were.
     func reloadPreviewForSettingChange() {
-        applyContentWidthMode()
-        webView.reloadPreviewForSettingChange()
+        // Captured before anything changes: the anchor is read from the layout
+        // the reader was looking at, not from the one about to replace it.
+        sourceScrollAnchor { [weak self] anchor in
+            guard let self else { return }
+            self.applyContentWidthMode()
+            self.webView.contentWidthSetting = self.effectiveContentWidth
+            if let anchor {
+                self.pendingPreviewScrollAnchor = anchor
+                self.shouldApplyPendingAnchorOnHeight = true
+            }
+            self.webView.reloadPreviewForSettingChange()
+        }
     }
 
     /// Repaints the native page background and restyles the loaded preview
@@ -556,8 +587,8 @@ final class ContentViewController: NSViewController {
     /// full-bleed layout. See the loadView comment for why centering lives
     /// at the constraint layer instead of CSS.
     private func applyContentWidthMode() {
-        switch ContentWidthSetting.current {
-        case .normal:
+        switch effectiveContentWidth {
+        case .quickLook:
             NSLayoutConstraint.deactivate(webViewFullWidthConstraints)
             NSLayoutConstraint.activate(webViewCenteredConstraints)
         case .fullWidth:

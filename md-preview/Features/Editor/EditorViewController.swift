@@ -130,7 +130,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             PreviewContentPolicy.applying(
                 to: Self.editorHTML(markdown: markdown,
                                     includesMermaid: includesMermaid,
-                                    assetBaseURL: assetBaseURL)
+                                    assetBaseURL: assetBaseURL,
+                                    contentWidth: contentWidth)
             ),
             baseURL: nil
         )
@@ -147,6 +148,27 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
     private func updateChromeZoom() {
         guard #available(macOS 26.0, *) else { return }
         webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-chrome-zoom', '\(max(webView.pageZoom, 0.001))')", completionHandler: nil)
+    }
+
+    /// The width the editor page renders for. The window sets it: the saved
+    /// default unless the window has overridden it for itself.
+    var contentWidth: ContentWidthSetting = .current
+
+    /// Changes the editor's column width without reloading the page, and keeps
+    /// the line at the top of the window where it was while the text re-flows.
+    func applyContentWidth(_ setting: ContentWidthSetting) {
+        guard setting != contentWidth else { return }
+        contentWidth = setting
+        let value = setting == .fullWidth ? "none" : "\(MarkdownHTML.contentColumnWidth)px"
+        fetchScrollAnchor { [weak self] anchor in
+            guard let self else { return }
+            self.webView.evaluateJavaScript(
+                "document.documentElement.style.setProperty('--mdp-column-max', '\(value)')"
+            ) { _, _ in
+                guard let anchor else { return }
+                self.applyScrollProgress(0, sourceAnchor: anchor) {}
+            }
+        }
     }
 
     /// Rewrites the theme override `<style>` so a color edited in Settings
@@ -546,7 +568,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
 
     private static func editorHTML(markdown: String,
                                    includesMermaid: Bool,
-                                   assetBaseURL: URL?) -> String {
+                                   assetBaseURL: URL?,
+                                   contentWidth: ContentWidthSetting) -> String {
         // Baked into the base stylesheet, not only the override element:
         // WebKit derives the obscured-inset fill from the base stylesheet's
         // html/body background, so a theme color only present in the later
@@ -572,7 +595,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             mermaidJavaScript: includesMermaid ? mermaidJavaScript : nil,
             assetBaseURL: assetBaseURL,
             configuration: .init(
-                fullWidth: ContentWidthSetting.current == .fullWidth,
+                fullWidth: contentWidth == .fullWidth,
                 lightPageBackground: lightPageBackground,
                 darkPageBackground: darkPageBackground,
                 themeOverrideCSS: colors.editorOverrideCSS,

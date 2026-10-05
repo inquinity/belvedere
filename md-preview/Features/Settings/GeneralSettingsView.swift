@@ -53,11 +53,15 @@ struct GeneralSettingsView: View {
 
                 Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
 
-                Picker(L("Content width"), selection: $model.contentWidth) {
+                Picker(L("Default content width"), selection: $model.contentWidth) {
                     ForEach(ContentWidthSetting.allCases, id: \.self) { setting in
                         Text(setting.title).tag(setting)
                     }
                 }
+                Text(model.contentWidth.explanation + " "
+                     + L("View ▸ Content Width changes only the front window, and is not saved."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
                 Text(L("Reading"))
             } footer: {

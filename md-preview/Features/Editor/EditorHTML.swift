@@ -100,7 +100,7 @@ nonisolated enum EditorHTML {
         }
         #editor .cm-content {
             width: 100%;
-            max-width: \(columnMaxWidth);
+            max-width: var(--mdp-column-max, \(columnMaxWidth));
             min-height: 100%;
             margin: 0 auto;
             padding: 0 0 \(MarkdownHTML.pagePaddingBottom)px;

@@ -337,3 +337,10 @@
 "Belvedere will not write inside an application." = "Belvedere 不会写入应用程序内部。";
 "Choose a location outside the application, such as your Documents folder." = "请选择应用程序之外的位置，例如“文稿”文件夹。";
 "This document is part of an application, and changing it would break that application." = "此文稿属于某个应用程序，更改它会损坏该应用程序。";
+
+/* Content width */
+"Default content width" = "默认内容宽度";
+"Quick Look Width" = "快速查看宽度";
+"Wraps lines in the same places as a Quick Look preview." = "按快速查看预览的方式换行。";
+"Uses the whole window and follows it as you resize." = "使用整个窗口，并随窗口大小变化。";
+"View ▸ Content Width changes only the front window, and is not saved." = "“视图 ▸ 内容宽度”只更改最前面的窗口，且不会保存。";

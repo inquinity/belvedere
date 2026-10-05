@@ -84,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private weak var automaticAppearanceMenuItem: NSMenuItem?
     private weak var lightAppearanceMenuItem: NSMenuItem?
     private weak var darkAppearanceMenuItem: NSMenuItem?
-    private weak var normalContentWidthMenuItem: NSMenuItem?
+    private weak var quickLookContentWidthMenuItem: NSMenuItem?
     private weak var fullContentWidthMenuItem: NSMenuItem?
     private var isDocumentPromptScheduled = false
     private var documentPromptScheduleGeneration = 0
@@ -480,15 +480,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         SettingsModel.shared.refreshFromExternalSources()
     }
 
+    /// View ▸ Content Width changes the front document window only, and is not
+    /// saved: the saved default is Settings › General › Content width.
     @objc private func selectContentWidthSetting(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
               let setting = ContentWidthSetting(rawValue: rawValue),
-              setting != ContentWidthSetting.current else { return }
+              let controller = activeDocumentWindowController else { return }
 
-        ContentWidthSetting.current = setting
+        controller.setContentWidthOverride(setting)
         syncContentWidthMenuState()
-        reloadDocumentPreviewsForSettingChange()
-        SettingsModel.shared.refreshFromExternalSources()
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
@@ -506,7 +506,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case #selector(selectAppearanceMode(_:)):
             return ThemePreset.applied().requiredAppearance == nil
         case #selector(selectContentWidthSetting(_:)):
-            return true
+            return activeDocumentWindowController != nil
         case #selector(toggleEditModeFromMenu(_:)):
             return activeDocumentWindowController?.canToggleEditMode ?? false
         case #selector(formatMarkdownFromMenu(_:)):
@@ -1077,8 +1077,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(item)
 
             switch setting {
-            case .normal:
-                normalContentWidthMenuItem = item
+            case .quickLook:
+                quickLookContentWidthMenuItem = item
             case .fullWidth:
                 fullContentWidthMenuItem = item
             }
@@ -1113,9 +1113,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         darkAppearanceMenuItem?.state = mode == .dark ? .on : .off
     }
 
+    /// The check marks follow the front window, which can differ from the
+    /// saved default if that window has chosen its own width.
     private func syncContentWidthMenuState() {
-        let setting = ContentWidthSetting.current
-        normalContentWidthMenuItem?.state = setting == .normal ? .on : .off
+        let setting = activeDocumentWindowController?.effectiveContentWidth ?? .current
+        quickLookContentWidthMenuItem?.state = setting == .quickLook ? .on : .off
         fullContentWidthMenuItem?.state = setting == .fullWidth ? .on : .off
     }
 

@@ -171,6 +171,18 @@ extension DocumentWindowController {
             .reloadPreviewForSettingChange()
     }
 
+    /// The width this window shows: its own choice, else the saved default.
+    var effectiveContentWidth: ContentWidthSetting {
+        (documentWindow.contentViewController as? MainSplitViewController)?
+            .effectiveContentWidth ?? .current
+    }
+
+    /// Sets this window's width for the session only; nothing is saved.
+    func setContentWidthOverride(_ setting: ContentWidthSetting) {
+        (documentWindow.contentViewController as? MainSplitViewController)?
+            .setContentWidthOverride(setting)
+    }
+
     func applyTextSizeSetting() {
         (documentWindow.contentViewController as? MainSplitViewController)?
             .applyTextSizeSetting()

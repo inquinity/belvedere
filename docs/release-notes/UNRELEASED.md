@@ -16,6 +16,14 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Search for Document is now Go to File…**, in the Go menu, still on ⇧⌘O. It jumps to a
   file in the opened folder by name, so the new name says what it does and leaves ⇧⌘F free
   for a search of file text later.
+- **Full Width is the default, and each window can have its own width.** Documents now use the
+  whole window and follow it as you resize. The capped column, called Normal before, is now **Quick
+  Look Width**, because it wraps lines where a Quick Look preview does. **View ▸ Content Width**
+  changes the front window only and is not saved; **Settings › General › Default content width**
+  sets it for every window. Anyone who had chosen the old Normal width will see Full Width until they
+  choose Quick Look Width.
+- **Changing the width, font or line-break setting keeps your place** instead of jumping back to the
+  top of the document, in the reading view and the editor.
 - **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
   neighbouring cell with its contents selected, so typing replaces them, as in Word and
   Numbers. Before, the cell was only shaded and nothing was selected.

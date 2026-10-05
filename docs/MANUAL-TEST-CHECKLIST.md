@@ -222,6 +222,24 @@ and always on a new one.
 
 Not covered by this fixture: row and column editing, pasting a table, and right-to-left or CJK cells.
 
+## 5d. Content width
+
+Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scroll.
+
+| Check | Why |
+|---|---|
+| A new window shows **Full Width**: widen it and the text follows; narrow it and the text follows back down | The saved default is Full Width. Before 1.4 a wide window was mostly margin |
+| Scroll to the middle, then View ▸ Content Width ▸ **Quick Look Width**: the same text is still at the top of the window, and the text is now a centered column | Changing the width re-renders the page, which used to jump back to the top |
+| The same, switching back to **Full Width** | |
+| Open a second window: it is still Full Width. Only the first window changed | View ▸ Content Width is per window and is not saved |
+| Quit and reopen: the window is Full Width again | Not saved |
+| Settings › General › **Default content width** ▸ Quick Look Width: windows you have not changed switch, the one you changed by hand keeps its own, and the position holds | The default applies to every window without its own choice |
+| With the View menu open, the check mark is on the front window's width, and moves when you switch windows | The menu follows the front window, not the default |
+| Press ⌘E in each width: the editor column matches, and changing the width while editing re-flows it and keeps your place | The editor follows the same width |
+| Change **Font** in Settings while scrolled halfway: the position holds | Any setting that re-renders the page had the same jump |
+
+Not covered here: the zh-Hans strings, which nobody has checked, and Quick Look itself, which does not change.
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
