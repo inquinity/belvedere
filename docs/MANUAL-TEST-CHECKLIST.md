@@ -217,7 +217,7 @@ and always on a new one.
 |---|---|
 | Section 1: clicking a formatted cell reveals its Markdown with the caret where you clicked | Nine automated tests of this failed on macOS 27 because the test harness had no window, not because of the editor. They pass now, but only a real window on macOS 27 proves the editor itself |
 | Sections 2 to 4 and 6: drag-select, format, link and leave edit mode | The remaining automated table tests cover these with synthetic events |
-| Section 5: Tab, Shift-Tab and Enter select the next cell's text | Found by hand on 2026-10-03: they only moved focus, and the shaded cell looked selected when it was not. Fixed for 1.4 |
+| Section 5: Tab, Shift-Tab and Enter select the next cell's text | Found by hand on 2026-10-03: they only moved focus, and the shaded cell looked selected when it was not. Fixed for 2.0 |
 
 Not covered by this fixture: row and column editing, pasting a table, and right-to-left or CJK cells.
 
@@ -227,7 +227,7 @@ Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scro
 
 | Check | Why |
 |---|---|
-| A new window shows **Full Width**: widen it and the text follows; narrow it and the text follows back down | The saved default is Full Width. Before 1.4 a wide window was mostly margin |
+| A new window shows **Full Width**: widen it and the text follows; narrow it and the text follows back down | The saved default is Full Width. Before 2.0 a wide window was mostly margin |
 | Scroll to the middle, then View ▸ Content Width ▸ **Quick Look Width**: the same text is still at the top of the window, and the text is now a centered column | Changing the width re-renders the page, which used to jump back to the top |
 | The same, switching back to **Full Width** | |
 | Open a second window: it is still Full Width. Only the first window changed | View ▸ Content Width is per window and is not saved |

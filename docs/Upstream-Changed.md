@@ -49,8 +49,8 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
 - **Strict line breaks (#459) → "Line breaks".** Upstream added a *Strict line breaks*
   toggle to Settings › General › Reading. "Strict" reads as the opposite of what
   turning it on does — lines stop being kept and run together — so Belvedere shows a
-  popup instead, called *Single new lines* since 1.4: *Break (like a comment)* (off) or *Reflow (like a
-  README)* (on, **the default since 1.4**; it was *Keep as typed* before, as upstream still has it),
+  popup instead, called *Single new lines* since 2.0: *Break (like a comment)* (off) or *Reflow (like a
+  README)* (on, **the default since 2.0**; it was *Keep as typed* before, as upstream still has it),
   with an ⓘ popover explaining both (`InfoPopoverButton`, a fork file). It is the
   same stored Bool, `belvedere.strictLineBreaks`, so Quick Look and the renderer
   are upstream's, unchanged. English strings only; upstream's two keys are removed
