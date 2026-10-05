@@ -277,6 +277,15 @@ final class MainSplitViewController: NSSplitViewController {
         contentViewController?.contentWidth ?? .current
     }
 
+    /// Whether this window joins single new lines; see ContentViewController.
+    var strictLineBreaks: Bool {
+        contentViewController?.strictLineBreaks ?? StrictLineBreaksSetting.current
+    }
+
+    func setStrictLineBreaks(_ joins: Bool) {
+        contentViewController?.setStrictLineBreaks(joins)
+    }
+
     func setContentWidth(_ setting: ContentWidthSetting) {
         contentViewController?.setContentWidth(setting)
         cachedEditorViewController?.applyContentWidth(contentWidth)

@@ -344,3 +344,13 @@
 "Wraps lines in the same places as a Quick Look preview." = "按快速查看预览的方式换行。";
 "Uses the whole window and follows it as you resize." = "使用整个窗口，并随窗口大小变化。";
 "New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved." = "新窗口和新标签页将使用此宽度。已打开的窗口保持不变；可通过“视图 ▸ 内容宽度”更改单个窗口（不会保存）。";
+
+/* Single new lines */
+"Single new lines" = "单个换行";
+"Single New Lines" = "单个换行";
+"About single new lines" = "关于单个换行";
+"Reflow (like a README)" = "重新排版（如 README）";
+"Break (like a comment)" = "逐行换行（如评论）";
+"Lines run together until a blank line, the way a README is shown on GitHub." = "行会连在一起，直到遇到空行，就像 GitHub 显示 README 的方式。";
+"Every new line is a line break, the way GitHub shows comments and issues." = "每个换行都显示为换行，就像 GitHub 显示评论和议题的方式。";
+"New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved." = "新窗口和新标签页将使用此设置。已打开的窗口保持不变；可通过“视图 ▸ 单个换行”更改单个窗口（不会保存）。";

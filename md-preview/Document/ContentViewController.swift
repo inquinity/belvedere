@@ -32,6 +32,10 @@ final class ContentViewController: NSViewController {
     /// change of the saved default reaches new windows and tabs, not this one.
     /// Never saved itself.
     private(set) var contentWidth: ContentWidthSetting = .current
+    /// Whether this window joins single new lines. Same rule as the width: the
+    /// saved default as it was when the window opened, changed afterwards only
+    /// by View ▸ Single New Lines, and never saved itself.
+    private(set) var strictLineBreaks: Bool = StrictLineBreaksSetting.current
     private var shouldApplyPendingAnchorOnHeight = false
     private var pendingNavigationScrollTarget: NavigationScrollTarget?
     private var shouldApplyNavigationTargetOnHeight = false
@@ -208,6 +212,7 @@ final class ContentViewController: NSViewController {
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor)
         ])
         webView.contentWidthSetting = contentWidth
+        webView.strictLineBreaks = strictLineBreaks
         applyContentWidthMode()
         container.appearanceDidChange = { [weak self] in
             self?.updateUnderPageBackgroundColor()
@@ -401,6 +406,13 @@ final class ContentViewController: NSViewController {
         }
     }
 
+    /// Sets how this window shows single new lines, for the session.
+    func setStrictLineBreaks(_ joins: Bool) {
+        guard joins != strictLineBreaks else { return }
+        strictLineBreaks = joins
+        reloadPreviewForSettingChange()
+    }
+
     /// Sets this window's width for the session.
     func setContentWidth(_ setting: ContentWidthSetting) {
         // Picking the width already shown changes nothing, so do not re-render.
@@ -422,6 +434,7 @@ final class ContentViewController: NSViewController {
             applyContentWidthMode()
             view.layoutSubtreeIfNeeded()
             webView.contentWidthSetting = contentWidth
+            webView.strictLineBreaks = strictLineBreaks
             webView.reloadPreviewForSettingChange()
             return
         }
@@ -434,6 +447,7 @@ final class ContentViewController: NSViewController {
             // before the page reloads.
             self.view.layoutSubtreeIfNeeded()
             self.webView.contentWidthSetting = self.contentWidth
+            self.webView.strictLineBreaks = self.strictLineBreaks
             self.pendingSectionAnchor = anchor
             self.sectionAnchorRetries = 0
             self.webView.reloadPreviewForSettingChange()

@@ -86,6 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private weak var darkAppearanceMenuItem: NSMenuItem?
     private weak var quickLookContentWidthMenuItem: NSMenuItem?
     private weak var fullContentWidthMenuItem: NSMenuItem?
+    private weak var reflowMenuItem: NSMenuItem?
+    private weak var breakAtLineMenuItem: NSMenuItem?
     private var isDocumentPromptScheduled = false
     private var documentPromptScheduleGeneration = 0
     private var pendingOpenURLCount = 0
@@ -109,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         SettingsModel.shared.refreshFromExternalSources()
         installAppearanceMenuItems()
         installContentWidthMenuItems()
+        installSingleNewLineMenuItems()
         installSidebarViewMenuItems()
         installEditModeMenuItem()
         installFormatMenu()
@@ -337,10 +340,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applyAppearanceMode(resolved, reloadPreviews: true)
     }
 
+    /// Saves the default for single new lines. It reaches new windows and tabs
+    /// only: a window that is already open keeps the style it has, so nothing is
+    /// re-rendered. Quick Look reads the default.
     func applyStrictLineBreaksSetting(_ enabled: Bool) {
         guard enabled != StrictLineBreaksSetting.current else { return }
         StrictLineBreaksSetting.current = enabled
-        reloadDocumentPreviewsForSettingChange()
+        syncSingleNewLineMenuState()
     }
 
     /// Saves the default width. It reaches new windows and tabs only: a window
@@ -481,6 +487,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         SettingsModel.shared.refreshFromExternalSources()
     }
 
+    /// View ▸ Single New Lines changes the front document window only, and is
+    /// not saved: the saved default is Settings › General › Single new lines.
+    @objc private func selectSingleNewLineStyle(_ sender: NSMenuItem) {
+        guard let controller = activeDocumentWindowController else { return }
+        controller.setStrictLineBreaks(sender.tag == 1)
+        syncSingleNewLineMenuState()
+    }
+
     /// View ▸ Content Width changes the front document window only, and is not
     /// saved: the saved default is Settings › General › Content width.
     @objc private func selectContentWidthSetting(_ sender: NSMenuItem) {
@@ -496,6 +510,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncSidebarViewMenuState()
         syncAppearanceMenuState()
         syncContentWidthMenuState()
+        syncSingleNewLineMenuState()
         switch menuItem.action {
         case #selector(toggleSidebarFromMenu(_:)),
              #selector(hideSidebarFromMenu(_:)),
@@ -506,7 +521,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return activeDocumentWindowController != nil
         case #selector(selectAppearanceMode(_:)):
             return ThemePreset.applied().requiredAppearance == nil
-        case #selector(selectContentWidthSetting(_:)):
+        case #selector(selectContentWidthSetting(_:)),
+             #selector(selectSingleNewLineStyle(_:)):
             return activeDocumentWindowController != nil
         case #selector(toggleEditModeFromMenu(_:)):
             return activeDocumentWindowController?.canToggleEditMode ?? false
@@ -1092,6 +1108,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncContentWidthMenuState()
     }
 
+    /// View ▸ Single New Lines ▸ Reflow / Break, right after Content Width.
+    private func installSingleNewLineMenuItems() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles),
+              viewMenu.items.first(where: {
+                  Self.singleNewLineMenuTitles.contains($0.title)
+              }) == nil else { return }
+
+        let title = L("Single New Lines")
+        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        if let image = NSImage(systemSymbolName: "text.alignleft",
+                               accessibilityDescription: title) {
+            image.isTemplate = true
+            parent.image = image
+        }
+
+        let submenu = NSMenu(title: title)
+        for style in SingleNewLineStyle.allCases {
+            let item = NSMenuItem(title: style.title,
+                                  action: #selector(selectSingleNewLineStyle(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.tag = style.joinsLines ? 1 : 0
+            item.toolTip = style.explanation
+            submenu.addItem(item)
+            if style.joinsLines { reflowMenuItem = item } else { breakAtLineMenuItem = item }
+        }
+        parent.submenu = submenu
+        let widthIndex = viewMenu.items
+            .firstIndex(where: { Self.contentWidthMenuTitles.contains($0.title) })
+        viewMenu.insertItem(parent, at: widthIndex.map { $0 + 1 } ?? viewMenu.items.count)
+        syncSingleNewLineMenuState()
+    }
+
     private func applyAppearanceMode(_ mode: AppearanceMode, reloadPreviews: Bool) {
         let appearance = mode.appearance
         NSApp.appearance = appearance
@@ -1112,6 +1161,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         automaticAppearanceMenuItem?.state = mode == .automatic ? .on : .off
         lightAppearanceMenuItem?.state = mode == .light ? .on : .off
         darkAppearanceMenuItem?.state = mode == .dark ? .on : .off
+    }
+
+    /// The check marks follow the front window, which can differ from the
+    /// saved default: a window keeps the style it opened with.
+    private func syncSingleNewLineMenuState() {
+        let joins = activeDocumentWindowController?.strictLineBreaks ?? StrictLineBreaksSetting.current
+        reflowMenuItem?.state = joins ? .on : .off
+        breakAtLineMenuItem?.state = joins ? .off : .on
     }
 
     /// The check marks follow the front window, which can differ from the
@@ -1315,6 +1372,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private static let goMenuTitles: Set<String> = ["Go", "前往"]
     private static let appearanceMenuTitles: Set<String> = ["Appearance", "外观"]
     private static let contentWidthMenuTitles: Set<String> = ["Content Width", "内容宽度"]
+    private static let singleNewLineMenuTitles: Set<String> = ["Single New Lines", "单个换行"]
     private static let showSidebarMenuTitles: Set<String> = ["Show Sidebar", "显示边栏"]
     private static let actualSizeMenuTitles: Set<String> = ["Actual Size", "实际大小"]
 }

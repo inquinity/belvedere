@@ -178,6 +178,19 @@ extension DocumentWindowController {
             .contentWidth ?? .current
     }
 
+    /// Whether this window joins single new lines: the saved default as it was
+    /// when the window opened, unless View ▸ Single New Lines changed it.
+    var strictLineBreaks: Bool {
+        (documentWindow.contentViewController as? MainSplitViewController)?
+            .strictLineBreaks ?? StrictLineBreaksSetting.current
+    }
+
+    /// Sets how this window shows single new lines, for the session only.
+    func setStrictLineBreaks(_ joins: Bool) {
+        (documentWindow.contentViewController as? MainSplitViewController)?
+            .setStrictLineBreaks(joins)
+    }
+
     /// Sets this window's width for the session only; nothing is saved.
     func setContentWidth(_ setting: ContentWidthSetting) {
         (documentWindow.contentViewController as? MainSplitViewController)?

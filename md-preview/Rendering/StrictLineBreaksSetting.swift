@@ -29,3 +29,36 @@ nonisolated enum StrictLineBreaksSetting {
         }
     }
 }
+
+/// How a single new line inside a paragraph is shown. The two choices, named
+/// for the places readers already know them from: a README on GitHub, and a
+/// comment or issue. The saved value is `StrictLineBreaksSetting`, true for
+/// `reflow`; a document window can choose its own for the session.
+nonisolated enum SingleNewLineStyle: CaseIterable {
+    case reflow
+    case breakAtLine
+
+    init(joinsLines: Bool) {
+        self = joinsLines ? .reflow : .breakAtLine
+    }
+
+    var joinsLines: Bool { self == .reflow }
+
+    var title: String {
+        switch self {
+        case .reflow: return NSLocalizedString("Reflow (like a README)", comment: "Single new line style")
+        case .breakAtLine: return NSLocalizedString("Break (like a comment)", comment: "Single new line style")
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .reflow:
+            return NSLocalizedString("Lines run together until a blank line, the way a README is shown on GitHub.",
+                                     comment: "Single new line style explanation")
+        case .breakAtLine:
+            return NSLocalizedString("Every new line is a line break, the way GitHub shows comments and issues.",
+                                     comment: "Single new line style explanation")
+        }
+    }
+}

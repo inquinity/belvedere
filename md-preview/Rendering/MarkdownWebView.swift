@@ -184,6 +184,9 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// The width this view's page is rendered for. The window sets it: it is the
     /// saved default unless the window has overridden it for itself.
     var contentWidthSetting: ContentWidthSetting = .current
+    /// Whether this view's page joins single new lines. The window sets it: the
+    /// saved default when the window opened, unless the window has changed it.
+    var strictLineBreaks: Bool = StrictLineBreaksSetting.current
     /// Whether the current page has finished loading. False from the moment a
     /// page is discarded until its replacement has loaded.
     private(set) var isPageReady = false
@@ -408,12 +411,14 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         renderGeneration &+= 1
         let generation = renderGeneration
         let contentWidth = contentWidthSetting.renderWidth
+        let strictLineBreaks = strictLineBreaks
         let themeOverrides = Self.currentThemeOverrides()
         Task { @concurrent [weak self] in
             let rendered = Self.timedRender(label: "display",
                                             markdown: markdown,
                                             assetBaseHref: baseHref,
                                             contentWidth: contentWidth,
+                                            strictLineBreaks: strictLineBreaks,
                                             themeOverrides: themeOverrides)
             #if DEBUG
             let renderFinishedAt = DispatchTime.now().uptimeNanoseconds
@@ -435,6 +440,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                                 markdown: String,
                                                 assetBaseHref: String,
                                                 contentWidth: MarkdownHTML.ContentWidth,
+                                                strictLineBreaks: Bool = StrictLineBreaksSetting.current,
                                                 themeOverrides: MarkdownHTML.ThemeOverrides? = nil,
                                                 warmup: Bool = false,
                                                 preloadsMathAndCode: Bool = false) -> MarkdownHTML.RenderedHTML {
@@ -445,6 +451,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                            vendorLoading: .lazy,
                                            contentWidth: contentWidth,
                                            themeOverrides: themeOverrides,
+                                           strictLineBreaks: strictLineBreaks,
                                            warmup: warmup,
                                            preloadsMathAndCode: preloadsMathAndCode,
                                            pageTopClearance: MarkdownHTML.appPageTopClearance)

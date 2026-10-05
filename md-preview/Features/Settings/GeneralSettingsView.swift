@@ -26,28 +26,29 @@ struct GeneralSettingsView: View {
                 // Same stored Bool, so no migration and Quick Look is unchanged.
                 LabeledContent {
                     HStack(spacing: 6) {
-                        Picker(L("Line breaks"), selection: $model.strictLineBreaks) {
-                            Text(L("Join into paragraphs")).tag(true)
-                            Text(L("Keep as typed")).tag(false)
+                        Picker(L("Single new lines"), selection: $model.strictLineBreaks) {
+                            ForEach(SingleNewLineStyle.allCases, id: \.self) { style in
+                                Text(style.title).tag(style.joinsLines)
+                            }
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
                         .fixedSize()
 
-                        InfoPopoverButton(accessibilityLabel: L("About line breaks")) {
+                        InfoPopoverButton(accessibilityLabel: L("About single new lines")) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(L("Keep as typed")).bold()
-                                    + Text(": ")
-                                    + Text(L("each new line starts a new line, the way GitHub shows comments and issues."))
-                                Text(L("Join into paragraphs")).bold()
-                                    + Text(": ")
-                                    + Text(L("lines run together until a blank line, the way standard Markdown and GitHub README files work."))
+                                ForEach(SingleNewLineStyle.allCases, id: \.self) { style in
+                                    Text(style.title).bold()
+                                        + Text(": ")
+                                        + Text(style.explanation)
+                                }
                                 Text(L("Either way, a blank line starts a new paragraph, and two trailing spaces or a backslash at the end of a line force a break. Applies to the reading view and Quick Look."))
+                                Text(L("New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved."))
                             }
                         }
                     }
                 } label: {
-                    Text(L("Line breaks"))
+                    Text(L("Single new lines"))
                     Text(L("How a single new line in the source is shown."))
                 }
 

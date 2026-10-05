@@ -22,6 +22,19 @@ final class StrictLineBreaksTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: StrictLineBreaksSetting.defaultsKey))
     }
 
+    /// The two choices, named for README files and for comments.
+    func testTheStylesMapToTheSavedValueAndHaveTheirNames() {
+        XCTAssertEqual(SingleNewLineStyle.allCases, [.reflow, .breakAtLine])
+        XCTAssertEqual(SingleNewLineStyle(joinsLines: true), .reflow)
+        XCTAssertEqual(SingleNewLineStyle(joinsLines: false), .breakAtLine)
+        XCTAssertTrue(SingleNewLineStyle.reflow.joinsLines)
+        XCTAssertFalse(SingleNewLineStyle.breakAtLine.joinsLines)
+        XCTAssertEqual(SingleNewLineStyle.reflow.title, "Reflow (like a README)")
+        XCTAssertEqual(SingleNewLineStyle.breakAtLine.title, "Break (like a comment)")
+        XCTAssertEqual(SingleNewLineStyle(joinsLines: StrictLineBreaksSetting.defaultValue), .reflow,
+                       "Reflow is the default.")
+    }
+
     /// A value saved by 1.3 (true meaning join) still means join.
     func testAValueSavedByEarlierVersionsStillReads() throws {
         let suite = "StrictLineBreaksTests.\(UUID().uuidString)"

@@ -237,7 +237,9 @@ Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scro
 | With the View menu open, the check mark is on the front window's width, and moves when you switch windows | The menu follows the front window, not the default |
 | Press ⌘E in each width: the editor column matches, and changing the width while editing re-flows it and keeps your place | The editor follows the same width |
 | Change **Font** in Settings while scrolled halfway: the position holds | Any setting that re-renders the page had the same jump |
-| `docs/FORK-NOTES.md` paragraphs run to the window's edge in Full Width, not to column 85. Settings › Line breaks › **Keep as typed** shows the source line ends again, and back to **Join into paragraphs** reflows | Join is the default, as in standard Markdown, so hard-wrapped files use the window |
+| `docs/FORK-NOTES.md` paragraphs run to the window's edge in Full Width, not to column 85 | Reflow, the default, is how a README shows; hard-wrapped files use the window |
+| View ▸ **Single New Lines** ▸ **Break (like a comment)** shows the source line ends in that window only; a second window and a new tab still reflow; back to **Reflow** reflows, and the place holds | Per window, not saved |
+| Settings › General › **Single new lines** ▸ Break: no open window changes; a new window and a new tab show the source line ends | The default reaches new windows and tabs only |
 
 Not covered here: the zh-Hans strings, which nobody has checked, and Quick Look itself, which does not change.
 
