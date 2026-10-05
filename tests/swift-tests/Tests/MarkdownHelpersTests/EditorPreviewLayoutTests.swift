@@ -163,6 +163,9 @@ final class EditorPreviewLayoutTests: XCTestCase {
                 markdown: fixture.markdown, allowsScroll: true,
                 contentWidth: fullWidth ? .full : .centered,
                 documentFont: .system, readerLayout: ReaderLayoutSetting(),
+                // The editor shows every source line as a line, so parity with it
+                // is measured with newlines kept; Join, the default, reflows them.
+                strictLineBreaks: false,
                 pageTopClearance: pageScrolling ? MarkdownHTML.appPageTopClearance : 0
             ).html
             let editorHTML = EditorHTML.render(

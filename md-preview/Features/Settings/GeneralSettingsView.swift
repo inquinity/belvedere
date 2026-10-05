@@ -27,8 +27,8 @@ struct GeneralSettingsView: View {
                 LabeledContent {
                     HStack(spacing: 6) {
                         Picker(L("Line breaks"), selection: $model.strictLineBreaks) {
-                            Text(L("Keep as typed")).tag(false)
                             Text(L("Join into paragraphs")).tag(true)
+                            Text(L("Keep as typed")).tag(false)
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)

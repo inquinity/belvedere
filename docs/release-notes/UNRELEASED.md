@@ -22,6 +22,11 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   changes the front window only and is not saved; **Settings › General › Default content width**
   is the width new windows and tabs open with, and windows that are already open keep theirs. Anyone who had chosen the old Normal width will see Full Width until they
   choose Quick Look Width.
+- **Lines now run together by default, as in standard Markdown.** A single new line in the source is
+  a space, so a hard-wrapped file reflows to the window the way GitHub and editor previews show it,
+  in the app and in Quick Look. If you prefer every new line to show as a line break, choose
+  *Keep as typed* in Settings › General › Reading › Line breaks; people who had chosen it before see
+  *Join into paragraphs* until they choose it again.
 - **Changing the width, font or line-break setting keeps your place** instead of jumping back to the
   top of the document, in the reading view and the editor.
 - **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
