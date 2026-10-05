@@ -79,11 +79,11 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
 - **What's New window (#453).** Never shown. It describes Markdown Preview's releases,
   is branded as that app, links to upstream's GitHub, and compares upstream's build
   numbers (66 and up) with Belvedere's (13 and up), so it would open for every
-  Belvedere reader on every upstream bump. Upstream's `Features/WhatsNew/` files are
-  left untouched and unreferenced; only the launch hook, the Help-menu item and the
-  automatic presentation were removed.
-  *Kept out by* `ForkPostureTests.testWhatsNewIsNeverPresented`; the unused code is
-  listed in `docs/dead-code-baseline.txt`.
+  Belvedere reader on every upstream bump. First the launch hook, the Help-menu item
+  and the automatic presentation were removed and the files left unreferenced; on
+  2026-10-01 the files, their strings and their tests were deleted too.
+  *Kept out by* `ForkPostureTests.testWhatsNewIsNeverPresented`. If upstream edits
+  `Features/WhatsNew/`, a merge reports a modify/delete conflict: keep the deletion.
 - **Deleting `CLAUDE.md`.** Upstream removed it; Belvedere keeps its one line,
   `@AGENTS.md`, which is what loads the fork's rules for Claude sessions. Git deletes
   it silently on a merge, so check for it after every sync.

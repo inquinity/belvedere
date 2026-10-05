@@ -20,8 +20,6 @@
 # that is not wired yet.
 #
 # Reviewed at the 0.0.63 merge:
-# - Features/WhatsNew/* is orphaned on purpose: Belvedere never presents
-#   upstream's What's New window (see FORK-NOTES, "How changes are applied").
 # - ReaderRenderSettings.fingerprint was read only by the reopen-snapshot code
 #   Belvedere removed; the file is upstream's and kept untouched.
 # - EscapingHTMLFormatter's MarkdownTableEdit / TaskCheckboxSource helpers are
@@ -51,13 +49,6 @@ md-preview/Features/Settings/SettingsModel.swift:142:10: warning: Unused functio
 md-preview/Features/Settings/SettingsModel.swift:151:10: warning: Unused function 'resetThemeColors()'
 md-preview/Features/Sidebar/SidebarViewController.swift:290:37: warning: Unused parameter 'sender'
 md-preview/Features/Sidebar/SidebarViewController.swift:317:9: warning: Assign-only property 'level' is assigned, but never used
-md-preview/Features/WhatsNew/WhatsNewPolicy.swift:15:6: warning: Unused enum 'WhatsNewPolicy'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:137:10: warning: Unused function 'continueButtonStyle()'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:146:10: warning: Unused function 'secondaryButtonStyle()'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:159:21: warning: Unused class 'WhatsNewHostingController'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:166:6: warning: Unused enum 'WhatsNewWindow'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:20:16: warning: Unused property 'current'
-md-preview/Features/WhatsNew/WhatsNewWindow.swift:47:8: warning: Unused struct 'WhatsNewView'
 md-preview/Rendering/CodeFenceInfo.swift:21:9: warning: Assign-only property 'metadata' is assigned, but never used
 md-preview/Rendering/CodeHighlighter.swift:164:21: warning: Unused function 'install(source:)'
 md-preview/Rendering/CodeHighlighter.swift:174:21: warning: Assign-only property 'context' is assigned, but never used

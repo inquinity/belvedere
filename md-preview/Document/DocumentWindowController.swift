@@ -402,8 +402,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         refreshOpenInLLMItem()
         refreshOpenActionsItem()
         updateEditToolbarItem()
-        // Belvedere does not show upstream's What's New window: it describes
-        // Markdown Preview's release, not this app's (see docs/FORK-NOTES.md).
         if let fileURL {
             NSDocumentController.shared.noteNewRecentDocumentURL(fileURL)
             renderCurrentDocument(text: markdown, fileURL: fileURL)
@@ -580,7 +578,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         }
     }
 
-    /// Also read by `WhatsNewWindow` as a sign of earlier use.
     static let didOfferDefaultHandlerKey = "MarkdownPreview.didOfferAsDefaultHandler"
 
     private func offerToBecomeDefaultHandlerIfNeeded() {

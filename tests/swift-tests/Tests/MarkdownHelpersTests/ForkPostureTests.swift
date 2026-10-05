@@ -295,9 +295,9 @@ final class ForkPostureTests: XCTestCase {
     /// Upstream's What's New window describes Markdown Preview's release,
     /// links to upstream's GitHub, and keys off upstream's build numbers, so it
     /// would open for every Belvedere user on each upstream bump. Its files are
-    /// kept untouched for cheap merges; nothing may present it.
+    /// deleted, and a merge that restores them must not bring a caller with it.
     func testWhatsNewIsNeverPresented() throws {
-        for file in try swiftSources() where !file.path.contains("/Features/WhatsNew/") {
+        for file in try swiftSources() {
             let source = try String(contentsOf: file, encoding: .utf8)
             for call in ["WhatsNewWindow.present", "WhatsNewWindow.noteLaunch", "installWhatsNewMenuItem"] {
                 XCTAssertFalse(
