@@ -33,6 +33,10 @@ install *args:
 clean-apps *args:
     bin/clean-app-registrations.sh {{ args }}
 
+# Make an app the default for every Markdown type it declares. e.g. just default-app /Applications/Belvedere.app (--check to look, --dry-run to preview).
+default-app *args:
+    swift bin/set-default-app.swift {{ args }}
+
 # Zip the built app into ./dist.
 bundle *args:
     bin/bundle.sh {{ args }}
