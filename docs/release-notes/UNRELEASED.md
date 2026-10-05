@@ -10,4 +10,6 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **Wide tables are readable again.** Since 1.3.0, a table with one long column squeezed the short
+  columns to a single letter per line. Short columns now keep their words and the table scrolls
+  sideways instead.
