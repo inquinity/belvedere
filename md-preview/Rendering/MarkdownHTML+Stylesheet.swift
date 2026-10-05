@@ -785,6 +785,14 @@ nonisolated extension MarkdownHTML {
         border-bottom: 1px solid var(--grid);
         text-align: start;
         vertical-align: top;
+        /* The article sets `overflow-wrap: anywhere`, which every cell inherits,
+           and `anywhere` also lowers a cell's minimum width to one character.
+           With one wide column the browser then squeezes the narrow ones to a
+           letter each ("M" over "0") and breaks words mid-word. `break-word`
+           still breaks a string that cannot fit, but leaves the minimum at the
+           longest word, so short columns keep their words and the table scrolls
+           sideways before it mangles them. */
+        overflow-wrap: break-word;
     }
     th { font-weight: 600; }
     :is(th, td)[align="center"] { text-align: center; }
