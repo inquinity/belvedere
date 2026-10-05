@@ -280,3 +280,8 @@ check missed.
   `brew upgrade --cask belvedere`.
 - **The command line tools are gone.** The installer is orphaned and its
   Settings button was removed in 1.0.3.
+- **A Mermaid diagram can be a pixel or two different in size between reading and
+  editing.** Shipped as known in 2.0. The reading view and the editor measure the
+  diagram's labels slightly differently, so the text after a diagram can sit about
+  1 to 4 px lower or higher when you switch. `EditorPreviewLayoutTests.testCompleteMixedFormattingDocument`
+  fails by about 1.25 px for this reason; expect that one failure.
