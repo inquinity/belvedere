@@ -421,6 +421,7 @@ final class ContentViewController: NSViewController {
         // replace the right one. Keep the pending place and just reload.
         if shouldApplyPendingAnchorOnHeight, pendingPreviewScrollAnchor != nil {
             applyContentWidthMode()
+            view.layoutSubtreeIfNeeded()
             webView.contentWidthSetting = effectiveContentWidth
             webView.reloadPreviewForSettingChange()
             return
@@ -430,6 +431,10 @@ final class ContentViewController: NSViewController {
         sourceScrollAnchor { [weak self] anchor in
             guard let self else { return }
             self.applyContentWidthMode()
+            // Switching width resizes the web view itself. Let that layout finish
+            // before the page reloads, or the place is restored against the old
+            // width and the page re-flows to the new one afterwards.
+            self.view.layoutSubtreeIfNeeded()
             self.webView.contentWidthSetting = self.effectiveContentWidth
             if let anchor {
                 self.pendingPreviewScrollAnchor = anchor
