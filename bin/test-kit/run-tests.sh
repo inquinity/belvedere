@@ -115,7 +115,7 @@ validate_environment() {
     require_command sw_vers
     [[ -f "$PACKAGE_PATH/Package.swift" ]] \
         || die "tests/swift-tests/Package.swift not found next to this script. Run it from inside the kit folder."
-    [[ -d "$KIT_ROOT/md-preview" ]] || die "md-preview/ is missing from the kit"
+    [[ -d "$KIT_ROOT/belvedere" ]] || die "belvedere/ is missing from the kit"
 }
 
 run_tests() {

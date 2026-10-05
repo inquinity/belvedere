@@ -33,7 +33,7 @@ VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
 CHANGELOG="$PROJECT_ROOT/CHANGELOG.md"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/dist}"
 
-SCHEME="md-preview"
+SCHEME="belvedere"
 APP_NAME="Belvedere"
 DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-45GJWJVQN2}"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application: Altman Software Design, LLC ($DEVELOPMENT_TEAM)}"
@@ -182,7 +182,7 @@ main() {
 
     print_colored "$COLOR_BRIGHTYELLOW" "* Archiving"
     run xcodebuild archive \
-        -project "$PROJECT_ROOT/md-preview.xcodeproj" \
+        -project "$PROJECT_ROOT/belvedere.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration Release \
         -destination 'platform=macOS' \

@@ -12,7 +12,7 @@ import Foundation
 //   swift bin/make-icon.swift --install-rendered-fold
 //
 // Both families are generated every run; the --install flags choose which one
-// is copied into md-preview/AppIcon.icon. Rendered Fold is installable because
+// is copied into belvedere/AppIcon.icon. Rendered Fold is installable because
 // this fork switches to it if upstream adopts Split Signal for themselves --
 // see docs/FORK-NOTES.md.
 
@@ -510,7 +510,7 @@ do {
         let generatedPackage = outputRoot
             .appendingPathComponent(design.rawValue)
             .appendingPathComponent("AppIcon.icon")
-        let installedPackage = repositoryRoot.appendingPathComponent("md-preview/AppIcon.icon")
+        let installedPackage = repositoryRoot.appendingPathComponent("belvedere/AppIcon.icon")
         let packageFiles = ["icon.json", "Assets/AppIconLayer.png"]
         for relativePath in packageFiles {
             let source = generatedPackage.appendingPathComponent(relativePath)

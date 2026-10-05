@@ -1,1 +1,1 @@
-../../../../md-preview/Features/Sidebar/MarkdownTOC.swift
+../../../../belvedere/Features/Sidebar/MarkdownTOC.swift

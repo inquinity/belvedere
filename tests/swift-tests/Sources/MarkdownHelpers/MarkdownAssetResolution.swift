@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/MarkdownAssetResolution.swift
+../../../../belvedere/Rendering/MarkdownAssetResolution.swift

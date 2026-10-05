@@ -1,0 +1,1412 @@
+//
+//  AppDelegate.swift
+//  belvedere
+//
+
+import Cocoa
+
+private enum CommandLineToolInstallError: LocalizedError {
+    case terminalAutomationFailed(String?)
+    case installerScriptWriteFailed(String)
+    case bundledToolMissing
+
+    var errorDescription: String? {
+        switch self {
+        case .terminalAutomationFailed(let message):
+            if let message, !message.isEmpty {
+                return String(
+                    format: NSLocalizedString(
+                        "Terminal automation failed: %@",
+                        comment: "CLI installer error"
+                    ),
+                    message
+                )
+            }
+            return NSLocalizedString("Terminal automation failed.", comment: "CLI installer error")
+        case .installerScriptWriteFailed(let message):
+            return String(
+                format: NSLocalizedString(
+                    "Failed to write CLI installer script: %@",
+                    comment: "CLI installer error"
+                ),
+                message
+            )
+        case .bundledToolMissing:
+            return NSLocalizedString(
+                "The bundled Markdown Preview CLI could not be found.",
+                comment: "CLI installer error"
+            )
+        }
+    }
+}
+
+private extension String {
+    var appleScriptQuotedString: String {
+        let escaped = replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
+    }
+
+    var shellQuotedString: String {
+        "'\(replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+}
+
+private extension AppearanceMode {
+    var title: String {
+        switch self {
+        case .automatic: return NSLocalizedString("Automatic", comment: "Appearance mode")
+        case .light: return NSLocalizedString("Light", comment: "Appearance mode")
+        case .dark: return NSLocalizedString("Dark", comment: "Appearance mode")
+        }
+    }
+
+    var appearance: NSAppearance? {
+        switch self {
+        case .automatic: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
+@main
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+
+    private var settingsWindowController: SettingsWindowController?
+    /// Non-zero while `withCoalescedPreviewReloads` is holding reloads back.
+    private var coalescedReloadDepth = 0
+    private var needsCoalescedPreviewReload = false
+
+    private weak var hideSidebarMenuItem: NSMenuItem?
+    private weak var outlineMenuItem: NSMenuItem?
+    private weak var filesMenuItem: NSMenuItem?
+    private weak var automaticAppearanceMenuItem: NSMenuItem?
+    private weak var lightAppearanceMenuItem: NSMenuItem?
+    private weak var darkAppearanceMenuItem: NSMenuItem?
+    private weak var quickLookContentWidthMenuItem: NSMenuItem?
+    private weak var fullContentWidthMenuItem: NSMenuItem?
+    private weak var reflowMenuItem: NSMenuItem?
+    private weak var breakAtLineMenuItem: NSMenuItem?
+    private var isDocumentPromptScheduled = false
+    private var documentPromptScheduleGeneration = 0
+    private var pendingOpenURLCount = 0
+    private var isTerminationSaveInProgress = false
+    private var pendingTerminationSaveCount = 0
+    private var terminationSaveFailed = false
+
+    private var hasFinishedLaunching = false
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        CrashReporter.start()
+        // Before anything reads a setting: 1.x saved them under another prefix.
+        SettingsKeyMigration.runIfNeeded()
+        // Before anything reads the shared suite: 1.2.4 and earlier saved it elsewhere.
+        LegacySharedSettingsMigration.runIfNeeded()
+        let storedAppearance = AppearanceMode.migrateLegacyValue()
+        ThemePreset.migrateLegacyValues()
+        let appearanceMode = ThemePreset.applied().requiredAppearance ?? storedAppearance
+        if appearanceMode != storedAppearance { AppearanceMode.current = appearanceMode }
+        applyAppearanceMode(appearanceMode, reloadPreviews: false)
+        // Capture launch settings before another instance can change them while
+        // we're inactive, even if this user never opens the Settings window.
+        SettingsModel.shared.refreshFromExternalSources()
+        installAppearanceMenuItems()
+        installContentWidthMenuItems()
+        installSingleNewLineMenuItems()
+        installSidebarViewMenuItems()
+        installEditModeMenuItem()
+        installFormatMenu()
+        installNewTabMenuItem()
+        installOpenFolderMenuItem()
+        installFileExportMenuItems()
+        installGoMenu()
+        installSettingsMenuItem()
+        NSApp.windowsMenu?.delegate = self
+        installAboutMenuItem()
+        installViewMenuItemIcons()
+        hasFinishedLaunching = true
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        UsageAnalyticsReporter.recordAppBecameActive()
+        guard hasFinishedLaunching else { return }
+        let model = SettingsModel.shared
+        let changed = model.appliedPreset != ThemePreset.applied()
+            || model.appearance != AppearanceMode.current
+            || model.themeColors != ThemeColorsSetting.current
+            || model.documentFont != DocumentFontSetting.current
+            || model.readerLayout != ReaderLayoutSetting.current
+            || model.strictLineBreaks != StrictLineBreaksSetting.current
+        guard changed else { return }
+        model.refreshFromExternalSources()
+        // Repaint only when another instance changed the shared reading look.
+        applyAppearanceMode(ThemePreset.applied().requiredAppearance ?? AppearanceMode.current,
+                            reloadPreviews: true)
+    }
+
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        true
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        cancelScheduledDocumentPrompt()
+
+        var malformedSchemeURLs: [URL] = []
+        for incoming in urls {
+            guard let url = ExternalOpenScheme.resolvedURL(opening: incoming) else {
+                malformedSchemeURLs.append(incoming)
+                continue
+            }
+
+            if url.isExistingDirectory {
+                openFolder(url)
+                continue
+            }
+
+            pendingOpenURLCount += 1
+            NSDocumentController.shared.openDocument(withContentsOf: url,
+                                                     display: true) { [weak self] document, _, error in
+                if let error {
+                    NSAlert(error: error).runModal()
+                }
+                guard let self else { return }
+                self.showWindowIfNeeded(for: document)
+                self.pendingOpenURLCount -= 1
+                if error != nil {
+                    self.scheduleDocumentPromptIfIdle()
+                }
+            }
+        }
+
+        if !malformedSchemeURLs.isEmpty {
+            presentUnsupportedSchemeURLAlert(malformedSchemeURLs)
+            scheduleDocumentPromptIfIdle()
+        }
+    }
+
+    /// Re-offers the open panel once every open in the batch has failed —
+    /// without it the app would sit windowless after a bad link or a
+    /// vanished file.
+    private func scheduleDocumentPromptIfIdle() {
+        guard pendingOpenURLCount == 0 else { return }
+        scheduleDocumentPrompt(requiresNoDocuments: true)
+    }
+
+    /// A malformed belvedere:// link tells the reader what shape the app
+    /// expects instead of failing silently — the link usually comes from a
+    /// hand-written web page, so the author is the one looking at the alert.
+    private func presentUnsupportedSchemeURLAlert(_ urls: [URL]) {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Cannot open link",
+                                              comment: "URL scheme error")
+        alert.informativeText = String(
+            format: NSLocalizedString(
+                "“%@” is not a link Markdown Preview understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md.",
+                comment: "URL scheme error"
+            ),
+            urls.map(\.absoluteString).joined(separator: "\n")
+        )
+        alert.runModal()
+    }
+
+    /// `openDocument(withContentsOf:display:)` returns an existing document
+    /// unchanged. If its window was closed earlier (while the app kept
+    /// running), the document has no window controllers and `display: true`
+    /// does not create a window for it, so the file appears not to open.
+    /// Make and show a window in that case.
+    private func showWindowIfNeeded(for document: NSDocument?) {
+        guard let document, document.windowControllers.isEmpty else { return }
+        document.makeWindowControllers()
+        document.showWindows()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if isTerminationSaveInProgress {
+            return .terminateLater
+        }
+
+        let controllers = NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+            .filter(\.hasPendingEditorChanges)
+        guard !controllers.isEmpty else { return .terminateNow }
+
+        isTerminationSaveInProgress = true
+        pendingTerminationSaveCount = controllers.count
+        terminationSaveFailed = false
+
+        for controller in controllers {
+            controller.commitPendingEditsForTermination { [weak self, weak sender] success in
+                guard let self, let sender, self.isTerminationSaveInProgress else { return }
+                self.terminationSaveFailed = self.terminationSaveFailed || !success
+                self.pendingTerminationSaveCount -= 1
+                guard self.pendingTerminationSaveCount == 0 else { return }
+
+                let shouldTerminate = !self.terminationSaveFailed
+                self.isTerminationSaveInProgress = false
+                self.terminationSaveFailed = false
+                sender.reply(toApplicationShouldTerminate: shouldTerminate)
+            }
+        }
+        return .terminateLater
+    }
+
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        true
+    }
+
+    // MARK: - Settings
+
+    /// Inserted after About, where macOS puts Settings, since MainMenu.xib
+    /// predates the window and has no item for it.
+    private func installSettingsMenuItem() {
+        // The app menu is always the first top-level item; its title is the
+        // localized app name, so it can't be matched the way the others are.
+        guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
+              appMenu.items.first(where: {
+                  $0.action == #selector(showSettingsWindow(_:))
+              }) == nil else { return }
+
+        let item = NSMenuItem(title: L("Settings…"),
+                              action: #selector(showSettingsWindow(_:)),
+                              keyEquivalent: ",")
+        item.keyEquivalentModifierMask = [.command]
+        item.target = self
+        let aboutIndex = appMenu.items.firstIndex {
+            $0.action == #selector(NSApplication.orderFrontStandardAboutPanel(_:))
+        }
+        // MainMenu.xib already separates About from the settings and tools group.
+        let insertIndex = aboutIndex.map { $0 + 2 } ?? 0
+        appMenu.insertItem(item, at: insertIndex)
+    }
+
+    /// AppKit's stock About panel formats the version as "1.1.0 (8)". This fork
+    /// shows "Version 1.1.0" instead, matching the in-app About pane
+    /// (AboutSettingsView). Passing an empty `.applicationVersion` suppresses the
+    /// parenthetical build that AppKit would otherwise append.
+    ///
+    /// The copy below the version comes from AboutCopy, shared with that pane so
+    /// the two cannot drift.
+    private func installAboutMenuItem() {
+        guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
+              let about = appMenu.items.first(where: {
+                  $0.action == #selector(NSApplication.orderFrontStandardAboutPanel(_:))
+              }) else { return }
+        about.action = #selector(showAboutPanel(_:))
+        about.target = self
+    }
+
+    @objc func showAboutPanel(_ sender: Any?) {
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .version: AboutCopy.versionNumber,
+            .applicationVersion: "",
+            .credits: AboutCopy.creditsAttributedString(),
+        ])
+    }
+
+    @objc func showSettingsWindow(_ sender: Any?) {
+        SettingsModel.shared.refreshFromExternalSources()
+        SettingsModel.shared.reloadOpenTargets()
+        let controller = settingsWindowController ?? SettingsWindowController()
+        settingsWindowController = controller
+        controller.show()
+    }
+
+    /// Opens Settings directly on a pane.
+    func showSettingsWindow(pane: SettingsPane) {
+        SettingsModel.shared.refreshFromExternalSources()
+        SettingsModel.shared.reloadOpenTargets()
+        let controller = settingsWindowController ?? SettingsWindowController()
+        settingsWindowController = controller
+        controller.show(pane: pane)
+    }
+
+    /// Applies an appearance chosen in Settings, keeping the View menu's check
+    /// marks and every open preview in step.
+    func applyAppearanceSetting(_ mode: AppearanceMode) {
+        let resolved = ThemePreset.applied().requiredAppearance ?? mode
+        AppearanceMode.current = resolved
+        applyAppearanceMode(resolved, reloadPreviews: true)
+    }
+
+    /// Saves the default for single new lines. It reaches new windows and tabs
+    /// only: a window that is already open keeps the style it has, so nothing is
+    /// re-rendered. Quick Look reads the default.
+    func applyStrictLineBreaksSetting(_ enabled: Bool) {
+        guard enabled != StrictLineBreaksSetting.current else { return }
+        StrictLineBreaksSetting.current = enabled
+        syncSingleNewLineMenuState()
+    }
+
+    /// Saves the default width. It reaches new windows and tabs only: a window
+    /// that is already open keeps the width it has, so nothing is re-rendered.
+    func applyContentWidthSetting(_ setting: ContentWidthSetting) {
+        guard setting != ContentWidthSetting.current else { return }
+        ContentWidthSetting.current = setting
+        syncContentWidthMenuState()
+    }
+
+    /// Applies a font chosen in Settings. Open documents re-render rather than
+    /// waiting to be reopened; Quick Look picks the value up on its next
+    /// preview, since the setting lives in the app group.
+    func applyDocumentFontSetting(_ setting: DocumentFontSetting) {
+        guard setting != DocumentFontSetting.current else { return }
+        DocumentFontSetting.current = setting
+        reloadDocumentPreviewsForSettingChange()
+    }
+
+    /// Applies reading layout chosen in Customize Theme (bold text and the
+    /// spacing sliders). The values are CSS custom properties, so open pages
+    /// are restyled in place rather than re-rendered — cheap enough to run on
+    /// every slider tick, which is what makes the document itself the
+    /// preview. Quick Look reads the stored value on its next preview.
+    func applyReaderLayoutSetting(_ setting: ReaderLayoutSetting) {
+        guard setting != ReaderLayoutSetting.current else { return }
+        ReaderLayoutSetting.current = setting
+        documentWindowControllers.forEach { $0.applyReaderLayoutSetting() }
+    }
+
+    /// Pushes a text size chosen in Settings into every open document. The
+    /// value is the same stored page zoom the windows already read, so this
+    /// only asks them to pick it up now instead of at next launch.
+    func applyTextSizeSetting(_ setting: TextSizeSetting) {
+        TextSizeSetting.store(setting)
+        documentWindowControllers.forEach { $0.applyTextSizeSetting() }
+    }
+
+    private var documentWindowControllers: [DocumentWindowController] {
+        NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+    }
+
+    /// Applies the app-wide Always on Top preference. Every open preview window
+    /// takes the new level, and the Settings toggle, toolbar buttons and menu
+    /// item are all driven from the one stored value, so whichever of them the
+    /// reader used, the rest agree.
+    func applyAlwaysOnTopSetting(_ isEnabled: Bool) {
+        guard isEnabled != AlwaysOnTopPolicy.isEnabled else { return }
+        AlwaysOnTopPolicy.isEnabled = isEnabled
+        documentWindowControllers.forEach { $0.applyAlwaysOnTopSetting() }
+        settingsWindowController?.applyWindowLevel()
+        SettingsModel.shared.refreshFromExternalSources()
+    }
+
+    func applyAutoSaveIntervalSetting(_ minutes: Int) {
+        AutoSaveSetting.store(minutes: minutes)
+        NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+            .forEach { $0.applyAutoSaveIntervalSetting() }
+    }
+
+    /// Pushes theme colors chosen in Settings into every open document
+    /// window — native backgrounds plus the loaded preview/editor pages.
+    /// Cheap enough to run on every color-well tick.
+    func applyThemeColorsSetting() {
+        NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+            .forEach { $0.applyThemeColorsSetting() }
+    }
+
+    func installCommandLineToolsFromSettings() {
+        installCommandLineTools(nil)
+    }
+
+    /// Re-reads the persisted default so every open document's Open button
+    /// shows the app that was just picked in Settings.
+    func refreshOpenTargetsInOpenDocuments() {
+        documentWindowControllers.forEach { $0.refreshOpenTargets() }
+    }
+
+    @objc private func installCommandLineTools(_ sender: Any?) {
+        do {
+            let commandLineToolURL = try bundledCommandLineToolURL()
+            let installerScriptURL = try writeCommandLineToolInstallerScript(
+                commandLineToolURL: commandLineToolURL
+            )
+            let installCommand = makeCommandLineToolInstallCommand(scriptURL: installerScriptURL)
+            try runInstallCommandInTerminal(installCommand)
+        } catch {
+            NSLog("Failed to run Markdown Preview CLI installer in Terminal: \(error.localizedDescription)")
+        }
+    }
+
+    @IBAction func openDocument(_ sender: Any?) {
+        NSDocumentController.shared.openDocument(sender)
+    }
+
+    @IBAction func performFindPanelAction(_ sender: Any?) {
+        activeDocumentWindowController?.handleFindAction(sender)
+    }
+
+    @IBAction func performTextFinderAction(_ sender: Any?) {
+        activeDocumentWindowController?.handleFindAction(sender)
+    }
+
+    @objc private func toggleSidebarFromMenu(_ sender: Any?) {
+        activeDocumentWindowController?.toggleSidebarFromMenu(sender)
+        syncSidebarViewMenuState()
+    }
+
+    @objc private func hideSidebarFromMenu(_ sender: Any?) {
+        activeDocumentWindowController?.hideSidebarFromMenu(sender)
+        syncSidebarViewMenuState()
+    }
+
+    @objc private func selectOutlineMode(_ sender: Any?) {
+        activeDocumentWindowController?.selectOutlineMode(sender)
+        syncSidebarViewMenuState()
+    }
+
+    @objc private func selectFilesMode(_ sender: Any?) {
+        activeDocumentWindowController?.selectFilesMode(sender)
+        syncSidebarViewMenuState()
+    }
+
+    @objc private func selectAppearanceMode(_ sender: NSMenuItem) {
+        guard ThemePreset.applied().requiredAppearance == nil else { return }
+        guard let rawValue = sender.representedObject as? String,
+              let mode = AppearanceMode(rawValue: rawValue),
+              mode != AppearanceMode.current else { return }
+
+        AppearanceMode.current = mode
+        applyAppearanceMode(mode, reloadPreviews: true)
+        SettingsModel.shared.refreshFromExternalSources()
+    }
+
+    /// View ▸ Single New Lines changes the front document window only, and is
+    /// not saved: the saved default is Settings › General › Single new lines.
+    @objc private func selectSingleNewLineStyle(_ sender: NSMenuItem) {
+        guard let controller = activeDocumentWindowController else { return }
+        controller.setStrictLineBreaks(sender.tag == 1)
+        syncSingleNewLineMenuState()
+    }
+
+    /// View ▸ Content Width changes the front document window only, and is not
+    /// saved: the saved default is Settings › General › Content width.
+    @objc private func selectContentWidthSetting(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let setting = ContentWidthSetting(rawValue: rawValue),
+              let controller = activeDocumentWindowController else { return }
+
+        controller.setContentWidth(setting)
+        syncContentWidthMenuState()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        syncSidebarViewMenuState()
+        syncAppearanceMenuState()
+        syncContentWidthMenuState()
+        syncSingleNewLineMenuState()
+        switch menuItem.action {
+        case #selector(toggleSidebarFromMenu(_:)),
+             #selector(hideSidebarFromMenu(_:)),
+             #selector(selectOutlineMode(_:)),
+             #selector(selectFilesMode(_:)),
+             #selector(performFindPanelAction(_:)),
+             #selector(performTextFinderAction(_:)):
+            return activeDocumentWindowController != nil
+        case #selector(selectAppearanceMode(_:)):
+            return ThemePreset.applied().requiredAppearance == nil
+        case #selector(selectContentWidthSetting(_:)),
+             #selector(selectSingleNewLineStyle(_:)):
+            return activeDocumentWindowController != nil
+        case #selector(toggleEditModeFromMenu(_:)):
+            return activeDocumentWindowController?.canToggleEditMode ?? false
+        case #selector(formatMarkdownFromMenu(_:)):
+            return activeDocumentWindowController?.canFormatMarkdown ?? false
+        default:
+            return true
+        }
+    }
+
+    private var activeDocumentWindowController: DocumentWindowController? {
+        if let controller = NSApp.keyWindow?.windowController as? DocumentWindowController {
+            return controller
+        }
+        if let controller = NSApp.mainWindow?.windowController as? DocumentWindowController {
+            return controller
+        }
+        return NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+            .first
+    }
+
+    private func scheduleDocumentPrompt(requiresNoDocuments: Bool = false) {
+        guard !isOpenPanelVisible,
+              !isDocumentPromptScheduled else { return }
+
+        isDocumentPromptScheduled = true
+        documentPromptScheduleGeneration += 1
+        let scheduleGeneration = documentPromptScheduleGeneration
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            guard self.documentPromptScheduleGeneration == scheduleGeneration else { return }
+            self.isDocumentPromptScheduled = false
+            guard !requiresNoDocuments || NSDocumentController.shared.documents.isEmpty else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            NSDocumentController.shared.openDocument(nil)
+        }
+    }
+
+    private func cancelScheduledDocumentPrompt() {
+        NSApp.windows
+            .compactMap { $0 as? NSOpenPanel }
+            .forEach { $0.cancel(nil) }
+        guard isDocumentPromptScheduled else { return }
+        documentPromptScheduleGeneration += 1
+        isDocumentPromptScheduled = false
+    }
+
+    func openFolder(_ url: URL) {
+        if let controller = activeDocumentWindowController {
+            controller.openFolder(url)
+            return
+        }
+
+        let document = MarkdownDocument()
+        NSDocumentController.shared.addDocument(document)
+        document.makeWindowControllers()
+        document.showWindows()
+        guard let controller = document.windowControllers.first as? DocumentWindowController else {
+            return
+        }
+        controller.openFolder(url)
+    }
+
+    private var isOpenPanelVisible: Bool {
+        NSApp.windows.contains { $0 is NSOpenPanel && $0.isVisible }
+    }
+
+    private func makeCommandLineToolInstallerScript(commandLineToolURL: URL) -> String {
+        """
+        #!/bin/sh
+        set -eu
+        installer_path=$0
+        trap 'rm -f "$installer_path"' EXIT
+        bundled_cli=\(commandLineToolURL.path.shellQuotedString)
+
+        path_contains() {
+          case ":$PATH:" in
+            *":$1:"*) return 0 ;;
+            *) return 1 ;;
+          esac
+        }
+
+        can_install_without_sudo() {
+          dir="$1"
+          if [ -d "$dir" ]; then
+            [ -w "$dir" ] && [ -x "$dir" ]
+            return
+          fi
+
+          parent="${dir%/*}"
+          [ "$parent" != "$dir" ] || parent="."
+          [ -d "$parent" ] && [ -w "$parent" ] && [ -x "$parent" ]
+        }
+
+        is_safe_path_dir() {
+          case "$1" in
+            ""|.|/bin|/sbin|/usr/bin|/usr/sbin|/System/*) return 1 ;;
+            /*) return 0 ;;
+            *) return 1 ;;
+          esac
+        }
+
+        choose_install_dir() {
+          for dir in "$HOME/.local/bin" "$HOME/bin"; do
+            if path_contains "$dir" && can_install_without_sudo "$dir"; then
+              printf '%s\t%s\n' "$dir" "false"
+              return 0
+            fi
+          done
+
+          old_ifs=$IFS
+          IFS=:
+          set -- $PATH
+          IFS=$old_ifs
+
+          for dir in /usr/local/bin /opt/homebrew/bin; do
+            if path_contains "$dir"; then
+              if can_install_without_sudo "$dir"; then
+                printf '%s\t%s\n' "$dir" "false"
+              else
+                printf '%s\t%s\n' "$dir" "true"
+              fi
+              return 0
+            fi
+          done
+
+          for dir do
+            if is_safe_path_dir "$dir" && can_install_without_sudo "$dir"; then
+              printf '%s\t%s\n' "$dir" "false"
+              return 0
+            fi
+          done
+
+          for dir do
+            if is_safe_path_dir "$dir"; then
+              printf '%s\t%s\n' "$dir" "true"
+              return 0
+            fi
+          done
+
+          return 1
+        }
+
+        choice=$(choose_install_dir) || {
+          echo "Could not find a usable PATH directory for Markdown Preview command line tools." >&2
+          exit 1
+        }
+
+        install_dir=${choice%	*}
+        needs_sudo=${choice#*	}
+        primary="$install_dir/md-preview"
+
+        is_markdown_preview_launcher() {
+          path="$1"
+          [ -f "$path" ] && [ ! -L "$path" ] || return 1
+          if grep -q '^# Managed by Markdown Preview CLI$' "$path"; then
+            return 0
+          fi
+          grep -q 'exec open -b "doc.md-preview"' "$path"
+        }
+
+        can_replace_primary() {
+          path="$1"
+          if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+            return 0
+          fi
+          is_markdown_preview_launcher "$path"
+        }
+
+        can_replace_alias() {
+          alias_path="$1"
+          if [ ! -e "$alias_path" ] && [ ! -L "$alias_path" ]; then
+            return 0
+          fi
+          [ -L "$alias_path" ] || return 1
+          alias_target=$(readlink "$alias_path" || true)
+          [ "$alias_target" = "md-preview" ] ||
+            [ "$alias_target" = "$primary" ] ||
+            [ "$alias_target" = "$install_dir/md-preview" ]
+        }
+
+        refuse_existing_command() {
+          echo "Refusing to replace existing command that was not installed by Markdown Preview: $1" >&2
+          exit 1
+        }
+
+        can_replace_primary "$primary" || refuse_existing_command "$primary"
+        for alias in mdp markdown-preview; do
+          can_replace_alias "$install_dir/$alias" || refuse_existing_command "$install_dir/$alias"
+        done
+
+        if [ "$needs_sudo" = "true" ]; then
+          echo "Installing Markdown Preview command line tools to $install_dir requires your password."
+          sudo mkdir -p "$install_dir"
+          sudo install -m 755 "$bundled_cli" "$primary"
+        else
+          mkdir -p "$install_dir"
+          install -m 755 "$bundled_cli" "$primary"
+        fi
+
+        for alias in mdp markdown-preview; do
+          alias_path="$install_dir/$alias"
+          if [ "$needs_sudo" = "true" ]; then
+            sudo ln -sfn "md-preview" "$alias_path"
+          else
+            ln -sfn "md-preview" "$alias_path"
+          fi
+        done
+
+        echo
+        echo "Markdown Preview CLI is ready."
+        echo
+        echo "Use any of these commands:"
+        echo "  mdp"
+        echo "  md-preview"
+        echo "  markdown-preview"
+        echo
+        echo "Examples:"
+        echo "  mdp README.md        Open a Markdown file"
+        echo "  mdp .                Open the current folder"
+        echo "  mdp docs             Browse a folder in Markdown Preview"
+        echo
+        echo "Tips:"
+        echo "  Use mdp for the shortest command."
+        echo "  Re-run Install CLI... after updating the app to refresh these commands."
+        echo "  Installed in: $install_dir"
+        echo
+
+        if command -v mdp >/dev/null 2>&1; then
+          echo "Try it now: mdp ."
+        else
+          echo "Open a new terminal window, then try: mdp ."
+        fi
+        """
+    }
+
+    private func bundledCommandLineToolURL() throws -> URL {
+        guard let url = Bundle.main.url(forResource: "markdown-preview",
+                                        withExtension: nil,
+                                        subdirectory: "bin") else {
+            throw CommandLineToolInstallError.bundledToolMissing
+        }
+        return url
+    }
+
+    private func writeCommandLineToolInstallerScript(commandLineToolURL: URL) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("install-markdown-preview-cli-\(UUID().uuidString).sh")
+
+        do {
+            try makeCommandLineToolInstallerScript(commandLineToolURL: commandLineToolURL)
+                .write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700],
+                                                  ofItemAtPath: url.path)
+            return url
+        } catch {
+            throw CommandLineToolInstallError.installerScriptWriteFailed(error.localizedDescription)
+        }
+    }
+
+    private func makeCommandLineToolInstallCommand(scriptURL: URL) -> String {
+        "/bin/sh \(scriptURL.path.shellQuotedString)"
+    }
+
+    private func runInstallCommandInTerminal(_ command: String) throws {
+        let source = """
+        tell application "Terminal"
+            activate
+            do script \(command.appleScriptQuotedString)
+        end tell
+        """
+
+        var errorInfo: NSDictionary?
+        guard let script = NSAppleScript(source: source) else {
+            throw CommandLineToolInstallError.terminalAutomationFailed(nil)
+        }
+
+        script.executeAndReturnError(&errorInfo)
+        if let errorInfo {
+            let message = errorInfo[NSAppleScript.errorMessage] as? String
+                ?? errorInfo.description
+            throw CommandLineToolInstallError.terminalAutomationFailed(message)
+        }
+    }
+
+    private func installNewTabMenuItem() {
+        guard let fileMenu = topLevelSubmenu(matching: Self.fileMenuTitles),
+              fileMenu.items.first(where: {
+                  $0.action == #selector(DocumentWindowController.newDocumentTab(_:))
+              }) == nil else { return }
+
+        // nil target: resolves through the responder chain to the key
+        // document window's controller, and disables itself when no
+        // document window is open. Custom selector, not newWindowForTab —
+        // see DocumentWindowController.newDocumentTab.
+        let item = NSMenuItem(title: L("New Tab"),
+                              action: #selector(DocumentWindowController.newDocumentTab(_:)),
+                              keyEquivalent: "t")
+        let insertIndex = fileMenu.items
+            .firstIndex { $0.action == #selector(openDocument(_:)) } ?? 0
+        fileMenu.insertItem(item, at: insertIndex)
+    }
+
+    /// Open Folder… sits right after Open…, with no shortcut, as in VS Code.
+    /// ⇧⌘O stays Go to File's, as shipped in 1.3.0, and ⇧⌘F is kept
+    /// free for a search of text across the opened folder. It is the app's own
+    /// item, so it works with no document window open.
+    private func installOpenFolderMenuItem() {
+        guard let fileMenu = topLevelSubmenu(matching: Self.fileMenuTitles),
+              fileMenu.items.first(where: {
+                  $0.action == #selector(chooseFolderToOpen)
+              }) == nil else { return }
+
+        let item = NSMenuItem(title: L("Open Folder…"),
+                              action: #selector(chooseFolderToOpen),
+                              keyEquivalent: "")
+        item.target = self
+        let openIndex = fileMenu.items
+            .firstIndex { $0.action == #selector(openDocument(_:)) }
+        fileMenu.insertItem(item, at: openIndex.map { $0 + 1 } ?? 0)
+    }
+
+    /// Asks for a folder and opens it. A panel of its own rather than the Open…
+    /// panel: this one can only choose folders, so **Open** takes the selected
+    /// folder, or the folder being shown when nothing is selected, instead of
+    /// drilling into it. The Go to File empty state calls this too.
+    @objc func chooseFolderToOpen() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = L("Choose a folder to open")
+        panel.prompt = L("Open")
+        let open: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            self?.openFolder(url)
+        }
+        if let window = activeDocumentWindowController?.documentWindow {
+            panel.beginSheetModal(for: window, completionHandler: open)
+        } else {
+            panel.begin(completionHandler: open)
+        }
+    }
+
+    private func installFileExportMenuItems() {
+        guard let fileMenu = topLevelSubmenu(matching: Self.fileMenuTitles),
+              let pdfIndex = fileMenu.items.firstIndex(where: {
+                  $0.action == #selector(
+                      MainSplitViewController.exportMarkdownAsPDF(_:))
+              })
+        else { return }
+
+        let shareItem = NSDocumentController.shared.standardShareMenuItem()
+        fileMenu.insertItem(shareItem, at: pdfIndex + 1)
+
+        guard #available(macOS 26.0, *) else { return }
+        let icons: [(item: NSMenuItem?, symbol: String)] = [
+            (
+                fileMenu.items.first {
+                    $0.action == #selector(
+                        MainSplitViewController.exportMarkdownDocument(_:))
+                },
+                "square.and.arrow.up.on.square"
+            ),
+            (
+                fileMenu.items.first {
+                    $0.action == #selector(
+                        MainSplitViewController.exportMarkdownAsPDF(_:))
+                },
+                "arrow.up.document"
+            ),
+            (shareItem, "square.and.arrow.up"),
+            (
+                fileMenu.items.first {
+                    $0.action == #selector(
+                        MainSplitViewController.printMarkdown(_:))
+                },
+                "printer"
+            ),
+        ]
+        for (item, symbol) in icons {
+            guard let item,
+                  let image = NSImage(
+                      systemSymbolName: symbol,
+                      accessibilityDescription: item.title
+                  )
+            else { continue }
+            image.isTemplate = true
+            item.image = image
+        }
+    }
+
+    private func installGoMenu() {
+        guard let mainMenu = NSApp.mainMenu,
+              topLevelMenuItem(matching: Self.goMenuTitles) == nil else { return }
+
+        func arrow(_ functionKey: Int) -> String {
+            UnicodeScalar(functionKey).map { String(Character($0)) } ?? ""
+        }
+
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+
+        func makeItem(_ titleKey: String,
+                      action: Selector,
+                      keyEquivalent: String,
+                      modifiers: NSEvent.ModifierFlags,
+                      symbol: String) -> NSMenuItem {
+            let title = L(titleKey)
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+            item.keyEquivalentModifierMask = modifiers
+            if let image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)?
+                .withSymbolConfiguration(symbolConfig) {
+                image.isTemplate = true
+                item.image = image
+            }
+            return item
+        }
+
+        let goTitle = L("Go")
+        let menu = NSMenu(title: goTitle)
+
+        // Go to File… is the file-name palette, called Go to File before
+        // 1.4: it jumps to a file in the opened folder, and never searches inside
+        // one. ⇧⌘O is the key it shipped with, and ⇧⌘F stays free for a search of
+        // text. Nil target, so it resolves through the responder chain to the key
+        // document window's controller, which decides whether there is a project.
+        menu.addItem(makeItem("Go to File…",
+                              action: #selector(DocumentWindowController.searchForDocument(_:)),
+                              keyEquivalent: "o",
+                              modifiers: [.command, .shift],
+                              symbol: "doc.text.magnifyingglass"))
+        menu.addItem(.separator())
+
+        menu.addItem(makeItem("Up",
+                              action: #selector(NSResponder.scrollLineUp(_:)),
+                              keyEquivalent: arrow(NSUpArrowFunctionKey),
+                              modifiers: [],
+                              symbol: "arrow.up"))
+        menu.addItem(makeItem("Down",
+                              action: #selector(NSResponder.scrollLineDown(_:)),
+                              keyEquivalent: arrow(NSDownArrowFunctionKey),
+                              modifiers: [],
+                              symbol: "arrow.down"))
+        menu.addItem(makeItem("Page Up",
+                              action: #selector(NSResponder.scrollPageUp(_:)),
+                              keyEquivalent: arrow(NSPageUpFunctionKey),
+                              modifiers: [],
+                              symbol: "chevron.up.square"))
+        menu.addItem(makeItem("Page Down",
+                              action: #selector(NSResponder.scrollPageDown(_:)),
+                              keyEquivalent: arrow(NSPageDownFunctionKey),
+                              modifiers: [],
+                              symbol: "chevron.down.square"))
+
+        menu.addItem(.separator())
+
+        menu.addItem(makeItem("Previous Item",
+                              action: #selector(MarkdownWebView.mdScrollPreviousHeading(_:)),
+                              keyEquivalent: arrow(NSUpArrowFunctionKey),
+                              modifiers: .option,
+                              symbol: "arrow.up.document"))
+        menu.addItem(makeItem("Next Item",
+                              action: #selector(MarkdownWebView.mdScrollNextHeading(_:)),
+                              keyEquivalent: arrow(NSDownArrowFunctionKey),
+                              modifiers: .option,
+                              symbol: "arrow.down.document"))
+
+        menu.addItem(.separator())
+
+        menu.addItem(makeItem("Top of Document",
+                              action: #selector(NSResponder.scrollToBeginningOfDocument(_:)),
+                              keyEquivalent: arrow(NSUpArrowFunctionKey),
+                              modifiers: .command,
+                              symbol: "arrow.up.to.line"))
+        menu.addItem(makeItem("Bottom of Document",
+                              action: #selector(NSResponder.scrollToEndOfDocument(_:)),
+                              keyEquivalent: arrow(NSDownArrowFunctionKey),
+                              modifiers: .command,
+                              symbol: "arrow.down.to.line"))
+
+        let goItem = NSMenuItem(title: goTitle, action: nil, keyEquivalent: "")
+        goItem.submenu = menu
+
+        let insertIndex = mainMenu.items.firstIndex(where: {
+            Self.windowMenuTitles.contains($0.title)
+        }) ?? mainMenu.items.count
+        mainMenu.insertItem(goItem, at: insertIndex)
+    }
+
+    private func installViewMenuItemIcons() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles) else { return }
+        let icons: [(titles: Set<String>, symbol: String)] = [
+            (["Actual Size"], "magnifyingglass"),
+            (["Zoom In"], "plus.magnifyingglass"),
+            (["Zoom Out"], "minus.magnifyingglass"),
+            (["Always on Top"], "pin")
+        ]
+        for (titles, symbol) in icons {
+            guard let item = viewMenu.items.first(where: { titles.contains($0.title) }),
+                  let image = NSImage(systemSymbolName: symbol,
+                                      accessibilityDescription: item.title)
+            else { continue }
+            image.isTemplate = true
+            item.image = image
+        }
+    }
+
+    private func installAppearanceMenuItems() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles),
+              viewMenu.items.first(where: {
+                  Self.appearanceMenuTitles.contains($0.title)
+              }) == nil else { return }
+
+        let appearanceTitle = L("Appearance")
+        let appearanceItem = NSMenuItem(title: appearanceTitle, action: nil, keyEquivalent: "")
+        if let image = NSImage(systemSymbolName: "circle.lefthalf.filled",
+                               accessibilityDescription: appearanceTitle) {
+            image.isTemplate = true
+            appearanceItem.image = image
+        }
+
+        let submenu = NSMenu(title: appearanceTitle)
+        for mode in AppearanceMode.allCases {
+            let item = NSMenuItem(title: mode.title,
+                                  action: #selector(selectAppearanceMode(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            submenu.addItem(item)
+
+            switch mode {
+            case .automatic:
+                automaticAppearanceMenuItem = item
+            case .light:
+                lightAppearanceMenuItem = item
+            case .dark:
+                darkAppearanceMenuItem = item
+            }
+        }
+        appearanceItem.submenu = submenu
+        viewMenu.insertItem(appearanceItem, at: 0)
+        viewMenu.insertItem(.separator(), at: 1)
+        syncAppearanceMenuState()
+    }
+
+    private func installContentWidthMenuItems() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles),
+              viewMenu.items.first(where: {
+                  Self.contentWidthMenuTitles.contains($0.title)
+              }) == nil else { return }
+
+        let widthTitle = L("Content Width")
+        let widthItem = NSMenuItem(title: widthTitle, action: nil, keyEquivalent: "")
+        if let image = NSImage(systemSymbolName: "arrow.left.and.right.text.vertical",
+                               accessibilityDescription: widthTitle) {
+            image.isTemplate = true
+            widthItem.image = image
+        }
+
+        let submenu = NSMenu(title: widthTitle)
+        for setting in ContentWidthSetting.allCases {
+            let item = NSMenuItem(title: setting.title,
+                                  action: #selector(selectContentWidthSetting(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = setting.rawValue
+            submenu.addItem(item)
+
+            switch setting {
+            case .quickLook:
+                quickLookContentWidthMenuItem = item
+            case .fullWidth:
+                fullContentWidthMenuItem = item
+            }
+        }
+        widthItem.submenu = submenu
+        let insertIndex = viewMenu.items
+            .firstIndex(where: { Self.appearanceMenuTitles.contains($0.title) })
+            .map { $0 + 1 } ?? 0
+        viewMenu.insertItem(widthItem, at: insertIndex)
+        syncContentWidthMenuState()
+    }
+
+    /// View ▸ Single New Lines ▸ Reflow / Break, right after Content Width.
+    private func installSingleNewLineMenuItems() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles),
+              viewMenu.items.first(where: {
+                  Self.singleNewLineMenuTitles.contains($0.title)
+              }) == nil else { return }
+
+        let title = L("Single New Lines")
+        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        if let image = NSImage(systemSymbolName: "text.alignleft",
+                               accessibilityDescription: title) {
+            image.isTemplate = true
+            parent.image = image
+        }
+
+        let submenu = NSMenu(title: title)
+        for style in SingleNewLineStyle.allCases {
+            let item = NSMenuItem(title: style.title,
+                                  action: #selector(selectSingleNewLineStyle(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.tag = style.joinsLines ? 1 : 0
+            item.toolTip = style.explanation
+            submenu.addItem(item)
+            if style.joinsLines { reflowMenuItem = item } else { breakAtLineMenuItem = item }
+        }
+        parent.submenu = submenu
+        let widthIndex = viewMenu.items
+            .firstIndex(where: { Self.contentWidthMenuTitles.contains($0.title) })
+        viewMenu.insertItem(parent, at: widthIndex.map { $0 + 1 } ?? viewMenu.items.count)
+        syncSingleNewLineMenuState()
+    }
+
+    private func applyAppearanceMode(_ mode: AppearanceMode, reloadPreviews: Bool) {
+        let appearance = mode.appearance
+        NSApp.appearance = appearance
+        for window in NSApp.windows {
+            window.appearance = appearance
+        }
+        syncAppearanceMenuState()
+        if reloadPreviews {
+            reloadDocumentPreviewsForSettingChange()
+        }
+        // Themed chrome (titlebar treatment, sidebar accents) is resolved
+        // per scheme; an appearance switch must re-apply it immediately.
+        applyThemeColorsSetting()
+    }
+
+    private func syncAppearanceMenuState() {
+        let mode = AppearanceMode.current
+        automaticAppearanceMenuItem?.state = mode == .automatic ? .on : .off
+        lightAppearanceMenuItem?.state = mode == .light ? .on : .off
+        darkAppearanceMenuItem?.state = mode == .dark ? .on : .off
+    }
+
+    /// The check marks follow the front window, which can differ from the
+    /// saved default: a window keeps the style it opened with.
+    private func syncSingleNewLineMenuState() {
+        let joins = activeDocumentWindowController?.strictLineBreaks ?? StrictLineBreaksSetting.current
+        reflowMenuItem?.state = joins ? .on : .off
+        breakAtLineMenuItem?.state = joins ? .off : .on
+    }
+
+    /// The check marks follow the front window, which can differ from the
+    /// saved default: a window keeps the width it opened with.
+    private func syncContentWidthMenuState() {
+        let setting = activeDocumentWindowController?.contentWidth ?? .current
+        quickLookContentWidthMenuItem?.state = setting == .quickLook ? .on : .off
+        fullContentWidthMenuItem?.state = setting == .fullWidth ? .on : .off
+    }
+
+    private func reloadDocumentPreviewsForSettingChange() {
+        guard coalescedReloadDepth == 0 else {
+            needsCoalescedPreviewReload = true
+            return
+        }
+        NSDocumentController.shared.documents
+            .flatMap(\.windowControllers)
+            .compactMap { $0 as? DocumentWindowController }
+            .forEach { $0.reloadPreviewForSettingChange() }
+    }
+
+    /// Runs `body` with preview reloads held back, then issues at most one.
+    /// Applying a theme preset changes colors, appearance, the reading face
+    /// and the body weight, and each of those would otherwise re-render
+    /// every open document on its own.
+    func withCoalescedPreviewReloads(_ body: () -> Void) {
+        coalescedReloadDepth += 1
+        body()
+        coalescedReloadDepth -= 1
+        guard coalescedReloadDepth == 0, needsCoalescedPreviewReload else { return }
+        needsCoalescedPreviewReload = false
+        reloadDocumentPreviewsForSettingChange()
+    }
+
+    private func installSidebarViewMenuItems() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles) else { return }
+
+        if let existing = viewMenu.items.first(where: {
+            Self.showSidebarMenuTitles.contains($0.title)
+        }) {
+            viewMenu.removeItem(existing)
+        }
+        guard viewMenu.items.first(where: { $0.action == #selector(hideSidebarFromMenu(_:)) }) == nil else {
+            return
+        }
+
+        let insertIndex = (viewMenu.items.firstIndex(where: { $0.isSeparatorItem }) ?? -1) + 1
+
+        // Plain ⌘L: the panes below stay on ⌃⌘, and ⌘B — the chord this
+        // would otherwise want — belongs to Format › Bold, which swallows it
+        // even while disabled instead of falling through to this menu.
+        let toggle = makeSidebarViewMenuItem(title: L("Toggle Sidebar"),
+                                             symbol: "sidebar.leading",
+                                             keyEquivalent: "l",
+                                             modifiers: [.command],
+                                             action: #selector(toggleSidebarFromMenu(_:)))
+        viewMenu.insertItem(toggle, at: insertIndex)
+
+        let hide = makeSidebarViewMenuItem(title: L("Hide Sidebar"),
+                                           symbol: "sidebar.leading",
+                                           keyEquivalent: "1",
+                                           action: #selector(hideSidebarFromMenu(_:)))
+        viewMenu.insertItem(hide, at: insertIndex + 1)
+        hideSidebarMenuItem = hide
+
+        let outline = makeSidebarViewMenuItem(title: L("Table of Contents"),
+                                              symbol: "list.bullet.indent",
+                                              keyEquivalent: "2",
+                                              action: #selector(selectOutlineMode(_:)))
+        viewMenu.insertItem(outline, at: insertIndex + 2)
+        outlineMenuItem = outline
+
+        let files = makeSidebarViewMenuItem(title: L("Project Navigator"),
+                                            symbol: "folder",
+                                            keyEquivalent: "3",
+                                            action: #selector(selectFilesMode(_:)))
+        viewMenu.insertItem(files, at: insertIndex + 3)
+        filesMenuItem = files
+
+        viewMenu.insertItem(.separator(), at: insertIndex + 4)
+    }
+
+    private func installEditModeMenuItem() {
+        guard let viewMenu = topLevelSubmenu(matching: Self.viewMenuTitles),
+              viewMenu.items.first(where: {
+                  $0.action == #selector(toggleEditModeFromMenu(_:))
+              }) == nil else { return }
+
+        let item = NSMenuItem(title: L("Toggle Edit Mode"),
+                              action: #selector(toggleEditModeFromMenu(_:)),
+                              keyEquivalent: "e")
+        item.keyEquivalentModifierMask = [.command]
+        item.target = self
+
+        let insertIndex = viewMenu.items.firstIndex(where: {
+            Self.actualSizeMenuTitles.contains($0.title)
+        }) ?? viewMenu.numberOfItems
+        viewMenu.insertItem(item, at: insertIndex)
+        viewMenu.insertItem(.separator(), at: insertIndex + 1)
+    }
+
+    @objc private func toggleEditModeFromMenu(_ sender: Any?) {
+        activeDocumentWindowController?.toggleEditMode()
+    }
+
+    private func installFormatMenu() {
+        guard let mainMenu = NSApp.mainMenu,
+              topLevelMenuItem(matching: Self.formatMenuTitles) == nil else { return }
+
+        func item(_ titleKey: String,
+                  command: String,
+                  key: String = "",
+                  modifiers: NSEvent.ModifierFlags = [.command]) -> NSMenuItem {
+            let item = NSMenuItem(title: L(titleKey),
+                                  action: #selector(formatMarkdownFromMenu(_:)),
+                                  keyEquivalent: key)
+            item.target = self
+            item.representedObject = command
+            item.keyEquivalentModifierMask = modifiers
+            return item
+        }
+
+        let formatTitle = L("Format")
+        let menu = NSMenu(title: formatTitle)
+        // ⇧⌘3/4/5 are captured system-wide for screenshots and ⌘` cycles
+        // app windows (HIG), so headings live on ⌥⌘ and inline code on
+        // ⇧⌘M — Apple Notes' Monostyled shortcut.
+        menu.addItem(item("Body", command: "h0", key: "0", modifiers: [.option, .command]))
+        menu.addItem(item("Heading 1", command: "h1", key: "1", modifiers: [.option, .command]))
+        menu.addItem(item("Heading 2", command: "h2", key: "2", modifiers: [.option, .command]))
+        menu.addItem(item("Heading 3", command: "h3", key: "3", modifiers: [.option, .command]))
+        menu.addItem(.separator())
+        menu.addItem(item("Bold", command: "bold", key: "b"))
+        menu.addItem(item("Italic", command: "italic", key: "i"))
+        menu.addItem(item("Strikethrough", command: "strikethrough", key: "x", modifiers: [.shift, .command]))
+        menu.addItem(item("Inline Code", command: "code", key: "m", modifiers: [.shift, .command]))
+        menu.addItem(item("Link", command: "link", key: "k"))
+        menu.addItem(.separator())
+        menu.addItem(item("Bulleted List", command: "bulletList", key: "7", modifiers: [.shift, .command]))
+        menu.addItem(item("Numbered List", command: "orderedList", key: "9", modifiers: [.shift, .command]))
+        menu.addItem(item("Checklist", command: "taskList", key: "l", modifiers: [.shift, .command]))
+        menu.addItem(item("Block Quote", command: "quote", key: "'"))
+
+        let rootItem = NSMenuItem(title: formatTitle, action: nil, keyEquivalent: "")
+        rootItem.submenu = menu
+        let insertIndex = mainMenu.items.firstIndex(where: {
+            Self.viewMenuTitles.contains($0.title)
+        }) ?? mainMenu.items.count
+        mainMenu.insertItem(rootItem, at: insertIndex)
+    }
+
+    @objc private func formatMarkdownFromMenu(_ sender: NSMenuItem) {
+        guard let command = sender.representedObject as? String else { return }
+        activeDocumentWindowController?.formatMarkdown(command)
+    }
+
+    private func makeSidebarViewMenuItem(title: String,
+                                         symbol: String,
+                                         keyEquivalent: String,
+                                         modifiers: NSEvent.ModifierFlags = [.control, .command],
+                                         action: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+        // ⌃⌘ like Safari's sidebar panes; ⌥⌘1–3 belong to Format headings.
+        item.keyEquivalentModifierMask = modifiers
+        item.target = self
+        if let image = NSImage(systemSymbolName: symbol, accessibilityDescription: title) {
+            image.isTemplate = true
+            item.image = image
+        }
+        return item
+    }
+
+    private func syncSidebarViewMenuState() {
+        guard let state = activeDocumentWindowController?.sidebarMenuState else {
+            hideSidebarMenuItem?.state = .off
+            outlineMenuItem?.state = .off
+            filesMenuItem?.state = .off
+            return
+        }
+        hideSidebarMenuItem?.state = state.sidebarVisible ? .off : .on
+        outlineMenuItem?.state = (state.sidebarVisible && state.mode == .outline) ? .on : .off
+        filesMenuItem?.state = (state.sidebarVisible && state.mode == .files) ? .on : .off
+    }
+
+    private func L(_ key: String) -> String {
+        NSLocalizedString(key, comment: "")
+    }
+
+    private func topLevelMenuItem(matching titles: Set<String>) -> NSMenuItem? {
+        NSApp.mainMenu?.items.first { titles.contains($0.title) }
+    }
+
+    private func topLevelSubmenu(matching titles: Set<String>) -> NSMenu? {
+        topLevelMenuItem(matching: titles)?.submenu
+    }
+
+    private static let fileMenuTitles: Set<String> = ["File"]
+    private static let viewMenuTitles: Set<String> = ["View"]
+    private static let windowMenuTitles: Set<String> = ["Window"]
+    private static let formatMenuTitles: Set<String> = ["Format"]
+    private static let goMenuTitles: Set<String> = ["Go"]
+    private static let appearanceMenuTitles: Set<String> = ["Appearance"]
+    private static let contentWidthMenuTitles: Set<String> = ["Content Width"]
+    private static let singleNewLineMenuTitles: Set<String> = ["Single New Lines"]
+    private static let showSidebarMenuTitles: Set<String> = ["Show Sidebar"]
+    private static let actualSizeMenuTitles: Set<String> = ["Actual Size"]
+}
+
+
+extension AppDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === NSApp.windowsMenu else { return }
+        let entries = menu.items.compactMap { item -> (NSMenuItem, URL)? in
+            guard let window = item.target as? NSWindow,
+                  let controller = window.windowController as? DocumentWindowController,
+                  let url = controller.currentFileURL else { return nil }
+            return (item, url)
+        }
+        for (item, url) in entries {
+            let duplicates = entries.filter { $0.1.lastPathComponent == url.lastPathComponent }
+            guard duplicates.count > 1 else {
+                item.title = url.lastPathComponent
+                continue
+            }
+            let parents = url.deletingLastPathComponent().pathComponents.filter { $0 != "/" }
+            var count = 1
+            while count < parents.count {
+                let suffix = parents.suffix(count).joined(separator: "/")
+                let ambiguous = duplicates.contains { other in
+                    other.1 != url && other.1.deletingLastPathComponent().pathComponents
+                        .suffix(count).joined(separator: "/") == suffix
+                }
+                if !ambiguous { break }
+                count += 1
+            }
+            item.title = "\(url.lastPathComponent) (\(parents.suffix(count).joined(separator: "/")))"
+        }
+    }
+}

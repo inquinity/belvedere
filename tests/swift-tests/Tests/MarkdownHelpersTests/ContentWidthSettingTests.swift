@@ -5,7 +5,7 @@ import XCTest
 /// The saved default width, and what each choice does to the page.
 @MainActor
 final class ContentWidthSettingTests: XCTestCase {
-    private let key = "MarkdownPreview.contentWidth"
+    private let key = "belvedere.contentWidth"
     private var saved: Any?
 
     override func setUp() {

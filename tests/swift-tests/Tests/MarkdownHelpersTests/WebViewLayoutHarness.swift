@@ -250,7 +250,7 @@ final class WebViewLayoutHarness {
     func saveDiagnostics(name: String, layout: Layout?) async -> URL {
         let base = ProcessInfo.processInfo.environment["MDP_LAYOUT_ARTIFACTS"]
             .map { URL(fileURLWithPath: $0) }
-            ?? FileManager.default.temporaryDirectory.appendingPathComponent("md-preview-layout-failures")
+            ?? FileManager.default.temporaryDirectory.appendingPathComponent("belvedere-layout-failures")
         let directory = base.appendingPathComponent(name)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let surface = isEditor ? "editor" : "read"

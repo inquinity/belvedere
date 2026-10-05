@@ -44,7 +44,7 @@ bundle *args:
 # Remove local build scratch: ./build and this project's Xcode DerivedData. Keeps ./dist.
 clean:
     rm -rf build build.noindex
-    rm -rf "$HOME/Library/Developer/Xcode/DerivedData/md-preview-"*
+    rm -rf "$HOME/Library/Developer/Xcode/DerivedData/belvedere-"*
 
 # Has upstream moved? (read-only)
 check-upstream:

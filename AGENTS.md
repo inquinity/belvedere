@@ -205,7 +205,7 @@ Know its limits before trusting a clean run:
   in every sense that matters — this check narrows the same failure shape, it
   does not close it. The "trace to an actual consumer" step above is still
   the real check; Periphery is the automated net under it.
-- **It only scans the `md-preview` Xcode scheme.** A declaration used solely
+- **It only scans the `belvedere` Xcode scheme.** A declaration used solely
   by `tests/swift-tests` — the symlinked SPM test package — reads as unused
   here even when it is genuinely load-bearing (see the baseline file's own
   note on `QuickLookFirstResponderPolicy.rationale`, kept there for exactly
@@ -257,14 +257,14 @@ printf 'build/\ndist/\n' >> .git/info/exclude
 | ----------------- | ----------------------------------------------------------- |
 | Bundle id         | `doc.md-preview`                                            |
 | Product name      | `Markdown Preview`                                          |
-| Scheme            | `md-preview`                                                |
-| Quick Look target | `quick-look` (embedded extension)                           |
+| Scheme            | `belvedere`                                                |
+| Quick Look target | `belvedere-quick-look` (embedded extension)                           |
 | Min macOS         | 15.0                                                        |
 | Sandboxed         | yes — uses Sparkle XPC services for updates                 |
 | Auto-updater      | Sparkle 2.x (Swift package)                                 |
 | Distribution      | Amore (managed); appcast at `release.md-preview.app` |
 
-Version is managed centrally in `Version.xcconfig` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`). Both the app and the quick-look extension inherit from it.
+Version is managed centrally in `Version.xcconfig` (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`). Both the app and the belvedere-quick-look extension inherit from it.
 
 ## Codex development workflow
 
@@ -320,7 +320,7 @@ grep -rn "<the behaviour you changed>" README.md samples/ tests/fixtures/ docs/
   `Info.plist` or the entitlements' `mach-lookup` names without reading that
   skill first — they're paired with private material outside the repo (login
   Keychain / Amore), so an unmatched change breaks Sparkle updates silently.
-- `md-preview.entitlements` / `quick-look.entitlements` — the sandbox
+- `belvedere.entitlements` / `belvedere-quick-look.entitlements` — the sandbox
   `temporary-exception` entries (Sparkle XPC mach-lookup names, the read-only
   filesystem exception) are narrowly scoped, notarization-review-sensitive
   capabilities. Don't broaden or "clean up" them without understanding why
@@ -348,8 +348,8 @@ See the `release-process` skill for branch/PR naming, exactly what `scripts/rele
 
 ## Common Xcode tasks
 ```bash
-xcodebuild -project md-preview.xcodeproj -scheme md-preview -configuration Debug build
-xcodebuild -resolvePackageDependencies -project md-preview.xcodeproj
+xcodebuild -project belvedere.xcodeproj -scheme belvedere -configuration Debug build
+xcodebuild -resolvePackageDependencies -project belvedere.xcodeproj
 ```
 Sparkle helper tools (sign_update / generate_keys / generate_appcast) live at:
-`~/Library/Developer/Xcode/DerivedData/md-preview-*/SourcePackages/artifacts/sparkle/Sparkle/bin/`
+`~/Library/Developer/Xcode/DerivedData/belvedere-*/SourcePackages/artifacts/sparkle/Sparkle/bin/`

@@ -1,1 +1,1 @@
-../../../../md-preview/App/UsageAnalyticsReporter.swift
+../../../../belvedere/App/UsageAnalyticsReporter.swift

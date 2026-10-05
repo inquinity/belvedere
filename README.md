@@ -114,10 +114,10 @@ work after leaving edit mode too.
 - **Customizable toolbar** — drag in the items you actually use via *View → Customize Toolbar…* Standard AppKit affordance, your layout sticks across launches.
 - **Share = copy the source** — the share toolbar feeds the picker the Markdown text itself, so **Copy** writes the raw source to the clipboard, and Mail, Messages, and Notes get the content in the body instead of a file URL.
 - **Quick Look extension** — system-wide `.md` previews from Finder spacebar, Spotlight, and Mail attachments without launching the app. Subject to the same network and containment restrictions above.
-- **URL scheme** — open a file or folder from a browser link or another app with `md-preview://file/<absolute path>` (e.g. `md-preview://file/Users/me/project/README.md`). Percent-encode special characters in the path.
+- **URL scheme** — open a file or folder from a browser link or another app with `belvedere://file/<absolute path>` (e.g. `belvedere://file/Users/me/project/README.md`). Percent-encode special characters in the path.
 - **Default handler** — offers to register itself as the default `.md` opener on first launch.
 
-Not in Belvedere: the command-line tools installer (`mdp`, `md-preview`) is removed, along
+Not in Belvedere: the command-line tools installer (`mdp`, `belvedere`) is removed, along
 with the permission to control Terminal it needed.
 
 ## Supported file types
@@ -146,8 +146,8 @@ build — Sparkle and Sentry are not dependencies here; both were removed entire
 ## Project layout
 
 ```
-md-preview/         Main app target (AppKit, WKWebView)
-quick-look/         Quick Look extension (.appex)
+belvedere/         Main app target (AppKit, WKWebView)
+belvedere-quick-look/         Quick Look extension (.appex)
 bin/                This fork's build & release scripts (build.sh, publish-release.sh, …)
 scripts/            Upstream's own tooling, untouched so syncs apply cleanly
 Version.xcconfig    Marketing & build version (single source of truth)
