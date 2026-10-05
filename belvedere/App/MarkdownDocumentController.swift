@@ -44,7 +44,16 @@ final class MarkdownDocumentController: NSDocumentController {
         )
     }
 
+    /// File ▸ New (⌘N) always makes a window of its own. Without this the new
+    /// window joined the front window's tab group whenever macOS's "Prefer tabs
+    /// when opening documents" was on, so ⌘N added a tab and a separate window
+    /// needed a drag. Tabs stay an explicit choice: File ▸ New Tab (⌘T) and the
+    /// *Open documents in tabs* preference are unaffected.
     override func openUntitledDocumentAndDisplay(_ displayDocument: Bool) throws -> NSDocument {
+        DocumentWindowController.markNextWindowAsSeparate()
+        // The flag is consumed when the window is built; clear it if no window
+        // was, so it cannot leak to whatever opens next.
+        defer { DocumentWindowController.nextWindowDeclinesTabbing = false }
         let document = try super.openUntitledDocumentAndDisplay(displayDocument)
         if displayDocument {
             (document.windowControllers.first as? DocumentWindowController)?

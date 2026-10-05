@@ -35,6 +35,37 @@ final class ForkPostureTests: XCTestCase {
         }
     }
 
+    // MARK: - Windows
+
+    /// ⌘N makes a window of its own, whatever macOS's "Prefer tabs" setting
+    /// says. The behaviour lives in AppKit's document machinery and needs the
+    /// running app, so this only keeps the call from being deleted.
+    func testNewDocumentAlwaysGetsItsOwnWindow() throws {
+        let source = try text(at: "belvedere/App/MarkdownDocumentController.swift")
+        let start = try XCTUnwrap(source.range(of: "func openUntitledDocumentAndDisplay"))
+        XCTAssertTrue(source[start.lowerBound...].contains("markNextWindowAsSeparate()"),
+                      "File > New must decline tab placement, or it joins the front window's tabs again.")
+    }
+
+    /// A window's folder boundary is its own. It lives on that window's
+    /// controller and its web view, and nothing may hold one in a place every
+    /// window can reach: a `static` or global store of a folder root is how a
+    /// second window would come to read what only the first was allowed to.
+    func testFolderBoundaryIsNeverSharedBetweenWindows() throws {
+        let boundaryNames = ["openedFolderRoot", "containmentRoot", "currentContainmentRoot"]
+        for file in try swiftSources() {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            for line in source.components(separatedBy: "\n") {
+                let code = line.trimmingCharacters(in: .whitespaces)
+                guard !code.hasPrefix("//"), code.contains("static var") || code.contains("static let") else { continue }
+                for name in boundaryNames {
+                    XCTAssertFalse(code.contains(name),
+                                   "\(file.lastPathComponent) stores \(name) in a static, shared by every window: \(code)")
+                }
+            }
+        }
+    }
+
     // MARK: - Opening folders
 
     /// A folder dropped on the Dock icon, or sent with Open With, is only

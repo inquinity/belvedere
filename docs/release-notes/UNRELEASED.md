@@ -37,3 +37,5 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
   neighbouring cell with its contents selected, so typing replaces them, as in Word and
   Numbers. Before, the cell was only shaded and nothing was selected.
+- **⌘N always opens a new window.** With *Prefer tabs* on in macOS, or Belvedere's own *Open documents in
+  tabs*, a new document used to join the front window as a tab. ⌘T is still the way to ask for a tab.

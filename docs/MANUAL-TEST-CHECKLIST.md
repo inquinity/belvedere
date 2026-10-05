@@ -242,6 +242,20 @@ Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scro
 
 Not covered here: Quick Look itself, which does not change.
 
+## 5e. Windows and folder boundaries
+
+Needs a second folder, such as `samples/` next to `tests/fixtures/relative-assets/`. Turn on
+Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn it off again.
+
+| Check | Why |
+|---|---|
+| With a window open, **File ▸ New** (⌘N) opens a separate window, not a tab, whether or not *Open documents in tabs* or macOS's *Prefer tabs* is on | ⌘N used to join the front window's tab group |
+| **File ▸ New Tab** (⌘T) still opens a tab | Tabs stay an explicit choice |
+| ⌘O in any window, then choose a file that is already open in another window: that window comes forward and no second copy opens | One file, one window. A file that is not open gets a new window |
+| Click a file in a window's sidebar: it loads in that window | Sidebar selection is not ⌘O |
+| Open `relative-assets/` as a folder in window A and a different folder in window B. In B, open a document that links an image in A's folder with `../`: the image stays blocked in B | Each window has its own boundary |
+| Drag a tab out into its own window: its folder and what it may read stay what they were | The boundary belongs to the tab, and does not follow another window |
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
