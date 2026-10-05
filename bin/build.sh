@@ -29,7 +29,10 @@ print_colored() {
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
-OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build}"
+# build.noindex, not build: Spotlight and Launch Services skip folders whose names
+# end in .noindex, so a dev build never shows up as another Belvedere in
+# Spotlight, Open With or Launchpad.
+OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build.noindex}"
 DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
 
 SCHEME="md-preview"

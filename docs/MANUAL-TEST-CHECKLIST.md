@@ -49,7 +49,7 @@ behaviour rather than as notes about it.
 
 ```bash
 ./bin/build.sh
-SOURCE_APP=build/Belvedere.app ./bin/install.sh   # required for Quick Look to register
+SOURCE_APP=build.noindex/Belvedere.app ./bin/install.sh   # required for Quick Look to register
 qlmanage -r && qlmanage -r cache
 ```
 

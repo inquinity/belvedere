@@ -22,7 +22,7 @@ print_colored() {
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="Belvedere"
-SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build/$APP_NAME.app}"
+SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build.noindex/$APP_NAME.app}"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 
 usage() {
@@ -34,7 +34,7 @@ usage() {
     printf '%s\n' '  -h, --help    Show this help text.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
-    printf '%s\n' '  SOURCE_APP    The built .app to install. Default: ./build/Belvedere.app'
+    printf '%s\n' '  SOURCE_APP    The built .app to install. Default: ./build.noindex/Belvedere.app'
     printf '%s\n' '  INSTALL_DIR   Where to install it. Default: /Applications'
 }
 
