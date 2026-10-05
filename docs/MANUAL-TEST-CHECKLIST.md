@@ -191,12 +191,12 @@ From the Save-button work, offered upstream in [PR #379](https://github.com/pluk
 
 ## 5b. Opening a folder
 
-**File ▸ Open Folder…** has its own panel that can only choose folders. It has no
-shortcut yet. Open `tests/fixtures/relative-assets/post.md` first.
+**File ▸ Open Folder…** has its own panel that can only choose folders, and no shortcut.
+Search for Document keeps ⇧⌘O. Open `tests/fixtures/relative-assets/post.md` first.
 
 | Check | Why |
 |---|---|
-| File ▸ Open Folder… is in the File menu, right after Open… | Added with the fix for opening folders from inside the app |
+| File ▸ Open Folder… is in the File menu, right after Open…, with no shortcut, and File ▸ Search for Document… shows ⇧⌘O | Added with the fix for opening folders from inside the app. ⇧⌘F is kept free for a future search of text in the folder |
 | Pick `tests/fixtures` and press **Open**: the sidebar roots on `fixtures` and the shared logo in `post.md` renders | The folder widens the document's boundary |
 | With nothing selected in the panel, **Open** is enabled and chooses the folder being shown | The old Open… panel disabled it, so a reader could not choose the folder they were in |
 | Selecting a folder in the panel and pressing **Open** chooses it and does not drill in | The reported fault in Open… |
@@ -204,7 +204,7 @@ shortcut yet. Open `tests/fixtures/relative-assets/post.md` first.
 | Search for Document with no folder open shows **Open Folder…**, and the button opens this same panel | It used to open the Open… panel |
 
 | Drop a folder on the Belvedere icon in the Dock: the folder opens, and the sidebar roots on it | `Info.plist` now declares folders as something it can open. Launch Services reads that when the app is first registered, so after a rebuild it may need `lsregister -f` on the app |
-| Right-click a folder in Finder: Belvedere is listed under Open With, but is not the default | It is ranked Alternate, so it must never take over folders |
+| Belvedere is not the default for folders, and Finder's right-click menu offers no Open With for one | It is ranked Alternate, so it must never take over folders. Checked 2026-10-01: Finder shows no Open With for a folder, which is acceptable |
 
 Dropping a folder on a window is not covered yet.
 

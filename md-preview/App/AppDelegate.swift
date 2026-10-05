@@ -830,9 +830,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         fileMenu.insertItem(item, at: openIndex.map { $0 + 1 } ?? 0)
     }
 
-    /// Open Folder… sits right after Open…, with no shortcut: ⇧⌘O belongs to
-    /// Search for Document, and the key is still to be chosen. It is the app's
-    /// own item, so it works with no document window open.
+    /// Open Folder… sits right after Open…, with no shortcut, as in VS Code.
+    /// ⇧⌘O stays Search for Document's, as shipped in 1.3.0, and ⇧⌘F is kept
+    /// free for a search of text across the opened folder. It is the app's own
+    /// item, so it works with no document window open.
     private func installOpenFolderMenuItem() {
         guard let fileMenu = topLevelSubmenu(matching: Self.fileMenuTitles),
               fileMenu.items.first(where: {
