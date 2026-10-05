@@ -2,7 +2,7 @@
 //  DocumentWindowController+FileSearch.swift
 //  md-preview
 //
-//  Wires the Search for Document palette to the window: which project it
+//  Wires the Go to File palette to the window: which project it
 //  searches, and what opening a result actually does.
 //
 
@@ -47,11 +47,11 @@ extension DocumentWindowController {
     /// document, the field searches inside one.
     func makeSearchForDocumentItem() -> NSToolbarItem {
         let item = NSToolbarItem(itemIdentifier: .searchForDocument)
-        let label = NSLocalizedString("Search for Document", comment: "Search for Document toolbar item label")
+        let label = NSLocalizedString("Go to File", comment: "Go to File toolbar item label")
         item.label = label
         item.paletteLabel = label
         item.toolTip = NSLocalizedString("Search for a file by name",
-                                         comment: "Search for Document toolbar item tooltip")
+                                         comment: "Go to File toolbar item tooltip")
         item.image = NSImage(systemSymbolName: "doc.text.magnifyingglass",
                              accessibilityDescription: label)
         item.isBordered = true

@@ -2,7 +2,7 @@
 //  FileSearchPanelController.swift
 //  md-preview
 //
-//  The Search for Document palette: type part of a file name, pick a result,
+//  The Go to File palette: type part of a file name, pick a result,
 //  open it. Each document presents its own floating panel so the results
 //  remain scoped to that document’s project root.
 //
@@ -133,7 +133,7 @@ final class FileSearchPanelController: NSViewController {
         // so it reads as the subject rather than as one control among several.
         queryField.translatesAutoresizingMaskIntoConstraints = false
         queryField.placeholderString = NSLocalizedString("Search files by name",
-                                                         comment: "Search for Document field placeholder")
+                                                         comment: "Go to File field placeholder")
         queryField.delegate = self
         queryField.font = .systemFont(ofSize: 20)
         queryField.isBordered = false
@@ -174,7 +174,7 @@ final class FileSearchPanelController: NSViewController {
 
         openFolderButton.translatesAutoresizingMaskIntoConstraints = false
         openFolderButton.bezelStyle = .rounded
-        openFolderButton.title = NSLocalizedString("Open Folder…", comment: "Search for Document empty state button")
+        openFolderButton.title = NSLocalizedString("Open Folder…", comment: "Go to File empty state button")
         openFolderButton.target = self
         openFolderButton.action = #selector(openFolderTapped)
         openFolderButton.isHidden = true
@@ -289,7 +289,7 @@ final class FileSearchPanelController: NSViewController {
         results = []
         tableView.reloadData()
         statusLabel.stringValue = NSLocalizedString("Open a folder to search its files",
-                                                    comment: "Search for Document empty state")
+                                                    comment: "Go to File empty state")
         statusLabel.isHidden = false
         openFolderButton.isHidden = false
     }
@@ -359,14 +359,14 @@ final class FileSearchPanelController: NSViewController {
         openFolderButton.isHidden = true
         if results.isEmpty {
             statusLabel.stringValue = NSLocalizedString("No matching files",
-                                                        comment: "Search for Document no results")
+                                                        comment: "Go to File no results")
             statusLabel.isHidden = false
             return
         }
         if snapshot?.isTruncated == true {
             statusLabel.stringValue = String(
                 format: NSLocalizedString("Showing the first %d files in this project",
-                                          comment: "Search for Document truncated index"),
+                                          comment: "Go to File truncated index"),
                 snapshot?.candidates.count ?? 0
             )
             statusLabel.isHidden = false

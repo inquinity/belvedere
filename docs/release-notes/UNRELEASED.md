@@ -12,7 +12,10 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 
 - **File ▸ Open Folder….** A folder picker of its own, which also works with no
   window open. Dropping a folder on the Dock icon opens it too, and the button in
-  Search for Document's empty state uses the same picker.
+  Go to File's empty state uses the same picker.
+- **Search for Document is now Go to File…**, in the Go menu, still on ⇧⌘O. It jumps to a
+  file in the opened folder by name, so the new name says what it does and leaves ⇧⌘F free
+  for a search of file text later.
 - **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
   neighbouring cell with its contents selected, so typing replaces them, as in Word and
   Numbers. Before, the cell was only shaded and nothing was selected.

@@ -2,7 +2,7 @@
 //  FileSearchMatcher.swift
 //  md-preview
 //
-//  Ranks project files against a partial name typed into Search for Document.
+//  Ranks project files against a partial name typed into Go to File.
 //  Kept free of AppKit so the SPM helper tests can exercise it without a GUI
 //  host — the matching rules are the part worth pinning down in CI.
 //
