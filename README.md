@@ -117,7 +117,7 @@ work after leaving edit mode too.
 - **URL scheme** — open a file or folder from a browser link or another app with `belvedere://file/<absolute path>` (e.g. `belvedere://file/Users/me/project/README.md`). Percent-encode special characters in the path.
 - **Default handler** — offers to register itself as the default `.md` opener on first launch.
 
-Not in Belvedere: the command-line tools installer (`mdp`, `belvedere`) is removed, along
+Not in Belvedere: the command-line tools installer (`mdp`, `md-preview`) is removed, along
 with the permission to control Terminal it needed.
 
 ## Supported file types

@@ -35,7 +35,7 @@ final class ExternalOpenSchemeTests: XCTestCase {
     }
 
     func testSchemeAndHostAreCaseInsensitive() {
-        let url = URL(string: "MD-PREVIEW://FILE/Users/me/a.md")!
+        let url = URL(string: "BELVEDERE://FILE/Users/me/a.md")!
         XCTAssertEqual(ExternalOpenScheme.resolvedURL(opening: url)?.path,
                        "/Users/me/a.md")
     }
