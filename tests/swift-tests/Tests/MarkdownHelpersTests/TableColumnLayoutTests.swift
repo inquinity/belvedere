@@ -10,15 +10,33 @@ import XCTest
 @MainActor
 final class TableColumnLayoutTests: XCTestCase {
 
+    private static let long = String(repeating: "Remotes, tracking scripts, this document and the FORK STATUS blocks. ", count: 4)
+
     func testShortColumnsKeepTheirWordsNextToAWideColumn() async throws {
-        let long = String(repeating: "Remotes, tracking scripts, this document and the FORK STATUS blocks. ", count: 4)
-        let markdown = """
+        let long = Self.long
+        try await assertColumnsKeepTheirWords("""
         | # | Milestone | Contents |
         | --- | --- | --- |
         | M0 | Repo setup | \(long) |
         | M3b | Deprivileging | \(long) |
         | M5 | Distribution | \(long) |
-        """
+        """)
+    }
+
+    /// Inline code sets `overflow-wrap: anywhere` on itself, so a column of
+    /// nothing but code spans needs its own rule to keep its words.
+    func testColumnsOfCodeSpansKeepTheirWords() async throws {
+        let long = Self.long
+        try await assertColumnsKeepTheirWords("""
+        | Command | Notes | Contents |
+        | --- | --- | --- |
+        | `just release` | `RELEASE-AUTOMATION` | \(long) |
+        | `notarytool` | `Deprivileging` | \(long) |
+        | `Distribution` | `Containment` | \(long) |
+        """)
+    }
+
+    private func assertColumnsKeepTheirWords(_ markdown: String) async throws {
         let html = MarkdownHTML.render(
             markdown: markdown, allowsScroll: true, contentWidth: .centered,
             documentFont: .system, readerLayout: ReaderLayoutSetting(),
@@ -29,7 +47,7 @@ final class TableColumnLayoutTests: XCTestCase {
         _ = try await harness.layout(texts: [], imageCount: 0, selectors: ["table": 1])
 
         let result = try await harness.webView.callAsyncJavaScript("""
-            // The width of each word of a cell, measured in the cell's own font,
+            // The width of each word of a cell (a hyphen is a break opportunity), measured in the cell's own font,
             // against the width its column actually gave it.
             const probe = document.createElement('span');
             probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
@@ -39,11 +57,17 @@ final class TableColumnLayoutTests: XCTestCase {
                 const style = getComputedStyle(cell);
                 probe.style.font = style.font;
                 const room = cell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                for (const word of cell.textContent.trim().split(/\\s+/)) {
+                for (const word of cell.textContent.trim().split(/[\\s-]+/)) {
                     probe.textContent = word;
                     const needed = probe.getBoundingClientRect().width;
                     if (needed > room + 0.5) problems.push(word + ': needs ' + needed.toFixed(1) + ', has ' + room.toFixed(1));
                 }
+            }
+            // The table must still fit its article: nothing here is an unbreakable
+            // string, so a sideways scroll would mean the fix over-corrected.
+            const table = document.querySelector('table');
+            if (table.scrollWidth > table.clientWidth + 1) {
+                problems.push('table scrolls sideways: ' + table.scrollWidth + ' in ' + table.clientWidth);
             }
             return JSON.stringify(problems);
             """, in: nil, contentWorld: .page)

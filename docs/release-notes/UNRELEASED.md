@@ -19,6 +19,3 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
   neighbouring cell with its contents selected, so typing replaces them, as in Word and
   Numbers. Before, the cell was only shaded and nothing was selected.
-- **Wide tables are readable again.** Since 1.3.0, a table with one long column squeezed the short
-  columns to a single letter per line. Short columns now keep their words and the table scrolls
-  sideways instead.
