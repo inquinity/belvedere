@@ -119,6 +119,59 @@ final class EditorFormattingTests: XCTestCase {
         }
     }
 
+    /// Tab, Shift-Tab and Enter land on the neighbouring cell with all of its
+    /// text selected (the revealed Markdown, for a formatted cell), so typing
+    /// replaces it. Before, only the focus moved and the cell's tint looked
+    /// like a selection that did not exist. Covers both paths: the table is
+    /// unchanged (focus right away) and the cell was edited (the widget is
+    /// replaced, then focused after two frames).
+    func testTabSelectsTheNextCellsContents() async throws {
+        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let source = "| One | Two | Three |\n| --- | --- | --- |\n| *target words* | **bold words** | plain |"
+        for edited in [false, true] {
+            for (key, shift, from, to, expected) in [
+                ("Tab", false, 0, 1, "**bold words**"),
+                ("Enter", false, 0, 1, "**bold words**"),
+                ("Tab", true, 1, 0, "*target words*"),
+            ] {
+                let editor = WebViewLayoutHarness(
+                    html: EditorHTML.render(markdown: source, editorJavaScript: script),
+                    width: 600, isEditor: true, height: 400)
+                defer { editor.close() }
+                _ = try await editor.layout(texts: [], imageCount: 0)
+                let result = try await editor.webView.callAsyncJavaScript("""
+                    const cellAt = column => document.querySelector(
+                        `[data-table-row="1"][data-table-column="${column}"]`);
+                    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+                    const start = cellAt(from);
+                    start.focus();
+                    if (edited) start.textContent = 'edited ' + start.textContent;
+                    start.dispatchEvent(new KeyboardEvent('keydown',
+                        {key, shiftKey: shift, bubbles: true, cancelable: true}));
+                    // The edited path focuses after two animation frames; the
+                    // harness drives its own frame clock.
+                    for (let step = 0; step < 6; step++) { window.__layoutTestFrame(); await wait(30); }
+                    const target = cellAt(to);
+                    const selection = window.getSelection();
+                    return JSON.stringify({
+                        focused: document.activeElement === target,
+                        text: target.textContent,
+                        selected: selection.toString(),
+                        collapsed: selection.isCollapsed,
+                    });
+                    """, arguments: ["key": key, "shift": shift, "from": from, "to": to, "edited": edited],
+                                                                in: nil, contentWorld: .page)
+                let json = try XCTUnwrap(result as? String)
+                let values = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+                let label = "\(key)\(shift ? "+Shift" : "") edited=\(edited): \(json)"
+                XCTAssertEqual(values["focused"] as? Bool, true, label)
+                XCTAssertEqual(values["text"] as? String, expected, label)
+                XCTAssertEqual(values["selected"] as? String, expected, label)
+                XCTAssertEqual(values["collapsed"] as? Bool, false, label)
+            }
+        }
+    }
+
     func testTablePointerSelectionKeepsNativeTextRangeAndFormattingTarget() async throws {
         let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(

@@ -10,4 +10,6 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **Tab in a table cell selects the next cell's text.** Tab, Shift-Tab and Enter move to the
+  neighbouring cell with its contents selected, so typing replaces them, as in Word and
+  Numbers. Before, the cell was only shaded and nothing was selected.

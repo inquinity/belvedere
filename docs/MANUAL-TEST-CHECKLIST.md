@@ -199,7 +199,7 @@ and always on a new one.
 |---|---|
 | Section 1: clicking a formatted cell reveals its Markdown with the caret where you clicked | Nine automated tests of this failed on macOS 27 because the test harness had no window, not because of the editor. They pass now, but only a real window on macOS 27 proves the editor itself |
 | Sections 2 to 4 and 6: drag-select, format, link and leave edit mode | The remaining automated table tests cover these with synthetic events |
-| Section 5: Tab selects the next cell's text | **Fails today by design (F17).** Found by hand on 2026-10-03: Tab only moves focus, and the shaded cell looks selected when it is not |
+| Section 5: Tab, Shift-Tab and Enter select the next cell's text | Found by hand on 2026-10-03: they only moved focus, and the shaded cell looked selected when it was not. Fixed for 1.4 |
 
 Not covered by this fixture: row and column editing, pasting a table, and right-to-left or CJK cells.
 
