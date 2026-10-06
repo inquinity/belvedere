@@ -52,3 +52,10 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   `belvedere://file/<absolute path>`.
 - **Belvedere now requires macOS 26.** Earlier releases stay available for macOS 15 and later. Dropping the older systems removed a second layout path for the window and toolbar, so there is one to test and one to keep correct.
 - **Runs natively on Intel Macs as well as Apple silicon.** The release is a universal build.
+- **A link in a document can no longer start a program.** Clicking a link to a local file opens it
+  only if it is an image, audio, video, a PDF, plain text or a folder. Anything else, including
+  apps, installers, scripts and files that start one, is shown in Finder so you can decide, and so
+  is any file set to open in an app of its own choosing. This closes ways past the earlier check:
+  a link through a symlink to an app, or to a Terminal settings file, could start a program on
+  one click. Links to other documents, such as HTML or Word files, are now shown in Finder
+  rather than opened.

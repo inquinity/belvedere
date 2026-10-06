@@ -60,6 +60,7 @@ Newest release first.
 | **F10** | ⌘N opens a window, not a tab | Whatever the Prefer tabs setting says; ⌘T still opens a tab. |
 | **F11** | ⌘O into a file that is already open | Decided: the window that has the file is raised; otherwise a new window. |
 | **S8** | Each window has its own folder boundary | Audited, nothing shared; a test forbids a static boundary. |
+| **S2** | A link could start a program, reopened | Symlinks, `.terminal`, per-file "Open With" choices and other launchers got past the 1.2.2 check. Now an allowlist: only images, audio, video, PDFs, plain text and folders open from a link. |
 | **H8** | Rename project, folders and keys to `belvedere` | `belvedere://`, `belvedere.*` settings keys, one-time key migration. |
 | **H10** | Minimum macOS is 26 | Every `#available(macOS 26)` check and fallback removed: one code path for the window chrome. 26.1 and 27 checks stay. |
 | **H11** | Universal build | Release builds carry arm64 and x86_64, and the build script checks both. |

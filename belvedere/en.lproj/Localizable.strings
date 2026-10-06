@@ -319,9 +319,9 @@
 "Open documents in tabs" = "Open documents in tabs";
 "A file opened from Finder joins the front window as a tab instead of getting one of its own — Open in New Window still opens a window." = "A file opened from Finder joins the front window as a tab instead of getting one of its own — Open in New Window still opens a window.";
 
-/* A link to something the system would run */
-"“%@” would be run, not opened." = "“%@” would be run, not opened.";
-"This document links to a program or installer. It will be shown in Finder instead." = "This document links to a program or installer. It will be shown in Finder instead.";
+/* A link to something that is shown in Finder rather than opened */
+"“%@” is shown in Finder, not opened." = "“%@” is shown in Finder, not opened.";
+"A link in a document opens only images, audio, video, PDFs, plain text and folders, and only when the file has not chosen an app of its own. Anything else, including programs, installers and files that start one, is shown in Finder so you can choose what to do with it." = "A link in a document opens only images, audio, video, PDFs, plain text and folders, and only when the file has not chosen an app of its own. Anything else, including programs, installers and files that start one, is shown in Finder so you can choose what to do with it.";
 /* Go to File */
 "Go to File…" = "Go to File…";
 "Search files by name" = "Search files by name";
