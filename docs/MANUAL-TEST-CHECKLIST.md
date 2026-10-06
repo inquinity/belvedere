@@ -278,7 +278,18 @@ xcrun stapler validate "dist/Belvedere-<version>.dmg"
 spctl -a -vvv -t open --context context:primary-signature "dist/Belvedere-<version>.dmg"
 ```
 
-Both must pass. Then **check it on a second Mac** — one that has never run this
+Both must pass. Then confirm the build is universal, and run it on **both** kinds of Mac:
+
+```bash
+lipo -archs "/Applications/Belvedere.app/Contents/MacOS/Belvedere"
+lipo -archs "/Applications/Belvedere.app/Contents/PlugIns/belvedere-quick-look.appex/Contents/MacOS/belvedere-quick-look"
+```
+
+Each prints `x86_64 arm64`. Then open a document, edit one, open a Mermaid sample and press Space
+on a `.md` file in Finder on an **Intel Mac running macOS 26**, and again on Apple silicon. Run
+it natively; never under Rosetta (`arch -x86_64`), which tests nothing real.
+
+Then **check it on a second Mac** — one that has never run this
 app and never had the developer certificate. That is the only test of what a
 colleague actually experiences, and it has caught problems that every local
 check missed.

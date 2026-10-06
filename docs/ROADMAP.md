@@ -15,7 +15,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 - Branch-wide security review of `v1.3.2..HEAD`.
 - Hand tests: manual checklist sections 5e and 5f, and the ⌘N row.
-- The build is universal and the minimum is macOS 26 (H10, H11). No Intel Mac is available to run the x86_64 slice, so it is built and checked for both architectures but not run.
+- The build is universal and the minimum is macOS 26 (H10, H11). The x86_64 slice is built and checked for presence but has not been run; the maintainer will test it on an Intel Mac running macOS 26 before release (manual checklist, section 6). Rosetta is never used.
 - `just release major`, then `just publish --go`. Each needs an explicit go-ahead.
 
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
