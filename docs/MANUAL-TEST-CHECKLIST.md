@@ -64,6 +64,7 @@ Quick Look will not pick up a new build until the app has been in
 | `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a placeholder naming the file, with a **Load** button — these sit outside the document's folder, so the reader is offered the choice. Clicking Load must report a failure, never show contents: any file contents on screen is a document reading files it has no right to. |
 | `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Nothing loads on open: every image is a placeholder naming the host, page still styled normally. In the app window each offers **Load** — that is the reader asking, and it is the only thing that reaches the network. Quick Look offers no button. **Load all** must not appear for these; it covers local files only. |
 | `tests/fixtures/relative-assets/post.md` | The other half: containment must not break *legitimate* relative images. Two must render, two must not. |
+| `tests/fixtures/link-guard/link-guard.md` | Clicked links to local files. Three links must bring up the "shown in Finder, not opened" sheet (one names **Calculator.app**, the symlink's real target); three must open with no sheet. **Calculator starting, or Terminal opening, means stop and do not ship.** App window only; Quick Look does not open local links. |
 
 Open each in **both** the app window and Quick Look. They resolve assets by
 different mechanisms and have failed independently before.

@@ -111,6 +111,7 @@
 				"Rendering/MarkdownHTML+RTL.swift",
 				"Rendering/MarkdownHTML+Stylesheet.swift",
 				"Rendering/MarkdownHTML+Utils.swift",
+				Rendering/LinkTargetPolicy.swift,
 				Rendering/MarkdownWebView.swift,
 				Rendering/PreviewContentPolicy.swift,
 				Rendering/QuickLookAppearance.swift,

@@ -5,7 +5,6 @@
 
 import Cocoa
 import os
-import UniformTypeIdentifiers
 import WebKit
 
 /// Presents table operations with a real AppKit context menu. The web views
@@ -1630,10 +1629,11 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// gets its own boundary applied fresh, for its own assets. Proposed
     /// upstream this way as part of pluk-inc/markdown-preview#337.
     ///
-    /// Layered on top, and not proposed upstream: a link naming something the
-    /// system would run or install is never handed to `NSWorkspace.open`
-    /// directly, in or out of any boundary — see `isExecutableTarget`. An
-    /// absolute `file:` link gets the same resolution and the same check;
+    /// Layered on top, and not proposed upstream: a local link is handed to
+    /// `NSWorkspace.open` only when `LinkTargetPolicy` says its target, with
+    /// symlinks resolved, is something the system only displays; anything
+    /// else is shown in Finder, in or out of any boundary. An absolute `file:`
+    /// link gets the same resolution and the same check;
     /// `ALLOWED_URI_REGEXP` already strips `file:` from sanitized document
     /// HTML, so this is defence in depth for a path that is not reachable
     /// through rendered content today, not a live containment concern.
@@ -1661,10 +1661,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         if Self.isMarkdownDocumentFile(resolved) {
             // The resolver works on the path alone and drops `#section`.
             localMarkdownLinkActivated?(Self.reattachingFragment(of: url, to: resolved))
-        } else if Self.isExecutableTarget(resolved) {
-            confirmRevealingExecutable(resolved)
         } else {
-            NSWorkspace.shared.open(resolved)
+            switch LinkTargetPolicy.disposition(for: resolved) {
+            case let .open(target): NSWorkspace.shared.open(target)
+            case let .reveal(target): confirmRevealing(target)
+            case .missing: NSSound.beep()
+            }
         }
     }
 
@@ -1715,39 +1717,24 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
     }
 
-    /// Something the system would run or install rather than open: an app or
-    /// other bundle, a Unix executable, an installer package, a disk image.
-    /// For these "open" means execute, and a Markdown file has no reason to
-    /// start one — the document chose the path, not the reader.
-    private static func isExecutableTarget(_ url: URL) -> Bool {
-        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
-            let runs: [UTType] = [.application, .applicationBundle, .unixExecutable, .diskImage]
-            if runs.contains(where: type.conforms(to:)) { return true }
-            if type.identifier == "com.apple.installer-package-archive" { return true }
-        }
-        var isDirectory: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        return exists && !isDirectory.boolValue
-            && FileManager.default.isExecutableFile(atPath: url.path)
-    }
-
-    /// A program named by document content is shown, never started.
-    private func confirmRevealingExecutable(_ target: URL) {
+    /// A file named by document content that the system might run, install or
+    /// hand to another app is shown, never opened.
+    private func confirmRevealing(_ target: URL) {
         #if !QUICK_LOOK_EXTENSION
         guard let window else { return }
         let alert = NSAlert()
         alert.alertStyle = .informational
         alert.messageText = String(
-            format: NSLocalizedString("“%@” would be run, not opened.",
-                                      comment: "Executable link alert title"),
+            format: NSLocalizedString("“%@” is shown in Finder, not opened.",
+                                      comment: "Revealed link alert title"),
             target.lastPathComponent
         )
         alert.informativeText = NSLocalizedString(
-            "This document links to a program or installer. It will be shown in Finder instead.",
-            comment: "Executable link alert message"
+            "A link in a document opens only images, audio, video, PDFs, plain text and folders, and only when the file has not chosen an app of its own. Anything else, including programs, installers and files that start one, is shown in Finder so you can choose what to do with it.",
+            comment: "Revealed link alert message"
         )
-        alert.addButton(withTitle: NSLocalizedString("Show in Finder", comment: "Executable link alert button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Executable link alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Show in Finder", comment: "Revealed link alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Revealed link alert button"))
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
             NSWorkspace.shared.activateFileViewerSelecting([target])
