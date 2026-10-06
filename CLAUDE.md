@@ -24,7 +24,7 @@ Read these before acting on anything they cover:
 | Product / bundle id | `Belvedere` / `com.altmansoftwaredesign.belvedere` (`.quick-look`, `.dev`) |
 | Xcode | `belvedere.xcodeproj`, scheme `belvedere`, Quick Look target `belvedere-quick-look` |
 | Team | `45GJWJVQN2` |
-| Minimum macOS | 15.0 |
+| Minimum macOS / architectures | 26.0 / universal (arm64 and x86_64); no `#available(macOS 26)` fallbacks, and never Rosetta |
 | Updates | none; distributed as a Homebrew cask, `inquinity/tap/belvedere` |
 | Version | `Version.xcconfig`, bumped by `bin/build.sh --update` (the fork's own line, independent of upstream's `0.0.x`) |
 

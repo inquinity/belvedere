@@ -50,3 +50,5 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Links now use `belvedere://`.** Belvedere no longer answers `md-preview://` links, because that
   scheme belongs to the Markdown Preview app it was forked from. Change any saved link to
   `belvedere://file/<absolute path>`.
+- **Belvedere now requires macOS 26.** Earlier releases stay available for macOS 15 and later. Dropping the older systems removed a second layout path for the window and toolbar, so there is one to test and one to keep correct.
+- **Runs natively on Intel Macs as well as Apple silicon.** The release is a universal build.

@@ -5,7 +5,7 @@ This is the internal build of Belvedere maintained at
 network connections of any kind — see [FORK-NOTES.md](FORK-NOTES.md) for what was removed
 and why.
 
-**Requires macOS 15 or later.**
+**Requires macOS 26 or later.**
 
 ## Install
 

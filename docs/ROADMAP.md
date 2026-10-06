@@ -15,7 +15,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 - Branch-wide security review of `v1.3.2..HEAD`.
 - Hand tests: manual checklist sections 5e and 5f, and the ⌘N row.
-- Builds are Apple silicon only today, and the README now says so. A universal build is undecided: there is no Intel Mac to test an x86_64 slice on.
+- The build is universal and the minimum is macOS 26 (H10, H11). No Intel Mac is available to run the x86_64 slice, so it is built and checked for both architectures but not run.
 - `just release major`, then `just publish --go`. Each needs an explicit go-ahead.
 
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
@@ -61,6 +61,8 @@ Newest release first.
 | **F11** | ⌘O into a file that is already open | Decided: the window that has the file is raised; otherwise a new window. |
 | **S8** | Each window has its own folder boundary | Audited, nothing shared; a test forbids a static boundary. |
 | **H8** | Rename project, folders and keys to `belvedere` | `belvedere://`, `belvedere.*` settings keys, one-time key migration. |
+| **H10** | Minimum macOS is 26 | Every `#available(macOS 26)` check and fallback removed: one code path for the window chrome. 26.1 and 27 checks stay. |
+| **H11** | Universal build | Release builds carry arm64 and x86_64, and the build script checks both. |
 | **F21** | Go to File matched scattered letters | A letter may sit at most three characters past the last, unless at a word start. |
 
 ### 1.3.2
