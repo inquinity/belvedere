@@ -208,8 +208,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         scheduleDocumentPrompt(requiresNoDocuments: true)
     }
 
-    /// Asks before a link opens a folder. Cancel is the default: nothing about
-    /// being asked should make saying yes the easy answer.
+    /// Asks before a link opens a folder. Cancel is listed first and Open Folder
+    /// second. The sheet shows no highlighted default button; the reader decides.
     private func confirmOpeningFolder(_ folder: URL, fromLink link: URL) -> Bool {
         let alert = NSAlert()
         alert.alertStyle = .warning
