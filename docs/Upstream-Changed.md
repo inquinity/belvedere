@@ -37,6 +37,14 @@ reports a modify/delete conflict; resolve it by keeping the deletion.
 - `belvedere/zh-Hans.lproj/` — the Chinese localization, removed in 2.0 because nobody here
   can maintain it. Upstream still updates these files; a merge that touches them reports a
   modify/delete conflict, so keep the deletion. Do not add new Chinese keys.
+- `AGENTS.md` — upstream's agent guide. Belvedere's rules are all in `CLAUDE.md`, which
+  rewrote the useful parts (the documentation rule, build commands, the signing and
+  entitlement cautions) and dropped the Sparkle, Amore, Codex and release-PR text that does
+  not apply here. Upstream edits it often, so a sync reports a modify/delete conflict: keep
+  the deletion, and read the incoming change for anything worth carrying into `CLAUDE.md`.
+- `.agents/skills/release-process/` and `.agents/skills/changelog-maintenance/`, and their
+  `.claude/skills/` links — upstream's release and changelog skills, which describe a
+  pipeline this fork does not have. Keep them deleted. `swift-concurrency` stays.
 - `CHANGELOG.md` and `bin/build-release.sh` — upstream's changelog, and the archive-based
   release script that refused to run without an entry in it. Belvedere's history is
   `docs/release-notes/`, built by `just release`. Upstream edits the changelog every
@@ -92,9 +100,10 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
   2026-10-01 the files, their strings and their tests were deleted too.
   *Kept out by* `ForkPostureTests.testWhatsNewIsNeverPresented`. If upstream edits
   `Features/WhatsNew/`, a merge reports a modify/delete conflict: keep the deletion.
-- **Deleting `CLAUDE.md`.** Upstream removed it; Belvedere keeps its one line,
-  `@AGENTS.md`, which is what loads the fork's rules for Claude sessions. Git deletes
-  it silently on a merge, so check for it after every sync.
+- **`CLAUDE.md` is ours alone.** Upstream removed theirs; Belvedere's holds the fork's
+  rules and, since 2.0, the whole agent guide, with upstream's `AGENTS.md` retired (see
+  *Standing removals*). If a merge brings `CLAUDE.md` back or deletes it silently, check
+  it after every sync and keep ours.
 
 ### Kept ours
 

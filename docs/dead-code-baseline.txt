@@ -5,7 +5,7 @@
 #
 # A new run reporting exactly these lines is clean. A NEW line not in this
 # file is what the check exists to catch — investigate it before merging
-# (see AGENTS.md, "Trace what a new parameter or stored property actually
+# (see CLAUDE.md, "Trace what new state actually
 # reaches"). A line that DISAPPEARS is welcome; delete it from here.
 #
 # Caveat: this scans only the belvedere Xcode scheme. A declaration used

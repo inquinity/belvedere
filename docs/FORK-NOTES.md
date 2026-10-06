@@ -284,9 +284,8 @@ each cost a round trip in which a correct result was reported as a bug.
 
 The practice — update the claim in the same commit as the behaviour — is now recorded
 twice, deliberately. `docs/MANUAL-TEST-CHECKLIST.md` carries the fork-specific version with
-the five examples, for whoever runs a release check. `AGENTS.md` carries an
-upstream-neutral version with no fork references, so it can be lifted onto a `contrib/`
-branch as-is. Upstream has the same problem and a better example of it than any of ours:
+the five examples, for whoever runs a release check. `CLAUDE.md` carries the rule itself, for
+every agent session. Upstream has the same problem and a better example of it than any of ours:
 their `README.md` claimed Mermaid rendered in both surfaces while it was broken in Quick
 Look, and that mismatch was read as documentation drift rather than as the bug it was.
 
@@ -912,7 +911,7 @@ the second is about document content (the content policies, plus click-to-load).
 Neither says the sandbox forbids networking, because it does not and cannot —
 `com.apple.security.network.client` has to stay on both targets.
 
-**This makes the About box part of the grep set** that `AGENTS.md` describes.
+**This makes the About box part of the grep set** that `CLAUDE.md` describes.
 The rule there names `README.md`, `samples/`, `tests/fixtures/` and `docs/`; a
 behavioural claim now also lives in Swift source. `ForkPostureTests`
 `testAboutBoxStillMakesTheNoNetworkClaim` fails if the claim is softened or
