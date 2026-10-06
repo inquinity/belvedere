@@ -47,3 +47,6 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   used to offer `remote-beacon.md`. Abbreviations such as `ug` for `user-guide.md` still work.
 - **A clearer outline setting.** *Highlight outline section under the pointer* now explains itself with an
   info popover in Settings.
+- **Links now use `belvedere://`.** Belvedere no longer answers `md-preview://` links, because that
+  scheme belongs to the Markdown Preview app it was forked from. Change any saved link to
+  `belvedere://file/<absolute path>`.
