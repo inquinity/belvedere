@@ -73,6 +73,7 @@ usage() {
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
     printf '%s\n' '  OUTPUT_DIR        Where the .app lands. Default: ./build'
     printf '%s\n' '  DIST_DIR          Where --release puts the .dmg. Default: ./dist'
+    printf '%s\n' '  DMG_EXTRA_FILES   Colon-separated files to put in the .dmg beside the app.'
     printf '%s\n' '  SIGNING_IDENTITY  Developer ID Application identity.'
     printf '%s\n' '  NOTARY_PROFILE    notarytool keychain profile. Default: altman-notary'
 }
@@ -275,6 +276,16 @@ package_dmg() {
     mkdir -p "$staging_dir" "$DIST_DIR"
     cp -R "$app_path" "$staging_dir/"
     ln -s /Applications "$staging_dir/Applications"
+    # Files named in DMG_EXTRA_FILES (paths separated by colons) are copied next
+    # to the app, for notes that belong to one test build and not to the source.
+    if [[ -n "${DMG_EXTRA_FILES:-}" ]]; then
+        local extra_files extra
+        IFS=':' read -ra extra_files <<< "$DMG_EXTRA_FILES"
+        for extra in "${extra_files[@]}"; do
+            [[ -f "$extra" ]] || die "DMG_EXTRA_FILES names a file that does not exist: $extra"
+            cp "$extra" "$staging_dir/"
+        done
+    fi
     rm -f "$dmg_path"
     hdiutil create \
         -volname "$APP_NAME" \
