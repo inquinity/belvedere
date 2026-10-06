@@ -168,6 +168,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
 
             if url.isExistingDirectory {
+                // Opening a folder widens what the front window's documents may
+                // read. Finder and the Dock are the reader's own doing; a
+                // belvedere:// link may have come from a web page, so ask first.
+                if ExternalOpenScheme.isOwnScheme(incoming), !confirmOpeningFolder(url, fromLink: incoming) {
+                    scheduleDocumentPromptIfIdle()
+                    continue
+                }
                 openFolder(url)
                 continue
             }
@@ -201,6 +208,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         scheduleDocumentPrompt(requiresNoDocuments: true)
     }
 
+    /// Asks before a link opens a folder. Cancel is the default: nothing about
+    /// being asked should make saying yes the easy answer.
+    private func confirmOpeningFolder(_ folder: URL, fromLink link: URL) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(
+            format: NSLocalizedString("Open the folder “%@”?", comment: "Folder link confirmation title"),
+            folder.lastPathComponent)
+        alert.informativeText = String(
+            format: NSLocalizedString(
+                "A link asked Belvedere to open %@. Documents open in this window may then show images from that folder.",
+                comment: "Folder link confirmation message"),
+            folder.path)
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Folder link confirmation"))
+        alert.addButton(withTitle: NSLocalizedString("Open Folder", comment: "Folder link confirmation"))
+        NSApp.activate()
+        return alert.runModal() == .alertSecondButtonReturn
+    }
+
     /// A malformed belvedere:// link tells the reader what shape the app
     /// expects instead of failing silently — the link usually comes from a
     /// hand-written web page, so the author is the one looking at the alert.
@@ -210,7 +236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                               comment: "URL scheme error")
         alert.informativeText = String(
             format: NSLocalizedString(
-                "“%@” is not a link Markdown Preview understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md.",
+                "“%@” is not a link Belvedere understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md.",
                 comment: "URL scheme error"
             ),
             urls.map(\.absoluteString).joined(separator: "\n")

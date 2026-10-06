@@ -14,6 +14,14 @@ nonisolated enum ExternalOpenScheme {
 
     static let scheme = "belvedere"
 
+    /// Whether an incoming open request came through the app's own scheme, as
+    /// opposed to Finder, the Dock or Open With. A `belvedere://` link can be
+    /// followed from a web page or another document, so the person did not
+    /// necessarily choose it; those get a confirmation before a folder opens.
+    static func isOwnScheme(_ url: URL) -> Bool {
+        url.scheme?.caseInsensitiveCompare(scheme) == .orderedSame
+    }
+
     /// Translates an incoming open request into the URL to actually open.
     /// URLs of other schemes (file URLs, mostly) pass through untouched.
     /// The app's own scheme accepts

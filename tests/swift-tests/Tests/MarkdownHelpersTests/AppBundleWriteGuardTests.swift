@@ -63,6 +63,17 @@ final class AppBundleWriteGuardTests: XCTestCase {
         XCTAssertTrue(inside(link.appendingPathComponent("Not There Yet.md")))
     }
 
+    /// `link/..` is the parent of what `link` points at, not the folder
+    /// holding `link`. Collapsing it as text made this look outside the bundle.
+    func testDotDotAfterASymlinkIsFollowedThroughTheLink() throws {
+        let link = root.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(
+            at: link, withDestinationURL: bundle.appendingPathComponent("Contents"))
+        XCTAssertTrue(inside(root.appendingPathComponent("link/../out.md")))
+        XCTAssertTrue(inside(root.appendingPathComponent("link/../Resources/Acknowledgements.md")))
+        XCTAssertFalse(inside(root.appendingPathComponent("link/../../out.md")))
+    }
+
     func testASymlinkOutOfTheBundleIsOutside() throws {
         let outside = root.appendingPathComponent("outside")
         try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)

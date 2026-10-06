@@ -61,14 +61,33 @@ nonisolated enum AppBundleWriteGuard {
 
     /// Path components with every symlink followed, for a path that may not
     /// exist: the nearest existing ancestor is resolved, then the rest added.
+    ///
+    /// The ancestor is found and resolved by the kernel (`realpath`), on the
+    /// path exactly as written. Collapsing `..` as text first would be wrong:
+    /// in `/x/link/../y` the `..` means the parent of whatever `link` points
+    /// at, not `/x`, so a link into an app bundle could make a write inside
+    /// the bundle look as if it landed outside. Only components that do not
+    /// exist yet are collapsed as text, since nothing can be linked there.
     private static func resolved(_ url: URL) -> [String] {
-        var existing = url.standardizedFileURL
+        var parts = url.path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
         var rest: [String] = []
-        while !FileManager.default.fileExists(atPath: existing.path), existing.path != "/" {
-            rest.insert(existing.lastPathComponent, at: 0)
-            existing = existing.deletingLastPathComponent()
+        while true {
+            let candidate = "/" + parts.joined(separator: "/")
+            if let real = realPath(candidate) {
+                let tail = URL(fileURLWithPath: "/" + rest.joined(separator: "/")).standardizedFileURL
+                    .pathComponents.dropFirst()
+                return URL(fileURLWithPath: real).pathComponents + (rest.isEmpty ? [] : Array(tail))
+            }
+            guard let last = parts.popLast() else {
+                return URL(fileURLWithPath: "/" + rest.joined(separator: "/")).standardizedFileURL.pathComponents
+            }
+            rest.insert(last, at: 0)
         }
-        let real = existing.resolvingSymlinksInPath().standardizedFileURL
-        return real.pathComponents + rest
+    }
+
+    private static func realPath(_ path: String) -> String? {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        guard realpath(path, &buffer) != nil else { return nil }
+        return String(cString: buffer)
     }
 }

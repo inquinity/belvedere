@@ -34,6 +34,13 @@ final class ExternalOpenSchemeTests: XCTestCase {
                        "/Users/me/project/README.md")
     }
 
+    func testOnlyTheAppsOwnSchemeCountsAsALink() {
+        XCTAssertTrue(ExternalOpenScheme.isOwnScheme(URL(string: "belvedere://file/Users/me/folder")!))
+        XCTAssertTrue(ExternalOpenScheme.isOwnScheme(URL(string: "BELVEDERE:///Users/me/folder")!))
+        XCTAssertFalse(ExternalOpenScheme.isOwnScheme(URL(fileURLWithPath: "/Users/me/folder")))
+        XCTAssertFalse(ExternalOpenScheme.isOwnScheme(URL(string: "https://example.com/")!))
+    }
+
     func testSchemeAndHostAreCaseInsensitive() {
         let url = URL(string: "BELVEDERE://FILE/Users/me/a.md")!
         XCTAssertEqual(ExternalOpenScheme.resolvedURL(opening: url)?.path,

@@ -289,9 +289,14 @@
 "Back to reference %d" = "Back to reference %d";
 "KaTeX renderer is unavailable.\n\n" = "KaTeX renderer is unavailable.\n\n";
 
+/* Folder link confirmation */
+"Open the folder “%@”?" = "Open the folder “%@”?";
+"A link asked Belvedere to open %@. Documents open in this window may then show images from that folder." = "A link asked Belvedere to open %@. Documents open in this window may then show images from that folder.";
+"Open Folder" = "Open Folder";
+
 /* URL scheme errors */
 "Cannot open link" = "Cannot open link";
-"“%@” is not a link Markdown Preview understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md." = "“%@” is not a link Belvedere understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md.";
+"“%@” is not a link Belvedere understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md." = "“%@” is not a link Belvedere understands. Use belvedere://file/ followed by the absolute path of the file, for example belvedere://file/Users/me/notes/README.md.";
 
 /* CLI installer errors */
 "Terminal automation failed: %@" = "Terminal automation failed: %@";
