@@ -164,6 +164,26 @@ final class FileSearchMatcherTests: XCTestCase {
         XCTAssertNil(FileSearchMatcher.match(query: "rel notes", against: candidate("release-notes.md")))
     }
 
+    // MARK: - Scattered letters
+
+    func testLettersScatteredThroughANameDoNotMatch() {
+        // `man` used to offer this: m from "remote", a and n from "beacon".
+        XCTAssertNil(FileSearchMatcher.match(query: "man", against: candidate("remote-beacon.md")))
+        XCTAssertNil(FileSearchMatcher.match(query: "read", against: candidate("release notes.md")))
+    }
+
+    func testAbbreviationsAtWordStartsAndCloseLettersStillMatch() {
+        XCTAssertNotNil(score("ug", "user-guide.md"))
+        XCTAssertNotNil(score("rdme", "README.md"))
+        XCTAssertNotNil(score("mdh", "MarkdownHelpers.md"))
+        XCTAssertNotNil(score("rel notes", "release notes.md"))
+    }
+
+    func testAGapOfThreeCharactersIsAllowedAndFourIsNot() {
+        XCTAssertNotNil(score("ax", "abbbxcc.md"))   // three characters between
+        XCTAssertNil(FileSearchMatcher.match(query: "ax", against: candidate("abbbbxcc.md")))
+    }
+
     // MARK: - Unicode
 
     func testNonASCIINamesMatchCaseInsensitively() {

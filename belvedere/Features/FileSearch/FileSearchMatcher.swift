@@ -256,9 +256,9 @@ nonisolated enum FileSearchMatcher {
         switch text.storage {
         case .ascii(let characters):
             guard let query = query.ascii else { return nil }
-            return align(query: query, text: characters, includeRanges: includeRanges) {
-                Int(text.boundaryBonuses[$0])
-            }
+            return align(query: query, text: characters, includeRanges: includeRanges,
+                         boundaryAt: { Int(text.boundaryBonuses[$0]) },
+                         isDelimiterAt: { [45, 95, 46, 32, 47].contains(characters[$0]) })
         case .unicode(let string):
             guard query.folded.count <= text.count else { return nil }
             // Reject without allocating arrays, as in the original Unicode path.
@@ -270,13 +270,16 @@ nonisolated enum FileSearchMatcher {
             guard next == query.folded.count else { return nil }
             let characters = Array(string)
             return align(query: query.folded, text: characters.map(FileSearchMatcher.folded),
-                         includeRanges: includeRanges) { boundaryBonus(characters, at: $0) }
+                         includeRanges: includeRanges,
+                         boundaryAt: { boundaryBonus(characters, at: $0) },
+                         isDelimiterAt: { delimiters.contains(characters[$0]) })
         }
     }
 
     private static func align<Element: Equatable>(query: [Element], text: [Element],
                                                   includeRanges: Bool,
-                                                  boundaryAt: (Int) -> Int) -> Alignment? {
+                                                  boundaryAt: (Int) -> Int,
+                                                  isDelimiterAt: (Int) -> Bool) -> Alignment? {
         // Cheap reject first. Most of a project never matches, and this keeps
         // the allocation below off the hot path.
         let rows = query.count
@@ -309,7 +312,8 @@ nonisolated enum FileSearchMatcher {
                 current[column] = unreachable
                 guard foldedText[column] == query[row] else { continue }
 
-                let bonus = scoreMatch + boundaryAt(column)
+                let boundary = boundaryAt(column)
+                let bonus = scoreMatch + boundary
 
                 if row == 0 {
                     // Nudge earlier starts ahead of later ones, gently enough
@@ -328,9 +332,23 @@ nonisolated enum FileSearchMatcher {
                         bestParent = column - 1
                     }
                 }
-                if gapBest != unreachable, gapBest + penaltyGap > best {
-                    best = gapBest + penaltyGap
-                    bestParent = gapBestColumn
+                // A word start, or a separator the reader typed, may follow any
+                // earlier match; anything else must stay within `maxInWordGap`
+                // characters of it.
+                var reachable = gapBest
+                var reachableColumn = gapBestColumn
+                if boundary == 0, !isDelimiterAt(column), column >= 2 {
+                    reachable = unreachable
+                    reachableColumn = -1
+                    for from in max(0, column - 1 - maxInWordGap)...(column - 2)
+                    where previous[from] > reachable {
+                        reachable = previous[from]
+                        reachableColumn = from
+                    }
+                }
+                if reachable != unreachable, reachable + penaltyGap > best {
+                    best = reachable + penaltyGap
+                    bestParent = reachableColumn
                 }
 
                 guard bestParent >= 0 else { continue }
@@ -426,6 +444,12 @@ nonisolated enum FileSearchMatcher {
     private static let bonusCamel = 18
     private static let bonusContiguous = 20
     private static let penaltyGap = -8
+    /// The most characters allowed between two matched letters unless the
+    /// second one starts a word. `man` is not a good match for `remote-beacon`
+    /// (m, then a and n from the middle of *beacon*), but `ug` for `user-guide`
+    /// and `rdme` for `README` are: an abbreviation takes word starts or
+    /// stays close together.
+    private static let maxInWordGap = 3
     private static let penaltyLeading = 1
     private static let leadingPenaltyLimit = 20
 
