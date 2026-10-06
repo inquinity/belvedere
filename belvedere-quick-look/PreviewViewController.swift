@@ -499,13 +499,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
         button.showsBorderOnlyWhileMouseInside = false
         button.setContentHuggingPriority(.required, for: .horizontal)
         button.setContentCompressionResistancePriority(.required, for: .horizontal)
-        if #available(macOS 26.0, *) {
-            button.bezelStyle = .glass
-            button.borderShape = .capsule
-            button.tintProminence = .none
-        } else {
-            button.bezelStyle = .accessoryBarAction
-        }
+        button.bezelStyle = .glass
+        button.borderShape = .capsule
+        button.tintProminence = .none
         button.isEnabled = false
         let copyMarkdownHelp = NSLocalizedString(
             "Copy Markdown source to clipboard",

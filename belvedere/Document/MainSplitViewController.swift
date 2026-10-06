@@ -26,9 +26,6 @@ final class MainSplitViewController: NSSplitViewController {
     /// visible tab bar, reduced in full screen. The overlay constraints
     /// and the editor's page padding must use the same value.
     static func tabBarOverlap(for window: NSWindow?) -> CGFloat {
-        // Sequoia's tabs end at the content layout guide without Tahoe's
-        // extra margin. Tucking the rows upward clips the first row.
-        guard #available(macOS 26.0, *) else { return 0 }
         guard let window, window.tabGroup?.isTabBarVisible == true else { return 0 }
         return window.styleMask.contains(.fullScreen)
             ? formattingBarTabBarOverlapFullScreen : formattingBarTabBarOverlap
@@ -449,51 +446,22 @@ final class MainSplitViewController: NSSplitViewController {
     /// not a titlebar accessory (the native tab bar always renders below
     /// accessories, and would jump on every edit-mode toggle).
     func installFormattingBar(_ bar: NSView) {
-        if Self.usesFloatingFormattingBar {
-            if Self.usesNativeChromeAccessories {
-                layeredContentViewController?.nativeFindOverlay = findOverlayView
-            }
-            layeredContentViewController?.installFormattingBar(bar)
-        } else if Self.usesNativeChromeAccessories {
-            formattingAccessory = installNativeChromeAccessory(bar)
-        } else {
-            layeredContentViewController?.installFormattingBar(bar)
+        if Self.usesNativeChromeAccessories {
+            layeredContentViewController?.nativeFindOverlay = findOverlayView
         }
+        layeredContentViewController?.installFormattingBar(bar)
         // The editor pads its page below the chrome; the bar is part of
         // that chrome now, so it must be measured alongside the titlebar.
         cachedEditorViewController?.formattingBar = bar
-        if Self.usesNativeChromeAccessories {
-            contentViewController?.formattingBar = bar
-            contentViewController?.chromeOverlaysDidChange()
-        }
     }
 
     func removeFormattingBar() {
-        if Self.usesFloatingFormattingBar {
-            layeredContentViewController?.removeFormattingBar()
-        } else if #available(macOS 26.1, *), Self.usesNativeChromeAccessories,
-           let item = splitViewItems.dropFirst().first,
-           let index = item.topAlignedAccessoryViewControllers.firstIndex(where: { $0 === formattingAccessory }) {
-            item.removeTopAlignedAccessoryViewController(at: index)
-            formattingAccessory = nil
-        } else {
-            layeredContentViewController?.removeFormattingBar()
-        }
+        layeredContentViewController?.removeFormattingBar()
         cachedEditorViewController?.formattingBar = nil
-        if Self.usesNativeChromeAccessories {
-            contentViewController?.formattingBar = nil
-            contentViewController?.chromeOverlaysDidChange()
-        }
     }
 
     private weak var findOverlayView: NSView?
-    private var formattingAccessory: NSViewController?
     private var findAccessory: NSViewController?
-
-    static var usesFloatingFormattingBar: Bool {
-        if #available(macOS 26.0, *) { return true }
-        return false
-    }
 
     static var usesNativeChromeAccessories: Bool {
         if #available(macOS 27.0, *) { return false }
@@ -727,14 +695,7 @@ private final class LayeredContentViewController: NSViewController {
         let editorView = editorViewController.view
         editorView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(editorView, positioned: .above, relativeTo: previewViewController.view)
-        let editorTop: NSLayoutConstraint
-        if #unavailable(macOS 26.0),
-           let guide = view.window?.contentLayoutGuide as? NSLayoutGuide {
-            editorTop = editorView.topAnchor.constraint(equalTo: guide.topAnchor)
-            legacyEditorTopConstraint = editorTop
-        } else {
-            editorTop = editorView.topAnchor.constraint(equalTo: view.topAnchor)
-        }
+        let editorTop = editorView.topAnchor.constraint(equalTo: view.topAnchor)
         NSLayoutConstraint.activate([
             editorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             editorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -744,7 +705,6 @@ private final class LayeredContentViewController: NSViewController {
         updateChromeOverlayLayout()
     }
 
-    private var legacyEditorTopConstraint: NSLayoutConstraint?
     private weak var formattingBar: NSView?
     private weak var findOverlay: NSView?
     weak var nativeFindOverlay: NSView?
@@ -834,13 +794,6 @@ private final class LayeredContentViewController: NSViewController {
         }
         if let top = formattingBarTopConstraint, top.constant != editTop {
             top.constant = editTop
-        }
-        if #unavailable(macOS 26.0), let top = legacyEditorTopConstraint {
-            var contentTop: CGFloat = 0
-            if let find = findOverlay, !find.isHidden { contentTop += find.fittingSize.height }
-            if let bar = formattingBar, !bar.isHidden { contentTop += bar.fittingSize.height }
-            if contentTop > 0 { contentTop += overlap }
-            top.constant = max(0, contentTop)
         }
     }
 }

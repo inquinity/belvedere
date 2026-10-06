@@ -5,8 +5,7 @@ import XCTest
 @MainActor
 final class FullscreenToolbarThemeTests: XCTestCase {
     private func makePocket() throws -> NSView {
-        guard #available(macOS 26.0, *),
-              let cls = NSClassFromString("NSScrollPocket") as? NSView.Type else {
+        guard let cls = NSClassFromString("NSScrollPocket") as? NSView.Type else {
             throw XCTSkip("Full-screen scroll pockets require macOS 26 AppKit")
         }
         return cls.init(frame: .zero)

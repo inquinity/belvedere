@@ -52,22 +52,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         webView.underPageBackgroundColor = .clear
         bridge.owner = self
         self.webView = webView
-        if #available(macOS 26.0, *) {
-            view = webView
-        } else {
-            // The preview's white backing disappears when edit mode hides it.
-            // Give the transparent editor its own document background.
-            let background = LegacyEditorBackgroundView()
-            webView.translatesAutoresizingMaskIntoConstraints = false
-            background.addSubview(webView)
-            NSLayoutConstraint.activate([
-                webView.leadingAnchor.constraint(equalTo: background.leadingAnchor),
-                webView.trailingAnchor.constraint(equalTo: background.trailingAnchor),
-                webView.topAnchor.constraint(equalTo: background.topAnchor),
-                webView.bottomAnchor.constraint(equalTo: background.bottomAnchor),
-            ])
-            view = background
-        }
+        view = webView
         webView.appearanceDidChange = { [weak self] in
             self?.updateUnderPageBackgroundColor()
         }
@@ -146,7 +131,6 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
     }
 
     private func updateChromeZoom() {
-        guard #available(macOS 26.0, *) else { return }
         webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-chrome-zoom', '\(max(webView.pageZoom, 0.001))')", completionHandler: nil)
     }
 
@@ -257,9 +241,6 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             // See ContentViewController.fullChromeTopInset: the safe area
             // lags accessory changes by a layout pass, so measure the bars.
             gap += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
-            if !MainSplitViewController.usesFloatingFormattingBar {
-                gap += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
-            }
             return max(0, gap)
         }
         for accessory in window.titlebarAccessoryViewControllers
@@ -277,10 +258,6 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         // (MainSplitViewController.formattingBarTabBarOverlap), so that
         // amount comes back off once.
         var overlays: CGFloat = 0
-        if !MainSplitViewController.usesFloatingFormattingBar,
-           let bar = formattingBar, bar.window === window, !bar.isHidden {
-            overlays += bar.fittingSize.height
-        }
         if let find = findOverlay, find.window === window, !find.isHidden {
             overlays += find.fittingSize.height
         }
@@ -291,10 +268,10 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         return max(0, gap)
     }
 
-    /// On macOS 26 and later, page scrolling lets WebKit supply the native
-    /// backdrop across the toolbar and visible chrome rows.
+    /// Page scrolling lets WebKit supply the native backdrop across the
+    /// toolbar and visible chrome rows.
     private func updateObscuredContentInsets() {
-        guard #available(macOS 26.0, *), view.window != nil else { return }
+        guard view.window != nil else { return }
         let inset = fullChromeTopInset
         if webView.obscuredContentInsets.top != inset {
             webView.obscuredContentInsets = NSEdgeInsets(
@@ -306,10 +283,6 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
     /// See ContentViewController.updateUnderPageBackgroundColor — set on
     /// theme and appearance changes only, never per layout pass.
     private func updateUnderPageBackgroundColor() {
-        if #unavailable(macOS 26.0) {
-            view.needsDisplay = true
-        }
-        guard #available(macOS 26.0, *) else { return }
         // WebKit snapshots the color in the setter. These explicit palette
         // and fallback colors must be reassigned when the appearance changes.
         let isDark = view.effectiveAppearance
@@ -583,12 +556,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         }
         let lightPageBackground = pageBackground(.light)
         let darkPageBackground = pageBackground(.dark)
-        let usesPageScrolling: Bool
-        if #available(macOS 26.0, *) {
-            usesPageScrolling = true
-        } else {
-            usesPageScrolling = false
-        }
+        let usesPageScrolling = true
         return EditorHTML.render(
             markdown: markdown,
             editorJavaScript: editorJavaScript,
@@ -614,30 +582,6 @@ private final class EditorBridge: NSObject, WKScriptMessageHandler {
                                didReceive message: WKScriptMessage) {
         guard message.name == EditorBridge.name else { return }
         owner?.handle(message: message.body)
-    }
-}
-
-private final class LegacyEditorBackgroundView: NSView {
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        wantsLayer = true
-    }
-
-    override var wantsUpdateLayer: Bool { true }
-
-    override func updateLayer() {
-        let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let scheme: ThemeColorScheme = isDark ? .dark : .light
-        let colors = ThemeColorsSetting.current
-        let background = colors.color(.editorBackground, scheme)
-            ?? colors.color(.windowBackground, scheme)
-            ?? (isDark ? nil : NSColor.white)
-        layer?.backgroundColor = background?.cgColor
     }
 }
 

@@ -23,7 +23,6 @@ extension NSView {
     /// strip of a transparent-titlebar window, and should return nil so the
     /// click keeps its native meaning (window drag, double-click zoom).
     func declinesChromeStripClick(at point: NSPoint) -> Bool {
-        guard #available(macOS 26.0, *) else { return false }
         guard let window, window.titlebarAppearsTransparent else { return false }
         switch NSApp.currentEvent?.type {
         case .leftMouseDown, .leftMouseDragged, .leftMouseUp: break

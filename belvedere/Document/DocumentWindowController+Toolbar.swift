@@ -71,26 +71,7 @@ extension DocumentWindowController {
             .saveDocument,
             .search
         ]
-        if #unavailable(macOS 26.0) {
-            return identifiers.filter { $0 != .space }
-        }
         return identifiers
-    }
-
-    /// Repair the old pre-26 default without resetting customized toolbars.
-    func migrateLegacySidebarToolbarIfNeeded(in toolbar: NSToolbar) {
-        guard #unavailable(macOS 26.0) else { return }
-        let identifiers = toolbar.items.map(\.itemIdentifier)
-        guard !identifiers.contains(.sidebarTrackingSeparator),
-              Array(identifiers.prefix(2)) == [.toggleSidebar, .sidebarMode] else { return }
-        toolbar.removeItem(at: 1)
-        toolbar.removeItem(at: 0)
-        let leading: [NSToolbarItem.Identifier] = [
-            .sidebarMode, .flexibleSpace, .toggleSidebar, .sidebarTrackingSeparator
-        ]
-        for (index, identifier) in leading.enumerated() {
-            toolbar.insertItem(withItemIdentifier: identifier, at: index)
-        }
     }
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {

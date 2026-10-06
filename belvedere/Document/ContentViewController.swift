@@ -20,8 +20,6 @@ final class ContentViewController: NSViewController {
     private var webView: MarkdownWebView!
     private var toolbarGutterView: PreviewToolbarGutterView!
     private var toolbarGutterHeightConstraint: NSLayoutConstraint?
-    private var webViewTopConstraint: NSLayoutConstraint?
-    private var webViewChromeTopConstraint: NSLayoutConstraint?
     private var webViewCenteredLeadingConstraint: NSLayoutConstraint?
     private var webViewCenteredConstraints: [NSLayoutConstraint] = []
     private var webViewFullWidthConstraints: [NSLayoutConstraint] = []
@@ -213,12 +211,9 @@ final class ContentViewController: NSViewController {
         // Keep the WKWebView viewport-sized and let WebKit own vertical
         // scrolling. Expanding it to the full document height creates an
         // enormous backing surface that loses Retina resolution on long docs.
-        // Pinned to the container's top so macOS 26 can scroll content
-        // under the frosted titlebar. Pre-Tahoe the page must stop below
-        // the opaque bar instead, so the top moves to the window's chrome
-        // boundary once there is a window — see pinWebViewBelowChrome().
+        // Pinned to the container's top so content scrolls under the frosted
+        // titlebar.
         let webViewTop = webView.topAnchor.constraint(equalTo: container.topAnchor)
-        webViewTopConstraint = webViewTop
         NSLayoutConstraint.activate([
 
             webViewTop,
@@ -567,11 +562,6 @@ final class ContentViewController: NSViewController {
     /// The search row sits in the content host beneath the native toolbar.
     weak var findOverlay: NSView?
 
-    /// The formatting controls. The preview is hidden while editing; legacy
-    /// rows still affect page padding during the exit hand-off, while the
-    /// macOS 26 floating controls intentionally do not.
-    weak var formattingBar: NSView?
-
     func chromeOverlaysDidChange() {
         updateObscuredContentInsets()
     }
@@ -591,57 +581,17 @@ final class ContentViewController: NSViewController {
             // then lagged one step behind the strip (missing while it was
             // shown, still covering the page after it was gone).
             inset += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
-            if !MainSplitViewController.usesFloatingFormattingBar {
-                inset += MainSplitViewController.nativeAccessoryHeight(formattingBar, in: window)
-            }
             return max(0, inset)
         }
-        if #available(macOS 26.0, *),
-           let find = findOverlay, find.window === window, !find.isHidden {
+        if let find = findOverlay, find.window === window, !find.isHidden {
             inset += find.fittingSize.height - MainSplitViewController.tabBarOverlap(for: window)
         }
         return max(0, inset)
     }
 
-    /// Pre-Tahoe there is no frost and no `obscuredContentInsets`, so the
-    /// page must not run under the opaque titlebar: the toolbar's effect
-    /// views blend within the window and would composite whatever scrolls
-    /// beneath them. The web view hangs off the window's contentLayoutGuide
-    /// — the bottom of all titlebar chrome, native tab bar included — the
-    /// same anchor the chrome overlays use, so the boundary tracks the
-    /// chrome instead of a measured constant that goes stale the moment
-    /// nothing forces another layout pass. Full screen follows for free:
-    /// the guide reaches the top of the screen there, so the page runs full
-    /// height and the revealed toolbar floats over it, the way it floats
-    /// over content in every native app.
-    ///
-    /// The window keeps .fullSizeContentView, so only the web view moves —
-    /// the sidebar still spans full height, the way Finder and Preview do.
-    private func pinWebViewBelowChrome() {
-        if webViewChromeTopConstraint == nil,
-           let guide = view.window?.contentLayoutGuide as? NSLayoutGuide {
-            webViewTopConstraint?.isActive = false
-            let top = webView.topAnchor.constraint(equalTo: guide.topAnchor)
-            top.isActive = true
-            webViewChromeTopConstraint = top
-        }
-        let findHeight: CGFloat
-        if let find = findOverlay, find.window === view.window, !find.isHidden {
-            findHeight = max(0, find.fittingSize.height - MainSplitViewController.tabBarOverlap(for: view.window))
-        } else {
-            findHeight = 0
-        }
-        webViewChromeTopConstraint?.constant = findHeight
-    }
-
     private func updateObscuredContentInsets() {
-        guard #available(macOS 26.0, *) else {
-            toolbarGutterHeightConstraint?.constant = 0
-            pinWebViewBelowChrome()
-            return
-        }
         // Theme-independent, and never 0: WebKit adopts the titlebar inset
-        // automatically on macOS 26 and an explicit 0 stomps that for the
+        // automatically and an explicit 0 stomps that for the
         // web view's lifetime — the page then collides with the toolbar
         // until the window is recreated. Keeping the explicit value equal
         // to the chrome strip matches the automatic behavior exactly.
@@ -662,7 +612,6 @@ final class ContentViewController: NSViewController {
     /// and appearance changes only — a system appearance change need not
     /// trigger layout, and assigning every layout pass repaints transitions.
     private func updateUnderPageBackgroundColor() {
-        guard #available(macOS 26.0, *) else { return }
         // WebKit snapshots a CGColor in the setter. Resolve even the system
         // fallback against this view's appearance, then reassign when it changes.
         let isDark = view.effectiveAppearance

@@ -908,7 +908,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let shareItem = NSDocumentController.shared.standardShareMenuItem()
         fileMenu.insertItem(shareItem, at: pdfIndex + 1)
 
-        guard #available(macOS 26.0, *) else { return }
         let icons: [(item: NSMenuItem?, symbol: String)] = [
             (
                 fileMenu.items.first {

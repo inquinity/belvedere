@@ -354,7 +354,7 @@ final class EditorScrollAnchorTests: XCTestCase {
             _ = try await editor.layout(texts: [], imageCount: 0)
             let result = try await editor.webView.evaluateJavaScript("""
                 (() => {
-                    // Exercise space-consuming scrollbars as on the macOS 15 CI runner.
+                    // Exercise space-consuming (classic) scrollbars, as on some runners.
                     const style = document.createElement('style');
                     style.textContent = '.cm-md-code-card::-webkit-scrollbar { width: 15px; height: 15px; }';
                     document.head.appendChild(style);

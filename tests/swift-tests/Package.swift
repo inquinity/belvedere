@@ -11,7 +11,7 @@ import PackageDescription
 
 let package = Package(
     name: "MdPreviewHelperTests",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS("26.0")],
     dependencies: [
         .package(
             url: "https://github.com/swiftlang/swift-markdown.git",

@@ -182,8 +182,7 @@ nonisolated enum MarkdownHTML {
     static var appPageTopClearance: CGFloat {
         // 8pt above the 28pt pills, then 2pt before the document. The
         // normal page padding already supplies part of that total.
-        if #available(macOS 26.0, *) { return 8 + 28 + 2 - pagePaddingTop }
-        return 0
+        8 + 28 + 2 - pagePaddingTop
     }
     static let pagePaddingHorizontal: CGFloat = 40
     static let pagePaddingBottom: CGFloat = 48

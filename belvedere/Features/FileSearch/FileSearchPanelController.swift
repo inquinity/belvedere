@@ -101,25 +101,12 @@ final class FileSearchPanelController: NSViewController {
         root.onKey = { [weak self] event in self?.handleNavigationKey(event) ?? false }
         let container = DraggablePaletteContent(frame: root.bounds)
         container.autoresizingMask = [.width, .height]
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView(frame: root.bounds)
-            glass.autoresizingMask = [.width, .height]
-            glass.style = .regular
-            glass.cornerRadius = 20
-            glass.contentView = container
-            root.addSubview(glass)
-        } else {
-            let effect = NSVisualEffectView(frame: root.bounds)
-            effect.autoresizingMask = [.width, .height]
-            effect.material = .popover
-            effect.blendingMode = .behindWindow
-            effect.state = .active
-            effect.wantsLayer = true
-            effect.layer?.cornerRadius = 20
-            effect.layer?.masksToBounds = true
-            effect.addSubview(container)
-            root.addSubview(effect)
-        }
+        let glass = NSGlassEffectView(frame: root.bounds)
+        glass.autoresizingMask = [.width, .height]
+        glass.style = .regular
+        glass.cornerRadius = 20
+        glass.contentView = container
+        root.addSubview(glass)
         view = root
 
         let searchIcon = NSImageView()

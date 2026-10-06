@@ -21,8 +21,7 @@ final class FullscreenToolbarTheme {
     private static let setPrefersSolid = NSSelectorFromString("setPrefersSolidColorHardPocket:")
 
     func update(window: NSWindow, color: NSColor?) {
-        guard #available(macOS 26.0, *),
-              color != nil,
+        guard color != nil,
               window.styleMask.contains(.fullScreen),
               window.tabGroup?.selectedWindow == nil || window.tabGroup?.selectedWindow === window,
               let toolbar = window.toolbar,
@@ -39,7 +38,7 @@ final class FullscreenToolbarTheme {
     /// Also used by the AppKit tests to exercise real scroll pockets without
     /// moving a user's window into a different Space.
     func apply(to root: NSView, color: NSColor?) {
-        guard #available(macOS 26.0, *), let color,
+        guard let color,
               let pocketClass = NSClassFromString("NSScrollPocket") else {
             restore()
             return

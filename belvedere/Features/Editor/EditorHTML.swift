@@ -623,7 +623,8 @@ nonisolated enum EditorHTML {
             background: color-mix(in srgb, var(--accent) 16%, transparent);
         }
         /* Page scrolling lets WebKit own the native toolbar backdrop.
-           The macOS 15 editor keeps its internal scroller. */
+           The app always uses page scrolling; the internal scroller is only for
+           renders without it, such as the layout tests. */
         html[data-page-scrolling="true"],
         html[data-page-scrolling="true"] body {
             height: auto;

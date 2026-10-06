@@ -240,7 +240,6 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         documentWindow.toolbar = toolbar
         documentWindow.toolbarStyle = .automatic
         replaceZoomToolbarItemIfNeeded(in: toolbar)
-        migrateLegacySidebarToolbarIfNeeded(in: toolbar)
 
         installFindBar()
         applyWindowBackgroundTheme()
@@ -270,13 +269,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
             ) ?? (isDark ? ThemeColorsSetting.defaultColor(.windowBackground, .dark) : .windowBackgroundColor)
         }
         // Preserve native titlebar backing so WebKit can supply the scroll
-        // edge on macOS 26+. Earlier systems also use native window chrome.
+        // edge.
         documentWindow.titlebarSeparatorStyle = .automatic
         documentWindow.titlebarAppearsTransparent = false
-        if #available(macOS 26.0, *) {
-            if #unavailable(macOS 27.0) {
-                documentWindow.titlebarAppearsTransparent = true
-            }
+        if #unavailable(macOS 27.0) {
+            documentWindow.titlebarAppearsTransparent = true
         }
         (editBar as? EditAccessoryContainerView)?.updateFullscreenBackground()
         (findBarOverlay as? EditAccessoryContainerView)?.updateFullscreenBackground()
@@ -608,9 +605,9 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     /// links) otherwise fights the bar's buttons. The bar region always
     /// shows the plain arrow.
     ///
-    /// Sequoia rows use the native titlebar material with unthemed controls.
-    /// On macOS 26+, a formatting container can instead remain transparent
-    /// around its native Liquid Glass groups.
+    /// A row either uses the native titlebar material with unthemed controls,
+    /// or, for a formatting container, stays transparent around its native
+    /// Liquid Glass groups.
     final class EditAccessoryContainerView: NSView {
         private let usesFloatingGlass: Bool
         weak var cursorContentView: NSView?
@@ -636,15 +633,13 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         private init(frame frameRect: NSRect, floatingGlass: Bool) {
             usesFloatingGlass = floatingGlass
             super.init(frame: frameRect)
-            installLegacyBackdropIfNeeded()
         }
 
-        /// Full screen on macOS 26 and later draws the toolbar on an opaque
+        /// Full screen draws the toolbar on an opaque
         /// native strip instead of frosting the page, so the rows below it
         /// use the same solid theme color as the toolbar workaround. Without a
         /// custom background, retain the native titlebar material.
         func updateFullscreenBackground() {
-            guard #available(macOS 26.0, *) else { return }
             guard !usesFloatingGlass else { return }
             if window?.styleMask.contains(.fullScreen) == true {
                 let scheme: ThemeColorScheme = effectiveAppearance
@@ -687,24 +682,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
         override init(frame frameRect: NSRect) {
             usesFloatingGlass = false
             super.init(frame: frameRect)
-            installLegacyBackdropIfNeeded()
         }
 
         required init?(coder: NSCoder) {
             usesFloatingGlass = false
             super.init(coder: coder)
-            installLegacyBackdropIfNeeded()
-        }
-
-        private func installLegacyBackdropIfNeeded() {
-            if #unavailable(macOS 26.0), fullscreenBackdrop == nil {
-                let backdrop = NSVisualEffectView(frame: bounds)
-                backdrop.material = .titlebar
-                backdrop.blendingMode = .withinWindow
-                backdrop.state = .followsWindowActiveState
-                backdrop.autoresizingMask = [.width, .height]
-                addSubview(backdrop)
-            }
         }
 
         override func resetCursorRects() {

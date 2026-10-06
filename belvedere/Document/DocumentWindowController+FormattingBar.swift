@@ -11,123 +11,17 @@ import SwiftUI
 extension DocumentWindowController {
     // MARK: Formatting bar
 
-    /// Common Markdown actions shown while editing. macOS 26+ gets Xcode's
-    /// top-right floating glass groups; older systems retain the full-width
-    /// Preview-style accessory row. Both live in the content host rather
-    /// than the titlebar, so toggling edit mode cannot move the native tab
-    /// bar.
+    /// Common Markdown actions shown while editing, as Xcode's top-right
+    /// floating glass groups. They live in the content host rather than the
+    /// titlebar, so toggling edit mode cannot move the native tab bar.
     func showEditAccessory() {
         guard editBar == nil else { return }
-
-        if #available(macOS 26.0, *) {
-            showLiquidGlassEditAccessory()
-            return
-        }
-
-        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        func formatButton(_ symbol: String, _ command: String, _ tip: String) -> NSButton {
-            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip)?
-                .withSymbolConfiguration(symbolConfig) ?? NSImage()
-            let button = NSButton(image: image, target: self, action: #selector(formatCommand(_:)))
-            button.identifier = NSUserInterfaceItemIdentifier(command)
-            // Preview-style: small bare icons, bezel only under the pointer.
-            button.bezelStyle = .accessoryBar
-            button.controlSize = .small
-            button.showsBorderOnlyWhileMouseInside = true
-            button.toolTip = tip
-            // The accessory-bar bezel pads the icon generously; a fixed
-            // width tightens the leading/trailing space around the glyph.
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.widthAnchor.constraint(equalToConstant: 26).isActive = true
-            return button
-        }
-
-        // Plain button with a composed icon+chevron face: unlike a pull-down,
-        // the chevron stays visible when the hover-only bezel is hidden.
-        let headingTitle = NSLocalizedString("Heading", comment: "Formatting toolbar heading button")
-        let headingIcon = NSImage(systemSymbolName: "textformat.size",
-                                  accessibilityDescription: headingTitle)?
-            .withSymbolConfiguration(symbolConfig) ?? NSImage()
-        let headingChevron = NSImage(systemSymbolName: "chevron.down",
-                                     accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 8, weight: .semibold)) ?? NSImage()
-        let gap: CGFloat = 4
-        let faceSize = NSSize(width: headingIcon.size.width + gap + headingChevron.size.width,
-                              height: max(headingIcon.size.height, headingChevron.size.height))
-        let headingFace = NSImage(size: faceSize, flipped: false) { _ in
-            headingIcon.draw(at: NSPoint(x: 0, y: (faceSize.height - headingIcon.size.height) / 2),
-                             from: .zero, operation: .sourceOver, fraction: 1)
-            headingChevron.draw(at: NSPoint(x: headingIcon.size.width + gap,
-                                            y: (faceSize.height - headingChevron.size.height) / 2),
-                                from: .zero, operation: .sourceOver, fraction: 1)
-            return true
-        }
-        headingFace.isTemplate = true
-        let headings = NSButton(image: headingFace, target: self,
-                                action: #selector(showHeadingMenu(_:)))
-        headings.bezelStyle = .accessoryBar
-        headings.controlSize = .small
-        headings.showsBorderOnlyWhileMouseInside = true
-        headings.toolTip = headingTitle
-        headings.translatesAutoresizingMaskIntoConstraints = false
-        headings.widthAnchor.constraint(equalToConstant: 44).isActive = true
-
-        let views: [NSView] = [
-            headings,
-            separatorView(),
-            formatButton("bold", "bold", NSLocalizedString("Bold", comment: "Formatting toolbar tooltip")),
-            formatButton("italic", "italic", NSLocalizedString("Italic", comment: "Formatting toolbar tooltip")),
-            formatButton("strikethrough", "strikethrough", NSLocalizedString("Strikethrough", comment: "Formatting toolbar tooltip")),
-            separatorView(),
-            formatButton("list.bullet", "bulletList", NSLocalizedString("Bulleted List", comment: "Formatting toolbar tooltip")),
-            formatButton("list.number", "orderedList", NSLocalizedString("Numbered List", comment: "Formatting toolbar tooltip")),
-            formatButton("checklist", "taskList", NSLocalizedString("Task List", comment: "Formatting toolbar tooltip")),
-            formatButton("text.quote", "quote", NSLocalizedString("Block Quote", comment: "Formatting toolbar tooltip")),
-            separatorView(),
-            formatButton("chevron.left.forwardslash.chevron.right", "code", NSLocalizedString("Inline Code", comment: "Formatting toolbar tooltip")),
-            formatButton("link", "link", NSLocalizedString("Link", comment: "Formatting toolbar tooltip")),
-        ]
-        let stack = NSStackView(views: views)
-        stack.orientation = .horizontal
-        stack.spacing = 2
-        // Buttons stay tight (2px); the group dividers get room to breathe.
-        for (index, view) in views.enumerated() where view is NSBox {
-            if index > 0 { stack.setCustomSpacing(8, after: views[index - 1]) }
-            stack.setCustomSpacing(8, after: view)
-        }
-        stack.edgeInsets = NSEdgeInsets(top: 7, left: 12, bottom: 11, right: 12)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        // Older systems use the native titlebar material behind the row.
-        let container = EditAccessoryContainerView()
-        container.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: container.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-        if #unavailable(macOS 27.0) {
-            let hairline = NSBox()
-            hairline.boxType = .separator
-            hairline.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(hairline)
-            NSLayoutConstraint.activate([
-                hairline.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                hairline.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                hairline.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            ])
-        }
-
-        mainSplit?.installFormattingBar(container)
-        editBar = container
+        showLiquidGlassEditAccessory()
     }
 
     /// Xcode's Markdown canvas uses compact, independently shaped glass
     /// groups floating over the document instead of a full-width formatting
-    /// row. Keep the established accessory-bar treatment on older systems,
-    /// where Liquid Glass is unavailable.
-    @available(macOS 26.0, *)
+    /// row.
     private func showLiquidGlassEditAccessory() {
         let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
             .applying(NSImage.SymbolConfiguration(paletteColors: [.textColor]))
@@ -238,7 +132,7 @@ extension DocumentWindowController {
         let container = EditAccessoryContainerView(floatingGlass: true)
         container.addSubview(groups)
         container.cursorContentView = groups
-        // macOS 27 supplies the native header edge; only macOS 26 needs this.
+        // macOS 27 supplies the native header edge; macOS 26 needs this.
         if #unavailable(macOS 27.0) {
             let headerSeparator = NSBox()
             headerSeparator.boxType = .separator
@@ -263,7 +157,6 @@ extension DocumentWindowController {
         editBar = container
     }
 
-    @available(macOS 26.0, *)
     private func glassButtonGroup(_ views: [NSView]) -> NSGlassEffectView {
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
@@ -292,9 +185,8 @@ extension DocumentWindowController {
         return glass
     }
 
-    @available(macOS 26.0, *)
     private func configureGlassButton(_ button: NSButton, tip: String, width: CGFloat) {
-        // Use a capsule for the native per-button feedback on macOS 26.
+        // Use a capsule for the native per-button feedback.
         // Interactive glass owns the hover on newer systems, so don't draw
         // a second bezel over its pointer-following highlight.
         button.bezelStyle = .accessoryBarAction
@@ -334,14 +226,6 @@ extension DocumentWindowController {
         return face
     }
 
-    private func separatorView() -> NSView {
-        let line = NSBox()
-        line.boxType = .separator
-        line.translatesAutoresizingMaskIntoConstraints = false
-        line.heightAnchor.constraint(equalToConstant: 16).isActive = true
-        return line
-    }
-
     private func hideEditAccessory() {
         formattingPopover?.close()
         formattingPopover = nil
@@ -359,14 +243,13 @@ extension DocumentWindowController {
 
     @objc private func formatCommand(_ sender: NSButton) {
         guard let command = sender.identifier?.rawValue else { return }
-        if #available(macOS 26.0, *), command == "link" {
+        if command == "link" {
             showLinkPopover(sender)
             return
         }
         formatMarkdown(command)
     }
 
-    @available(macOS 26.0, *)
     private func showLinkPopover(_ sender: NSButton) {
         formattingPopover?.close()
         guard let editor = mainSplit?.editorViewController else { return }
@@ -391,56 +274,13 @@ extension DocumentWindowController {
     }
 
     @objc private func showHeadingMenu(_ sender: NSButton) {
-        if #available(macOS 26.0, *) {
-            showHeadingPopover(sender)
-            return
-        }
-        let menu = NSMenu()
-        let normalText = NSMenuItem(title: NSLocalizedString("Normal Text", comment: "Formatting toolbar heading menu"),
-                                    action: #selector(headingCommand(_:)),
-                                    keyEquivalent: "")
-        normalText.target = self
-        normalText.tag = 0
-        menu.addItem(normalText)
-        menu.addItem(.separator())
-        for level in 1...3 {
-            let item = NSMenuItem(title: String(
-                format: NSLocalizedString("Heading %d", comment: "Formatting toolbar heading menu level"),
-                level
-            ),
-                                  action: #selector(headingCommand(_:)),
-                                  keyEquivalent: "")
-            item.target = self
-            item.tag = level
-            menu.addItem(item)
-        }
-        menu.popUp(positioning: nil,
-                   at: NSPoint(x: 0, y: sender.bounds.maxY + 4),
-                   in: sender)
+        showHeadingPopover(sender)
     }
 
     @objc private func showListMenu(_ sender: NSButton) {
-        if #available(macOS 26.0, *) {
-            showListPopover(sender)
-            return
-        }
-        let menu = NSMenu()
-        addFormattingItem(to: menu,
-                          title: NSLocalizedString("Bulleted List", comment: "Formatting toolbar tooltip"),
-                          symbol: "list.bullet",
-                          command: "bulletList")
-        addFormattingItem(to: menu,
-                          title: NSLocalizedString("Numbered List", comment: "Formatting toolbar tooltip"),
-                          symbol: "list.number",
-                          command: "orderedList")
-        addFormattingItem(to: menu,
-                          title: NSLocalizedString("Task List", comment: "Formatting toolbar tooltip"),
-                          symbol: "checklist",
-                          command: "taskList")
-        popUp(menu, from: sender)
+        showListPopover(sender)
     }
 
-    @available(macOS 26.0, *)
     private func showListPopover(_ sender: NSButton) {
         formattingPopover?.close()
         guard let editor = mainSplit?.editorViewController else { return }
@@ -461,7 +301,6 @@ extension DocumentWindowController {
         }
     }
 
-    @available(macOS 26.0, *)
     private func showHeadingPopover(_ sender: NSButton) {
         if let formattingPopover, formattingPopover.isShown {
             formattingPopover.close()
@@ -499,7 +338,7 @@ extension DocumentWindowController {
                     updateHeadingButton(button, level: heading)
                 } else if ["bold", "italic", "strikethrough", "link"].contains(id) {
                     let active = commands.contains(id)
-                    if #available(macOS 26.0, *), id != "link" {
+                    if id != "link" {
                         // Selection tints only the glyph. Keeping the native
                         // button off avoids its filled selected bezel.
                         button.state = .off
@@ -536,23 +375,9 @@ extension DocumentWindowController {
     }
 
     @objc private func showMoreFormattingMenu(_ sender: NSButton) {
-        if #available(macOS 26.0, *) {
-            showStylingPopover(sender)
-            return
-        }
-        let menu = NSMenu()
-        addFormattingItem(to: menu,
-                          title: NSLocalizedString("Block Quote", comment: "Formatting toolbar tooltip"),
-                          symbol: "text.quote",
-                          command: "quote")
-        addFormattingItem(to: menu,
-                          title: NSLocalizedString("Inline Code", comment: "Formatting toolbar tooltip"),
-                          symbol: "chevron.left.forwardslash.chevron.right",
-                          command: "code")
-        popUp(menu, from: sender)
+        showStylingPopover(sender)
     }
 
-    @available(macOS 26.0, *)
     private func showStylingPopover(_ sender: NSButton) {
         formattingPopover?.close()
         guard let editor = mainSplit?.editorViewController else { return }
@@ -571,34 +396,6 @@ extension DocumentWindowController {
             popover.contentViewController = host
             popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .maxY)
         }
-    }
-
-    private func addFormattingItem(to menu: NSMenu,
-                                   title: String,
-                                   symbol: String,
-                                   command: String) {
-        let item = NSMenuItem(title: title,
-                              action: #selector(formatMenuCommand(_:)),
-                              keyEquivalent: "")
-        item.target = self
-        item.representedObject = command
-        item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
-        menu.addItem(item)
-    }
-
-    private func popUp(_ menu: NSMenu, from sender: NSButton) {
-        menu.popUp(positioning: nil,
-                   at: NSPoint(x: 0, y: sender.bounds.maxY + 4),
-                   in: sender)
-    }
-
-    @objc private func formatMenuCommand(_ sender: NSMenuItem) {
-        guard let command = sender.representedObject as? String else { return }
-        formatMarkdown(command)
-    }
-
-    @objc private func headingCommand(_ sender: NSMenuItem) {
-        formatMarkdown("h\(sender.tag)")
     }
 
     /// File > Save (⌘S): save pending edits in either mode without switching modes.
@@ -909,7 +706,6 @@ private final class CenteredFormattingButtonCell: NSButtonCell {
 
 /// Cursor ownership belongs to the visible glass surface. Tracking a cached
 /// child frame from the full-width host misses changes made by Auto Layout.
-@available(macOS 26.0, *)
 private final class FormattingGlassView: NSGlassEffectView {
     private var pointerTrackingArea: NSTrackingArea?
 

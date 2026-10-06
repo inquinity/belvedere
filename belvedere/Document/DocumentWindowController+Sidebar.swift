@@ -43,21 +43,14 @@ extension DocumentWindowController {
         item.controlRepresentation = .expanded
         item.subitems.first?.toolTip = outlineLabel
         item.subitems.last?.toolTip = filesLabel
-        // Per-subitem actions: on macOS 26 the group has no backing
-        // NSSegmentedControl and its selectedIndex does not report the
-        // clicked segment, so the group action alone cannot tell them apart.
-        // Pre-26 only the group action fires; both paths dedupe per event.
+        // Per-subitem actions: the group has no backing NSSegmentedControl
+        // and its selectedIndex does not report the clicked segment, so the
+        // group action alone cannot tell them apart. Both paths dedupe per
+        // event.
         item.subitems.first?.target = self
         item.subitems.first?.action = #selector(selectOutlineModeFromToolbar(_:))
         item.subitems.last?.target = self
         item.subitems.last?.action = #selector(selectFilesModeFromToolbar(_:))
-        // Pre-26 the group is backed by an NSSegmentedControl; on 26 `view`
-        // is nil and AppKit draws the subitems itself.
-        if let segmented = item.view as? NSSegmentedControl {
-            segmented.setToolTip(outlineLabel, forSegment: 0)
-            segmented.setToolTip(filesLabel, forSegment: 1)
-        }
-
         if willBeInsertedIntoToolbar {
             sidebarModeItem = item
         }
@@ -81,8 +74,8 @@ extension DocumentWindowController {
         return item
     }
 
-    /// Pre-26 path, where the segmented control has already applied the
-    /// click to its selection. Momentary (sidebar hidden) reports the clicked
+    /// Group-level action, kept alongside the per-subitem actions below; the
+    /// event is claimed once whichever fires first. Momentary (sidebar hidden) reports the clicked
     /// segment directly. In `.selectOne` the newly selected segment is the
     /// one that was clicked; with no change, the click landed on the
     /// selected one, which is already on screen.

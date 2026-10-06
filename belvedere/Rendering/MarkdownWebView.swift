@@ -936,7 +936,6 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     }
 
     private func updateChromeZoom() {
-        guard #available(macOS 26.0, *) else { return }
         webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-chrome-zoom', '\(max(webView.pageZoom, 0.001))')", completionHandler: nil)
     }
 
