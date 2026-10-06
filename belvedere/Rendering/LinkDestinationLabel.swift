@@ -27,7 +27,7 @@ nonisolated enum LinkDestinationLabel {
     /// within the document that is already open.
     static func text(for href: URL, sameDocumentFragment: String? = nil) -> String? {
         if let sameDocumentFragment {
-            return sanitized("#" + sameDocumentFragment)
+            return sanitized(truncatedMiddle("#" + sameDocumentFragment, to: maxLength))
         }
         switch href.scheme?.lowercased() {
         case MarkdownAssetResolution.scheme:
@@ -63,10 +63,12 @@ nonisolated enum LinkDestinationLabel {
         sanitized(truncatedMiddle(path, to: maxLength))
     }
 
-    /// Keeps everything up to and including the host whole and shortens only
-    /// what follows it. If the host alone is longer than the limit it is still
-    /// shown in full: the host is the part a reader needs to judge.
+    /// Keeps the host whole and shortens only what surrounds it: the middle of
+    /// the path, and the middle of any user-info before the host. If the host
+    /// alone is longer than the limit it is still shown in full: the host is
+    /// the part a reader needs to judge.
     private static func shortened(address: String) -> String {
+        let address = elidingUserInfo(of: address)
         guard address.count > maxLength else { return sanitized(address) }
         let authorityEnd = authorityEndIndex(in: address)
         let head = String(address[..<authorityEnd])
@@ -74,6 +76,27 @@ nonisolated enum LinkDestinationLabel {
         let room = maxLength - head.count
         guard room > 8 else { return sanitized(head + "…") }
         return sanitized(head + truncatedMiddle(rest, to: room))
+    }
+
+    /// The longest user-info shown whole. Anything longer loses its middle, so
+    /// a long `user:password` cannot push the real host off the end of the bar,
+    /// which truncates at the tail.
+    private static let maxUserInfoLength = 24
+
+    /// Shortens the part of `scheme://user-info@host/...` before the `@`, and
+    /// leaves the rest alone. An address with no user-info is returned as is.
+    private static func elidingUserInfo(of address: String) -> String {
+        guard let schemeEnd = address.range(of: "://") else { return address }
+        let afterScheme = address[schemeEnd.upperBound...]
+        let authorityEnd = afterScheme.firstIndex(where: { $0 == "/" || $0 == "?" || $0 == "#" })
+            ?? afterScheme.endIndex
+        let authority = afterScheme[..<authorityEnd]
+        guard let at = authority.lastIndex(of: "@") else { return address }
+        let userInfo = String(authority[..<at])
+        guard userInfo.count > maxUserInfoLength else { return address }
+        return String(address[..<schemeEnd.upperBound])
+            + truncatedMiddle(userInfo, to: maxUserInfoLength)
+            + String(address[at...])
     }
 
     /// Index just past `scheme://user@host:port`, or past `scheme:` for an

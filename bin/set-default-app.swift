@@ -1,4 +1,4 @@
-// Make an app the default for every document type it declares.
+// Make an app the default for every document type it declares as its own (rank Owner or Default).
 //
 //   swift bin/set-default-app.swift /Applications/Belvedere.app
 //
@@ -27,7 +27,12 @@ guard let info = Bundle(url: appURL)?.infoDictionary,
     FileHandle.standardError.write(Data("error: no CFBundleDocumentTypes in \(path)\n".utf8))
     exit(1)
 }
+// Types the app only offers to open (rank Alternate or None) are not ones it
+// should become the default for: the Folder type is declared Alternate so a
+// folder can be dropped on the Dock icon, and making Belvedere the system
+// default for every folder in Finder would be wrong.
 let identifiers = documentTypes
+    .filter { !["Alternate", "None"].contains($0["LSHandlerRank"] as? String ?? "") }
     .flatMap { ($0["LSItemContentTypes"] as? [String]) ?? [] }
 let uniqueIdentifiers = Array(NSOrderedSet(array: identifiers)) as? [String] ?? identifiers
 

@@ -72,6 +72,19 @@ final class LinkDestinationLabelTests: XCTestCase {
         XCTAssertTrue(shown.hasSuffix("target.md"), shown)
     }
 
+    func testLongUserInfoCannotPushTheRealHostOffTheEnd() throws {
+        let userInfo = "paypal.com:" + String(repeating: "x", count: 90)
+        let shown = try XCTUnwrap(text("https://\(userInfo)@evil.test/login"))
+        XCTAssertTrue(shown.hasPrefix("https://"), shown)
+        XCTAssertTrue(shown.contains("@evil.test/login"), shown)
+        XCTAssertLessThan(shown.distance(from: shown.startIndex, to: try XCTUnwrap(shown.range(of: "@evil.test")).lowerBound), 40, shown)
+    }
+
+    func testAHugeSectionNameIsCapped() throws {
+        let shown = try XCTUnwrap(text("md-asset:///Users/me/#x", fragment: String(repeating: "a", count: 5_000_000)))
+        XCTAssertLessThanOrEqual(shown.count, LinkDestinationLabel.maxLength)
+    }
+
     func testControlAndBidirectionalCharactersAreReplaced() throws {
         let hidden = "https://example.com/\u{202E}gpj.exe"      // right-to-left override
         let shown = try XCTUnwrap(LinkDestinationLabel.text(for: URL(string: "https://example.com/x")!,
