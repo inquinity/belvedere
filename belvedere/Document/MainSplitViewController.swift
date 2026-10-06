@@ -446,9 +446,6 @@ final class MainSplitViewController: NSSplitViewController {
     /// not a titlebar accessory (the native tab bar always renders below
     /// accessories, and would jump on every edit-mode toggle).
     func installFormattingBar(_ bar: NSView) {
-        if Self.usesNativeChromeAccessories {
-            layeredContentViewController?.nativeFindOverlay = findOverlayView
-        }
         layeredContentViewController?.installFormattingBar(bar)
         // The editor pads its page below the chrome; the bar is part of
         // that chrome now, so it must be measured alongside the titlebar.
@@ -461,48 +458,12 @@ final class MainSplitViewController: NSSplitViewController {
     }
 
     private weak var findOverlayView: NSView?
-    private var findAccessory: NSViewController?
-
-    static var usesNativeChromeAccessories: Bool {
-        if #available(macOS 27.0, *) { return false }
-        if #available(macOS 26.1, *) { return true }
-        return false
-    }
-
-    /// Height a visible chrome row (native find accessory or floating
-    /// formatting overlay) adds above the page, or 0 when absent or hidden.
-    /// fittingSize rather than the frame: the frame is unresolved between
-    /// install and the next layout pass, exactly when callers ask.
-    static func nativeAccessoryHeight(_ bar: NSView?, in window: NSWindow) -> CGFloat {
-        guard let bar, bar.window === window, !bar.isHidden else { return 0 }
-        return bar.fittingSize.height
-    }
-
-    private func installNativeChromeAccessory(_ bar: NSView) -> NSViewController? {
-        guard #available(macOS 26.1, *),
-              let item = splitViewItems.dropFirst().first else { return nil }
-        let accessory = NSSplitViewItemAccessoryViewController()
-        accessory.automaticallyAppliesContentInsets = false
-        accessory.preferredScrollEdgeEffectStyle = .soft
-        accessory.view = bar
-        bar.setFrameSize(bar.fittingSize)
-        accessory.isHidden = bar.isHidden
-        item.addTopAlignedAccessoryViewController(accessory)
-        return accessory
-    }
 
     /// Mounts the find bar the same way — see installFormattingBar. Stays
     /// mounted for the window's lifetime; visibility toggles via isHidden.
     func installFindOverlay(_ bar: NSView) {
-        if Self.usesNativeChromeAccessories {
-            findAccessory = installNativeChromeAccessory(bar)
-        } else {
-            layeredContentViewController?.installFindOverlay(bar)
-        }
+        layeredContentViewController?.installFindOverlay(bar)
         findOverlayView = bar
-        if Self.usesNativeChromeAccessories {
-            layeredContentViewController?.nativeFindOverlay = bar
-        }
         cachedEditorViewController?.findOverlay = bar
         contentViewController?.findOverlay = bar
     }
@@ -510,9 +471,6 @@ final class MainSplitViewController: NSSplitViewController {
     /// The find bar sits above the formatting bar, so toggling it moves
     /// the bar below and changes the editor's page padding.
     func findOverlayVisibilityChanged() {
-        if #available(macOS 26.1, *), Self.usesNativeChromeAccessories {
-            (findAccessory as? NSSplitViewItemAccessoryViewController)?.isHidden = findOverlayView?.isHidden ?? true
-        }
         layeredContentViewController?.updateChromeOverlayLayout()
         cachedEditorViewController?.chromeOverlaysDidChange()
         contentViewController?.chromeOverlaysDidChange()
@@ -707,7 +665,6 @@ private final class LayeredContentViewController: NSViewController {
 
     private weak var formattingBar: NSView?
     private weak var findOverlay: NSView?
-    weak var nativeFindOverlay: NSView?
     private var formattingBarTopConstraint: NSLayoutConstraint?
     private var findOverlayTopConstraint: NSLayoutConstraint?
     private var chromeObservation: NSKeyValueObservation?
@@ -786,9 +743,6 @@ private final class LayeredContentViewController: NSViewController {
             top.constant = overlap
         }
         var editTop = overlap
-        if let find = nativeFindOverlay, !find.isHidden {
-            editTop += find.fittingSize.height
-        }
         if let find = findOverlay, find.superview === view, !find.isHidden {
             editTop += find.fittingSize.height
         }

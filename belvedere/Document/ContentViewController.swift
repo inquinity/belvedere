@@ -574,15 +574,6 @@ final class ContentViewController: NSViewController {
             return view.safeAreaInsets.top
         }
         var inset = contentView.bounds.height - window.contentLayoutRect.maxY
-        if MainSplitViewController.usesNativeChromeAccessories {
-            // Measured from the bars, not `view.safeAreaInsets`: the safe
-            // area follows an accessory show, hide, or removal only on the
-            // next layout pass, and this view may not get one — the frost
-            // then lagged one step behind the strip (missing while it was
-            // shown, still covering the page after it was gone).
-            inset += MainSplitViewController.nativeAccessoryHeight(findOverlay, in: window)
-            return max(0, inset)
-        }
         if let find = findOverlay, find.window === window, !find.isHidden {
             inset += find.fittingSize.height - MainSplitViewController.tabBarOverlap(for: window)
         }
