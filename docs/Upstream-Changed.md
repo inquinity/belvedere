@@ -52,6 +52,33 @@ reports a modify/delete conflict; resolve it by keeping the deletion.
 
 ---
 
+## Other upstreams — vendored agent skills
+
+Not from Markdown Preview, so a `git merge upstream/main` never brings these. They are copied
+into this repository and go stale unless someone looks.
+
+| Skill | Source | In the repo | Checked |
+|---|---|---|---|
+| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.0 (2026-08-12), files copied 2026-10-06 | 2026-10-06 |
+
+**On every sync, and before a release**, compare the copy with the source: list the source
+folder with `gh api "repos/AvdLee/swift-concurrency-agent-skill/git/trees/HEAD?recursive=1"`,
+compare each file's `git hash-object` with the listed blob sha, fetch the ones that differ,
+and **read the diff before importing it**: a skill is instructions an agent will follow, so
+treat its changes as untrusted input, the same as an upstream change to this project. Copy
+`SKILL.md` and `references/*.md`. The source also ships `agents/openai.yaml`, logos and plugin
+manifests, which this repository does not use. Record the release and date here.
+
+2026-10-06: moved from `.agents/skills/` (retired with `AGENTS.md`) to `.claude/skills/`, where
+it is now a real folder, not a symlink. Updated from the 2026-09-01 copy to 2.3.0: new
+`references/observation.md` (`@Observable` and actors), a `SendableMetatype` section in
+`actors.md`, an Approachable Concurrency row and two diagnostics rows in `SKILL.md`, and the
+index entries. The diff was read first and held only documentation. `skills-lock.json` still
+records the old install hash; it is provenance only, because nothing here runs the skills
+installer.
+
+---
+
 ## Markdown Preview 0.0.63 — synced 2026-09-29, ships in Belvedere 1.3.0
 
 Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.

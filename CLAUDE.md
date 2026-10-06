@@ -65,6 +65,8 @@ build a person will test must be handed over with its About-box build string and
   skill; keep our `Version.xcconfig` and `README.md`; keep the files listed under *Standing
   removals* in `docs/Upstream-Changed.md` deleted (a modify/delete conflict means keep the
   deletion), including `AGENTS.md` and `CHANGELOG.md`.
+  Also check the vendored `swift-concurrency` skill against its own source (see
+  *Other upstreams* in `docs/Upstream-Changed.md`) and read the diff before importing it.
 - **Deliberately dead code**: the orphaned CLI installer and the stubbed telemetry reporters stay.
   Do not remove them.
 - **Quick Look:** with Belvedere installed, both extensions claim `.md` and macOS picks one.
