@@ -16,7 +16,28 @@ nonisolated extension MarkdownHTML {
     /// The class rules live here, not with the in-page highlighter, because a
     /// page whose code arrived highlighted from the renderer never loads that
     /// runtime, yet its spans still need their colors.
-    static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS
+    static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS + "\n" + tableControlsCSS
+
+    static let tableControlsCSS = """
+    .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
+    .md-table-wrap > table { margin-top: 0; }
+    .md-table-actions { display: flex; justify-content: flex-end; height: 28px; }
+    .md-table-wrap > .md-table-actions { position: absolute; top: 0; inset-inline-end: 0; }
+    .md-table-expand {
+        appearance: none; border: 0; border-radius: 5px; padding: 3px 7px;
+        background: transparent; color: var(--secondary, var(--text));
+        font: inherit; font-size: 13px; cursor: pointer;
+    }
+    .md-table-expand:hover { background: var(--code-bg); color: var(--text); }
+    .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }
+    html.\(previewPrintClass) .md-table-actions { display: none; }
+    html.\(previewPrintClass) .md-table-wrap { padding-top: 0; }
+    @media print {
+        .md-table-actions { display: none !important; }
+        .md-table-wrap { padding-top: 0; }
+    }
+    """
 
     /// The fold chevron of a foldable callout: the Octicon chevron-right, the
     /// icon set of the callout kinds, as a CSS mask so it takes the title's
@@ -898,8 +919,8 @@ nonisolated extension MarkdownHTML {
        WebKit lays print out at a viewport of the printable width in CSS px
        (96px per inch), and 1 CSS px maps to exactly 0.75pt on paper. Sizing
        the body in `pt` here therefore lands at that literal point size, with
-       no scaling factor to compensate for. `md-print-size` (injected by the
-       app at print time) overrides the default below.
+       no scaling factor to compensate for. The app applies the selected
+       point size to a temporary copy before printing.
 
        The on-screen palette is dark-mode aware; paper is not, so regular
        printing restores the light values unconditionally. PDF export adds
@@ -935,7 +956,7 @@ nonisolated extension MarkdownHTML {
             background: #fff;
         }
         @page {
-            margin: \(printPageMarginTop) \(printPageMarginSide) \(printPageMarginBottom);
+            margin: \(printPageMarginTopPoints)pt \(printPageMarginSidePoints)pt \(printPageMarginBottomPoints)pt;
         }
         body {
             -webkit-print-color-adjust: exact;
@@ -945,8 +966,7 @@ nonisolated extension MarkdownHTML {
             font-size: \(defaultPrintPointSize)pt;
             padding: 0;
         }
-        /* NSPrintInfo owns the page margins, and the print viewport is
-           narrower than the on-screen measure, so the column just fills it. */
+        /* The article fills the area inside the CSS page margins. */
         :root:not(.\(previewPrintClass)) article.markdown-body {
             max-width: none;
             margin: 0;

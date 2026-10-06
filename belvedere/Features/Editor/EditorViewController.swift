@@ -503,6 +503,12 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             imageClicked?(fileURL)
         case "tableContextMenu":
             presentTableContextMenu(payload)
+        case "tablePopup":
+            guard let markdown = payload["markdown"] as? String else { return }
+            TablePreviewWindow.shared.present(markdown: markdown, title: nil,
+                                              assetBaseURL: currentAssetBaseURL,
+                                              containmentRoot: currentContainmentRoot,
+                                              relativeTo: view.window)
         default:
             break
         }
