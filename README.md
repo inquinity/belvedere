@@ -128,7 +128,7 @@ UTI: `net.daringfireball.markdown`
 ## Requirements
 
 - macOS 15 or later
-- Apple Silicon or Intel
+- Apple silicon (the released builds are arm64 only)
 
 ## Building from source
 

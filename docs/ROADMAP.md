@@ -15,7 +15,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 - Branch-wide security review of `v1.3.2..HEAD`.
 - Hand tests: manual checklist sections 5e and 5f, and the ⌘N row.
-- Decide whether the build is universal (Intel and Apple silicon). Today it is arm64 only.
+- Builds are Apple silicon only today, and the README now says so. A universal build is undecided: there is no Intel Mac to test an x86_64 slice on.
 - `just release major`, then `just publish --go`. Each needs an explicit go-ahead.
 
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
