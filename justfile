@@ -21,10 +21,6 @@ build *args:
 build-dmg seg:
     bin/build.sh --release --update {{ seg }}
 
-# Upstream-style, CHANGELOG-gated release build. Rarely used in this fork.
-build-release *args:
-    bin/build-release.sh {{ args }}
-
 # Install the built app so the Quick Look extension registers.
 install *args:
     bin/install.sh {{ args }}

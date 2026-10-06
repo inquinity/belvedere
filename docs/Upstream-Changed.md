@@ -37,6 +37,10 @@ reports a modify/delete conflict; resolve it by keeping the deletion.
 - `belvedere/zh-Hans.lproj/` — the Chinese localization, removed in 2.0 because nobody here
   can maintain it. Upstream still updates these files; a merge that touches them reports a
   modify/delete conflict, so keep the deletion. Do not add new Chinese keys.
+- `CHANGELOG.md` and `bin/build-release.sh` — upstream's changelog, and the archive-based
+  release script that refused to run without an entry in it. Belvedere's history is
+  `docs/release-notes/`, built by `just release`. Upstream edits the changelog every
+  release, so each sync reports a modify/delete conflict: keep the deletion.
 
 ---
 

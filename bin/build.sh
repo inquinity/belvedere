@@ -3,15 +3,13 @@ set -euo pipefail
 
 # Build Belvedere locally for development and testing.
 #
-# Lighter-weight than bin/build-release.sh: no archive step -- compiles
+# Lighter-weight than an archive build: no archive step -- compiles
 # with signing disabled, then signs it ourselves -- with the Developer ID
 # identity and notarization if those credentials are already in the keychain,
 # or an ad-hoc signature otherwise so the app still runs on this machine.
 #
-# --release additionally packages a signed, notarized DMG into ./dist, the
-# same artifact build-release.sh produces, but without its CHANGELOG.md
-# requirement -- for a quick distributable build rather than an official,
-# changelog-documented release.
+# --release additionally packages a signed, notarized DMG into ./dist. `just
+# release` wraps it; the release notes come from docs/release-notes/.
 #
 # Source of truth: Version.xcconfig -> MARKETING_VERSION, CURRENT_PROJECT_VERSION
 
@@ -63,9 +61,7 @@ usage() {
     printf '%s\n' '                          image into ./dist. Requires the signing'
     printf '%s\n' '                          identity and notary profile below --'
     printf '%s\n' '                          unlike a plain build, this does not fall'
-    printf '%s\n' '                          back to an ad-hoc signature. No'
-    printf '%s\n' '                          CHANGELOG.md entry is required, unlike'
-    printf '%s\n' '                          bin/build-release.sh.'
+    printf '%s\n' '                          back to an ad-hoc signature.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Notarization:${COLOR_RESET}"
     printf '%s\n' '  Signs with the Developer ID identity and notarizes if both'
@@ -212,7 +208,7 @@ verify_app_group() {
 # the signed bundle and break its seal. Read-only makes that save fail: the
 # app's in-place write fallback is refused. It is a narrow guard for the one
 # document the app links to; treating the whole bundle as read-only is still
-# to do (FORK-NOTES backlog). Permissions are not part of the code seal, so
+# to do (docs/ROADMAP.md). Permissions are not part of the code seal, so
 # this is safe before or after signing.
 protect_bundled_documents() {
     local app_path=$1
@@ -241,7 +237,7 @@ stamp_build() {
 }
 
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
-# someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
+# someone else. Follows the DMG steps of upstream's archive-based release script (removed) -- starting from
 # the app this script already built rather than re-archiving, since there is
 # no separate release build to keep in sync.
 #
