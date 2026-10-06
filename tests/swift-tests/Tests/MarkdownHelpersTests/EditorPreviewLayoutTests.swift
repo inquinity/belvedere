@@ -21,6 +21,12 @@ final class EditorPreviewLayoutTests: XCTestCase {
         /// Shared text still has to match horizontally and within each block.
         var localParityTexts: [String] = []
         var height: CGFloat = 1800
+        /// Pixels of difference allowed for the Mermaid diagram and everything
+        /// at or below it. The reader's first render and the editor's measure
+        /// the diagram's labels slightly differently, so its size, and so the
+        /// position of what follows, differs by 1 to 4 px between the two
+        /// views. Nothing above the diagram gets this allowance.
+        var diagramTolerance: Double = 1
     }
 
     var image: String {
@@ -201,16 +207,23 @@ final class EditorPreviewLayoutTests: XCTestCase {
                 let read = try XCTUnwrap(readLayout)
                 let edit = try XCTUnwrap(editLayout)
                 var differences: [String] = []
-                func compare(_ label: String, _ lhs: Double, _ rhs: Double) {
-                    if abs(lhs - rhs) > 1 { differences.append("\(label): read=\(lhs), editor=\(rhs)") }
+                func compare(_ label: String, _ lhs: Double, _ rhs: Double, tolerance: Double = 1) {
+                    if abs(lhs - rhs) > tolerance { differences.append("\(label): read=\(lhs), editor=\(rhs)") }
                 }
                 func compareRect(_ label: String, _ lhs: WebViewLayoutHarness.Rect, _ rhs: WebViewLayoutHarness.Rect,
-                                 editorHeaders: Int = 0) {
+                                 editorHeaders: Int = 0, tolerance: Double = 1) {
                     compare("\(label).x", lhs.x, rhs.x)
                     // Both modes reserve the same language-header height.
-                    compare("\(label).y", lhs.y, rhs.y)
-                    compare("\(label).width", lhs.width, rhs.width)
-                    compare("\(label).height", lhs.height, rhs.height)
+                    compare("\(label).y", lhs.y, rhs.y, tolerance: tolerance)
+                    compare("\(label).width", lhs.width, rhs.width, tolerance: tolerance)
+                    compare("\(label).height", lhs.height, rhs.height, tolerance: tolerance)
+                }
+                // Where the diagram starts in the reading view; it and what
+                // follows get the fixture's diagram tolerance, nothing above.
+                let diagramTop = read.elements.first { $0.name == "diagram-box" }?.rect.y
+                func tolerance(for rect: WebViewLayoutHarness.Rect) -> Double {
+                    guard let diagramTop, rect.y >= diagramTop - 0.5 else { return 1 }
+                    return fixture.diagramTolerance
                 }
                 compare("column x", read.columnX, edit.columnX)
                 compare("column y", read.columnY, edit.columnY)
@@ -243,12 +256,14 @@ final class EditorPreviewLayoutTests: XCTestCase {
                     differences.append("Different rendered elements or order")
                 }
                 for (lhs, rhs) in zip(read.elements, edit.elements) {
-                    compareRect(lhs.name, lhs.rect, rhs.rect, editorHeaders: rhs.editorHeadersAbove)
+                    let allowed = tolerance(for: lhs.rect)
+                    compareRect(lhs.name, lhs.rect, rhs.rect, editorHeaders: rhs.editorHeadersAbove, tolerance: allowed)
                     if lhs.lines.count != rhs.lines.count {
                         differences.append("\(lhs.name): different wrapped line count")
                     }
                     for (index, pair) in zip(lhs.lines, rhs.lines).enumerated() {
-                        compareRect("\(lhs.name) line \(index)", pair.0, pair.1, editorHeaders: rhs.editorHeadersAbove)
+                        compareRect("\(lhs.name) line \(index)", pair.0, pair.1,
+                                    editorHeaders: rhs.editorHeadersAbove, tolerance: allowed)
                     }
                 }
                 if !differences.isEmpty { throw WebViewLayoutHarness.Failure(differences.joined(separator: "\n")) }
