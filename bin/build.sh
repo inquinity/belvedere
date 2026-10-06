@@ -6,7 +6,8 @@ set -euo pipefail
 # Lighter-weight than an archive build: no archive step -- compiles
 # with signing disabled, then signs it ourselves -- with the Developer ID
 # identity and notarization if those credentials are already in the keychain,
-# or an ad-hoc signature otherwise so the app still runs on this machine.
+# or an ad-hoc signature otherwise so the app still runs on this machine. The
+# result is universal (arm64 and x86_64) and is checked to be.
 #
 # --release additionally packages a signed, notarized DMG into ./dist. `just
 # release` wraps it; the release notes come from docs/release-notes/.
@@ -157,6 +158,24 @@ require_command() {
 can_notarize() {
     security find-identity -v -p codesigning 2>/dev/null | grep -qF "$SIGNING_IDENTITY" \
         && xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1
+}
+
+# Every executable in the bundle must carry both architectures. Belvedere runs on
+# Apple Silicon and on Intel Macs (macOS 26 is the last release that runs on
+# Intel), so a slice that quietly went missing would ship an app that will not
+# launch on one of them. Mach-O files are found by content, not by name.
+require_universal() {
+    local bundle=$1 file archs checked=0
+    while IFS= read -r -d '' file; do
+        file "$file" | grep -q "Mach-O" || continue
+        archs="$(lipo -archs "$file" 2>/dev/null)" || die "cannot read the architectures of $file"
+        for want in arm64 x86_64; do
+            [[ " $archs " == *" $want "* ]] || die "$file lacks the $want slice (has: $archs)"
+        done
+        checked=$((checked + 1))
+    done < <(find "$bundle" -type f -print0)
+    (( checked > 0 )) || die "found no executables in $bundle"
+    printf '%s\n' "Both architectures present in $checked executables"
 }
 
 # codesign each bundle's own entitlements -- CODE_SIGNING_ALLOWED=NO during
@@ -326,8 +345,10 @@ main() {
         -project "$PROJECT_ROOT/belvedere.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration Release \
-        -destination 'platform=macOS' \
+        -destination 'generic/platform=macOS' \
         -derivedDataPath "$derived_data" \
+        ARCHS="arm64 x86_64" \
+        ONLY_ACTIVE_ARCH=NO \
         CODE_SIGNING_ALLOWED=NO
 
     [[ -d "$built_app" ]] || die "build did not produce $built_app"
@@ -339,6 +360,7 @@ main() {
     mkdir -p "$OUTPUT_DIR"
     cp -R "$built_app" "$output_app"
     [[ -d "$appex_path" ]] || die "build did not embed $appex_path"
+    require_universal "$output_app"
     protect_bundled_documents "$output_app"
     stamp_build "$output_app"
 
