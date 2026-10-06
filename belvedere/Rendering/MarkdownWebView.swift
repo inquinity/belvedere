@@ -158,6 +158,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     var zoomDidChange: ((CGFloat) -> Void)?
     var fragmentLinkActivated: ((String) -> Void)?
     var pointerDocumentYDidChange: ((CGFloat) -> Void)?
+    /// The destination of the link under the pointer, as text for the status
+    /// bar, or nil when the pointer is not over a link. Not set in Quick Look,
+    /// which has no window to draw the bar in.
+    var linkHoverDidChange: ((String?) -> Void)?
     var localMarkdownLinkActivated: ((URL) -> Void)?
     var scrollDidChange: (() -> Void)?
     private let assetScheme = MarkdownAssetScheme()
@@ -272,6 +276,21 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             });
         };
         document.addEventListener('pointermove', reportPointer, {passive: true});
+        // The link under the pointer, so the window can name where it goes. Only
+        // the address is sent; the page's own text for the link is never shown.
+        let hoveredLink = null;
+        const reportHover = link => {
+            if (link === hoveredLink) return;
+            hoveredLink = link;
+            const host = window.webkit && window.webkit.messageHandlers
+                && window.webkit.messageHandlers.mdPreviewHost;
+            if (host) host.postMessage({kind: 'linkHover', url: link ? link.href : null});
+        };
+        document.addEventListener('mouseover', event => {
+            const link = event.target.closest && event.target.closest('a[href]');
+            reportHover(link && link.closest('article.markdown-body') ? link : null);
+        }, {passive: true});
+        document.documentElement.addEventListener('mouseleave', () => reportHover(null));
         document.addEventListener('contextmenu', event => {
             const link = event.target.closest('a[href]');
             if (link) {
@@ -712,6 +731,15 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         case "pointerPosition":
             guard let value = dict["value"] as? NSNumber else { return }
             pointerDocumentYDidChange?(CGFloat(truncating: value))
+        #if !QUICK_LOOK_EXTENSION
+        case "linkHover":
+            guard let handler = linkHoverDidChange else { return }
+            guard let raw = dict["url"] as? String, let url = URL(string: raw) else {
+                handler(nil)
+                return
+            }
+            handler(LinkDestinationLabel.text(for: url, sameDocumentFragment: sameDocumentFragmentID(from: url)))
+        #endif
         case "linkContextMenu":
             guard let raw = dict["url"] as? String, let url = URL(string: raw) else { return }
             showLinkContextMenu(url)

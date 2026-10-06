@@ -256,6 +256,19 @@ Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn
 | Open `relative-assets/` as a folder in window A and a different folder in window B. In B, open a document that links an image in A's folder with `../`: the image stays blocked in B | Each window has its own boundary |
 | Drag a tab out into its own window: its folder and what it may read stay what they were | The boundary belongs to the tab, and does not follow another window |
 
+## 5f. Link destination bar and Go to File
+
+| Check | Why |
+|---|---|
+| Hover a web link in the reading view: a small bar at the window's bottom-left shows the full address, and it goes when the pointer leaves | The destination the document really links to, not what its text says |
+| Hover a link whose text says one address and whose target is another (`[github.com/x](https://example.org/y)`): the bar shows `example.org`, not the text | The reason for the feature |
+| Hover a relative link to another file: the bar shows that file's full path. A `#section` link shows `#section` | Resolved target, shown as the file |
+| Hover a very long link: the host stays whole and the middle of the path is cut with … | A reader must always be able to judge the host |
+| The bar never takes a click: click through where it sits over a link | It is drawn over the page |
+| Not in Quick Look, and not in edit mode | App window reading view only |
+| Go to File: type `man` in a folder with `remote-beacon.md`: it is not offered. `ug` still finds `user-guide.md` | Letters scattered through a name no longer match |
+| Settings › General: *Highlight outline section under the pointer* has a subtitle and an ⓘ that opens a popover | The setting explains itself |
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:

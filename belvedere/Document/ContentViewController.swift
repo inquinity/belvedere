@@ -61,6 +61,8 @@ final class ContentViewController: NSViewController {
     private var pendingSectionAnchor: SectionAnchor?
     private var sectionAnchorRetries = 0
     private var lastActiveHeadingID: Int?
+    /// Names where the link under the pointer goes. See `LinkStatusBar`.
+    private let linkStatusBar = LinkStatusBar()
     private var pendingHeadingOffsetsRefresh: DispatchWorkItem?
 
     // Sidebar-click pin. Bounds events are ignored until `holdUntil`
@@ -114,6 +116,7 @@ final class ContentViewController: NSViewController {
             // fires heightDidChange, so this is the reliable signal.
             self?.applyPendingScrollAnchorIfNeeded()
             self?.updatePointerTracking()
+            self?.linkStatusBar.show(nil)
             guard let self, self.webView.hasRequestedDocument else { return }
             SpareReaderPool.shared.documentDidPaint()
         }
@@ -131,6 +134,9 @@ final class ContentViewController: NSViewController {
         }
         webView.localMarkdownLinkActivated = { [weak self] url in
             self?.localMarkdownLinkActivated?(url)
+        }
+        webView.linkHoverDidChange = { [weak self] text in
+            self?.linkStatusBar.show(text)
         }
         webView.zoomDidChange = { [weak self] zoom in
             self?.webViewCenteredLeadingConstraint?.constant =
@@ -150,6 +156,14 @@ final class ContentViewController: NSViewController {
         toolbarGutterView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(toolbarGutterView)
         container.addSubview(webView)
+        // Above the page, so it can name a link's destination over the text.
+        linkStatusBar.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(linkStatusBar, positioned: .above, relativeTo: webView)
+        NSLayoutConstraint.activate([
+            linkStatusBar.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
+            linkStatusBar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            linkStatusBar.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -24),
+        ])
         // In normal-width mode the web view starts at the centered article's
         // leading edge, leaving a native gutter between it and the split-view
         // divider. Keep that gutter part of the page's scrolling surface.

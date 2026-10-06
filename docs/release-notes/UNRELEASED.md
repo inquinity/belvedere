@@ -39,3 +39,11 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   Numbers. Before, the cell was only shaded and nothing was selected.
 - **⌘N always opens a new window.** With *Prefer tabs* on in macOS, or Belvedere's own *Open documents in
   tabs*, a new document used to join the front window as a tab. ⌘T is still the way to ask for a tab.
+- **Hover a link to see where it really goes.** A small bar at the bottom of the window shows a link's
+  actual destination, as a browser's status bar does, not the words the document used for it. A web
+  address keeps its whole host, a relative link shows the file it points to, and an internationalised
+  address appears in its safe `xn--` form.
+- **Go to File no longer offers names that only contain your letters scattered about.** Typing `man`
+  used to offer `remote-beacon.md`. Abbreviations such as `ug` for `user-guide.md` still work.
+- **A clearer outline setting.** *Highlight outline section under the pointer* now explains itself with an
+  info popover in Settings.

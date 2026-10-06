@@ -54,7 +54,26 @@ struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
+                LabeledContent {
+                    HStack(spacing: 6) {
+                        Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
+                            .labelsHidden()
+
+                        InfoPopoverButton(accessibilityLabel: L("About outline highlighting")) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(L("Off")).bold()
+                                    + Text(": ")
+                                    + Text(L("the outline highlights the section you have scrolled to."))
+                                Text(L("On")).bold()
+                                    + Text(": ")
+                                    + Text(L("it highlights the section under the mouse pointer as you move over the document. It keeps that section when the pointer is somewhere else, and changes again when the pointer moves back over the document."))
+                            }
+                        }
+                    }
+                } label: {
+                    Text(L("Highlight outline section under the pointer"))
+                    Text(L("Which section the outline marks as you read."))
+                }
 
                 Picker(L("Default content width"), selection: $model.contentWidth) {
                     ForEach(ContentWidthSetting.allCases, id: \.self) { setting in
