@@ -256,6 +256,7 @@ Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn
 | Click a file in a window's sidebar: it loads in that window | Sidebar selection is not ⌘O |
 | Open `relative-assets/` as a folder in window A and a different folder in window B. In B, open a document that links an image in A's folder with `../`: the image stays blocked in B | Each window has its own boundary |
 | Drag a tab out into its own window: its folder and what it may read stay what they were | The boundary belongs to the tab, and does not follow another window |
+| In Terminal, run `open "belvedere://file/<full path of a folder>"`: a sheet asks to open the folder, with Cancel and Open Folder. Cancel changes nothing; Open Folder shows the folder in the front window's sidebar | A link can come from a web page. Finder, the Dock and Open With open a folder without asking |
 
 ## 5f. Link destination bar and Go to File
 
@@ -310,3 +311,10 @@ check missed.
   diagram's labels slightly differently, so the diagram, and the text after it, can
   differ by 1 to 4 px when you switch. `testCompleteMixedFormattingDocument` allows 4 px
   for the diagram and what follows it, and 1 px everywhere above it.
+- **A window opened with ⌘N is not merged into a tab group later.** It declines tabbing for its
+  lifetime, so Window ▸ Merge All Windows skips it. That is what "always a window" means; ⌘T makes a tab.
+- **Quick Look uses default settings until the app has started once after an upgrade.** The
+  extension reads the renamed settings, which the app writes on its first launch. Open Belvedere
+  once; the previews then follow your saved settings.
+- **"Save as PDF" in the system print panel can be pointed inside an application.** It is the one
+  write path that does not go through the app-bundle guard, and the path is the reader's own choice.

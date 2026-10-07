@@ -59,3 +59,9 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   a link through a symlink to an app, or to a Terminal settings file, could start a program on
   one click. Links to other documents, such as HTML or Word files, are now shown in Finder
   rather than opened.
+- **A link can no longer open a folder without asking.** A `belvedere://` link that names a folder now
+  asks first, because a link can come from a web page and opening a folder lets the documents shown in
+  that window display images from it. Opening a folder from Finder, the Dock or Open With is your own
+  doing and still happens directly.
+- **Open Belvedere once after upgrading.** Your saved settings are carried over to the new names the
+  first time the app starts, and Quick Look previews use the defaults until then.
