@@ -16,6 +16,7 @@ xcuserdata/
 
 ## Build output
 build/
+build.noindex/
 DerivedData/
 
 ## Playgrounds

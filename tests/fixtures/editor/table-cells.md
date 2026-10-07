@@ -55,13 +55,12 @@ Paragraph above the table, which must stay as it is.
 
 ## 5. Tab between cells
 
-> **EXPECT (the behaviour we want, item F17):** in the table below, click the first
-> cell and press **Tab**. The next cell shows its Markdown **with all of its text
-> selected**, so typing replaces it. **Shift-Tab** goes back the same way. **Tab** from
-> the last cell adds a new row.
+> **EXPECT:** in the table below, click the first cell and press **Tab**. The next cell
+> shows its Markdown **with all of its text selected**, so typing replaces it.
+> **Shift-Tab** goes back the same way, and **Enter** does what Tab does. **Tab** from the
+> last cell adds a new row.
 > **FAIL IF:** the next cell is shaded but nothing in it is selected. The shading is only
-> the focus colour and must not be the only sign of where you are. **This fails today**:
-> only the focus is moved. Until F17 is done, report it as known, not as new.
+> the focus colour and must not be the only sign of where you are.
 
 | One | Two | Three |
 | --- | --- | --- |

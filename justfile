@@ -21,10 +21,6 @@ build *args:
 build-dmg seg:
     bin/build.sh --release --update {{ seg }}
 
-# Upstream-style, CHANGELOG-gated release build. Rarely used in this fork.
-build-release *args:
-    bin/build-release.sh {{ args }}
-
 # Install the built app so the Quick Look extension registers.
 install *args:
     bin/install.sh {{ args }}
@@ -33,14 +29,18 @@ install *args:
 clean-apps *args:
     bin/clean-app-registrations.sh {{ args }}
 
+# Make an app the default for every Markdown type it declares. e.g. just default-app /Applications/Belvedere.app (--check to look, --dry-run to preview).
+default-app *args:
+    swift bin/set-default-app.swift {{ args }}
+
 # Zip the built app into ./dist.
 bundle *args:
     bin/bundle.sh {{ args }}
 
 # Remove local build scratch: ./build and this project's Xcode DerivedData. Keeps ./dist.
 clean:
-    rm -rf build
-    rm -rf "$HOME/Library/Developer/Xcode/DerivedData/md-preview-"*
+    rm -rf build build.noindex
+    rm -rf "$HOME/Library/Developer/Xcode/DerivedData/belvedere-"*
 
 # Has upstream moved? (read-only)
 check-upstream:

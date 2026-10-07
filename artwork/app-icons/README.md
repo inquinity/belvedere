@@ -5,7 +5,7 @@ sources:
 
 - `rendered-fold/` is the public `markdown-preview` artwork (concept 1).
 - `mdview/` is the private Belvedere artwork (concept 2 / Split Signal) and is the
-  design wired into `md-preview/AppIcon.icon`.
+  design wired into `belvedere/AppIcon.icon`.
 
 Each directory contains:
 

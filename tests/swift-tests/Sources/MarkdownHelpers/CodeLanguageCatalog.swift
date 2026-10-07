@@ -1,1 +1,1 @@
-../../../../md-preview/Features/Editor/CodeLanguageCatalog.swift
+../../../../belvedere/Features/Editor/CodeLanguageCatalog.swift

@@ -794,7 +794,23 @@ class TableEditorWidget extends WidgetType {
     table.className = "cm-md-table-grid"
     scroll.appendChild(table)
 
-    const focusCellAfterUpdate = (row, column) => {
+    // Tab, Shift-Tab and Enter land on the next cell with all of its text
+    // selected, as in Word, Numbers and Google Docs: the cell's focus tint
+    // alone looks like a selection but selects nothing, and typing would
+    // otherwise insert at the start instead of replacing the cell.
+    const focusCell = (cell, selectsContents) => {
+      if (!cell) return
+      cell.focus()
+      if (!selectsContents) return
+      const selection = window.getSelection()
+      if (!selection) return
+      const range = document.createRange()
+      range.selectNodeContents(cell)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+
+    const focusCellAfterUpdate = (row, column, selectsContents) => {
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const replacement = view.dom.querySelector(
           `.cm-md-table-widget[data-table-from="${this.from}"]`
@@ -802,17 +818,17 @@ class TableEditorWidget extends WidgetType {
         const cell = replacement && replacement.querySelector(
           `[data-table-row="${row}"][data-table-column="${column}"]`
         )
-        cell?.focus()
+        focusCell(cell, selectsContents)
       }))
     }
 
-    const applyModel = (focusTarget = null, commitsCell = false) => {
+    const applyModel = (focusTarget = null, commitsCell = false, selectsContents = false) => {
       const source = serializeTable(model)
       if (source === this.source) {
         if (focusTarget) {
-          root.querySelector(
+          focusCell(root.querySelector(
             `[data-table-row="${focusTarget.row}"][data-table-column="${focusTarget.column}"]`
-          )?.focus()
+          ), selectsContents)
         }
         return
       }
@@ -822,7 +838,7 @@ class TableEditorWidget extends WidgetType {
         annotations: commitsCell ? tableCellCommit.of(true) : [],
         userEvent: "input",
       })
-      if (focusTarget) focusCellAfterUpdate(focusTarget.row, focusTarget.column)
+      if (focusTarget) focusCellAfterUpdate(focusTarget.row, focusTarget.column, selectsContents)
     }
 
     const captureActiveValue = () => {
@@ -1029,7 +1045,7 @@ class TableEditorWidget extends WidgetType {
           } else if (nextRow >= model.rows.length) {
             model.rows.push(Array(model.alignments.length).fill(""))
           }
-          applyModel({ row: nextRow, column: nextColumn })
+          applyModel({ row: nextRow, column: nextColumn }, false, true)
         })
         container.appendChild(editor)
         tr.appendChild(container)

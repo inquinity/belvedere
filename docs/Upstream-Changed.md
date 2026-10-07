@@ -34,6 +34,48 @@ reports a modify/delete conflict; resolve it by keeping the deletion.
   in `skills-lock.json` — documentation for Amore, upstream's distribution tool, which
   this fork does not use.
 - `docs/markdown-logo.svg` — upstream's logo; nothing here references it.
+- `belvedere/zh-Hans.lproj/` — the Chinese localization, removed in 2.0 because nobody here
+  can maintain it. Upstream still updates these files; a merge that touches them reports a
+  modify/delete conflict, so keep the deletion. Do not add new Chinese keys.
+- `AGENTS.md` — upstream's agent guide. Belvedere's rules are all in `CLAUDE.md`, which
+  rewrote the useful parts (the documentation rule, build commands, the signing and
+  entitlement cautions) and dropped the Sparkle, Amore, Codex and release-PR text that does
+  not apply here. Upstream edits it often, so a sync reports a modify/delete conflict: keep
+  the deletion, and read the incoming change for anything worth carrying into `CLAUDE.md`.
+- `.agents/skills/release-process/` and `.agents/skills/changelog-maintenance/`, and their
+  `.claude/skills/` links — upstream's release and changelog skills, which describe a
+  pipeline this fork does not have. Keep them deleted. `swift-concurrency` stays.
+- `CHANGELOG.md` and `bin/build-release.sh` — upstream's changelog, and the archive-based
+  release script that refused to run without an entry in it. Belvedere's history is
+  `docs/release-notes/`, built by `just release`. Upstream edits the changelog every
+  release, so each sync reports a modify/delete conflict: keep the deletion.
+
+---
+
+## Other upstreams — vendored agent skills
+
+Not from Markdown Preview, so a `git merge upstream/main` never brings these. They are copied
+into this repository and go stale unless someone looks.
+
+| Skill | Source | In the repo | Checked |
+|---|---|---|---|
+| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.0 (2026-08-12), files copied 2026-10-06 | 2026-10-06 |
+
+**On every sync, and before a release**, compare the copy with the source: list the source
+folder with `gh api "repos/AvdLee/swift-concurrency-agent-skill/git/trees/HEAD?recursive=1"`,
+compare each file's `git hash-object` with the listed blob sha, fetch the ones that differ,
+and **read the diff before importing it**: a skill is instructions an agent will follow, so
+treat its changes as untrusted input, the same as an upstream change to this project. Copy
+`SKILL.md` and `references/*.md`. The source also ships `agents/openai.yaml`, logos and plugin
+manifests, which this repository does not use. Record the release and date here.
+
+2026-10-06: moved from `.agents/skills/` (retired with `AGENTS.md`) to `.claude/skills/`, where
+it is now a real folder, not a symlink. Updated from the 2026-09-01 copy to 2.3.0: new
+`references/observation.md` (`@Observable` and actors), a `SendableMetatype` section in
+`actors.md`, an Approachable Concurrency row and two diagnostics rows in `SKILL.md`, and the
+index entries. The diff was read first and held only documentation. `skills-lock.json` still
+records the old install hash; it is provenance only, because nothing here runs the skills
+installer.
 
 ---
 
@@ -46,11 +88,12 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
 - **Strict line breaks (#459) → "Line breaks".** Upstream added a *Strict line breaks*
   toggle to Settings › General › Reading. "Strict" reads as the opposite of what
   turning it on does — lines stop being kept and run together — so Belvedere shows a
-  popup instead, *Keep as typed* (off, the default) or *Join into paragraphs* (on),
+  popup instead, called *Single new lines* since 2.0: *Break (like a comment)* (off) or *Reflow (like a
+  README)* (on, **the default since 2.0**; it was *Keep as typed* before, as upstream still has it),
   with an ⓘ popover explaining both (`InfoPopoverButton`, a fork file). It is the
-  same stored Bool, `MarkdownPreview.strictLineBreaks`, so Quick Look and the renderer
+  same stored Bool, `belvedere.strictLineBreaks`, so Quick Look and the renderer
   are upstream's, unchanged. English strings only; upstream's two keys are removed
-  from both `.strings` files, so Chinese shows English for this row.
+  from the `.strings` file.
   *On the next sync:* `GeneralSettingsView.swift` will conflict if upstream touches
   that row; keep the popup.
 - **Open documents faster (#450) — without reopen snapshots.** Taken: the spare reader
@@ -79,14 +122,15 @@ Merge `6ae7218` (on `sync/0.0.63`), into `main` as `b6717bf`.
 - **What's New window (#453).** Never shown. It describes Markdown Preview's releases,
   is branded as that app, links to upstream's GitHub, and compares upstream's build
   numbers (66 and up) with Belvedere's (13 and up), so it would open for every
-  Belvedere reader on every upstream bump. Upstream's `Features/WhatsNew/` files are
-  left untouched and unreferenced; only the launch hook, the Help-menu item and the
-  automatic presentation were removed.
-  *Kept out by* `ForkPostureTests.testWhatsNewIsNeverPresented`; the unused code is
-  listed in `docs/dead-code-baseline.txt`.
-- **Deleting `CLAUDE.md`.** Upstream removed it; Belvedere keeps its one line,
-  `@AGENTS.md`, which is what loads the fork's rules for Claude sessions. Git deletes
-  it silently on a merge, so check for it after every sync.
+  Belvedere reader on every upstream bump. First the launch hook, the Help-menu item
+  and the automatic presentation were removed and the files left unreferenced; on
+  2026-10-01 the files, their strings and their tests were deleted too.
+  *Kept out by* `ForkPostureTests.testWhatsNewIsNeverPresented`. If upstream edits
+  `Features/WhatsNew/`, a merge reports a modify/delete conflict: keep the deletion.
+- **`CLAUDE.md` is ours alone.** Upstream removed theirs; Belvedere's holds the fork's
+  rules and, since 2.0, the whole agent guide, with upstream's `AGENTS.md` retired (see
+  *Standing removals*). If a merge brings `CLAUDE.md` back or deletes it silently, check
+  it after every sync and keep ours.
 
 ### Kept ours
 

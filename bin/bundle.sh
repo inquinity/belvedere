@@ -21,7 +21,7 @@ print_colored() {
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
 APP_NAME="Belvedere"
-SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build/$APP_NAME.app}"
+SOURCE_APP="${SOURCE_APP:-$PROJECT_ROOT/build.noindex/$APP_NAME.app}"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/dist}"
 
 usage() {
@@ -33,7 +33,7 @@ usage() {
     printf '%s\n' '  -h, --help    Show this help text.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
-    printf '%s\n' '  SOURCE_APP    The built .app to bundle. Default: ./build/Belvedere.app'
+    printf '%s\n' '  SOURCE_APP    The built .app to bundle. Default: ./build.noindex/Belvedere.app'
     printf '%s\n' '  OUTPUT_DIR    Where the .zip lands. Default: ./dist'
 }
 

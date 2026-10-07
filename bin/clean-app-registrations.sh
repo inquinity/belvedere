@@ -43,7 +43,7 @@ usage() {
     printf '%s\n' '  -n, --dry-run      List what would change. This is the default.'
     printf '%s\n' '      --apply        Do it: unregister the strays.'
     printf '%s\n' '      --delete-builds  With --apply, also delete build output that is safe to'
-    printf '%s\n' '                     rebuild: this repository'"'"'s build/ folder, its Xcode'
+    printf '%s\n' '                     rebuild: this repository'"'"'s build.noindex/ folder, its Xcode'
     printf '%s\n' '                     DerivedData, and leftover temp build folders. Never'
     printf '%s\n' '                     another session'"'"'s scratch folder.'
     printf '%s\n' '      --keep PATH    Also keep PATH. Repeat for several.'
@@ -86,7 +86,7 @@ validate_environment() {
 registered_paths() {
     "$LSREGISTER" -dump 2>/dev/null \
         | sed -n -E 's/^path:[[:space:]]+(.*) \(0x[0-9a-f]+\)$/\1/p' \
-        | grep -E '/(Belvedere|Belvedere \(Dev\)|Markdown Preview)\.app$|/quick-look\.appex$' \
+        | grep -E '/(Belvedere|Belvedere \(Dev\)|Markdown Preview)\.app$|/belvedere-quick-look\.appex$' \
         | sort -u
 }
 
@@ -105,7 +105,8 @@ deletable_root_for() {
     local app_path=$1
     case "$app_path" in
         "$PROJECT_ROOT"/build/*) printf '%s' "$PROJECT_ROOT/build" ;;
-        "$HOME"/Library/Developer/Xcode/DerivedData/md-preview-*/*)
+        "$PROJECT_ROOT"/build.noindex/*) printf '%s' "$PROJECT_ROOT/build.noindex" ;;
+        "$HOME"/Library/Developer/Xcode/DerivedData/belvedere-*/*)
             printf '%s' "${app_path%%/Build/*}" ;;
         /private/var/folders/*/T/tmp.*/DerivedData/*)
             printf '%s' "${app_path%%/DerivedData/*}" ;;

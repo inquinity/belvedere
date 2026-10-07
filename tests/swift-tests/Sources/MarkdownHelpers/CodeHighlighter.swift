@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/CodeHighlighter.swift
+../../../../belvedere/Rendering/CodeHighlighter.swift

@@ -6,6 +6,15 @@ contains ordered candidate indices, scores, Character ranges, and UTF-16 ranges.
 An omitted candidate did not match. Do not regenerate expectations from the
 optimized implementation merely to make a failing regression test pass.
 
+**Updated deliberately on 2026-10-05**, for a change of behaviour and not an
+optimization: a query letter may no longer sit more than three characters past the
+previous matched letter unless it starts a word or is a separator the reader typed
+(`FileSearchMatcher.maxInWordGap`). `man` had been offering `remote-beacon.md`. Only
+matches were removed; every remaining score, range and order is unchanged. The five
+cases that lost matches: `read` and `  read  ` (`release notes.md`, `release-notes.md`),
+`rel` (`MarkdownHelpers.md`, `Markdown-Helpers.md`), `aa` (`readme.md.bak`), and `docs/0a`
+(`docs/section10/a.md`). Each removed file had its letters scattered through it.
+
 `FileSearchRegressionTests` checks these outputs, including reversed input order,
 ASCII/Unicode folding, grapheme clusters, filename/path queries, and ranking ties.
 The existing matcher/index tests also cover cancellation and enumeration limits.

@@ -5,17 +5,41 @@ import WebKit
 final class StrictLineBreaksTests: XCTestCase {
     private let sample = "# Title goes here\n\nThis is a test\nof the emergency broadcasting\nsystem.  I repeat: this is\nonly a test.\n"
 
-    func testPreferenceDefaultsOffAndPersistsAcrossReaders() throws {
+    /// Joining is the default (a single newline is a space, as in CommonMark),
+    /// so the default is stored as nothing and a choice against it is explicit.
+    func testPreferenceDefaultsToJoinAndPersistsAcrossReaders() throws {
         let suite = "StrictLineBreaksTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        XCTAssertFalse(StrictLineBreaksSetting.read(from: nil))
-        XCTAssertFalse(StrictLineBreaksSetting.read(from: defaults))
-        StrictLineBreaksSetting.write(true, to: defaults)
-        XCTAssertTrue(StrictLineBreaksSetting.read(from: UserDefaults(suiteName: suite)))
+        XCTAssertTrue(StrictLineBreaksSetting.read(from: nil))
+        XCTAssertTrue(StrictLineBreaksSetting.read(from: defaults))
         StrictLineBreaksSetting.write(false, to: defaults)
-        XCTAssertFalse(StrictLineBreaksSetting.read(from: defaults))
+        XCTAssertFalse(StrictLineBreaksSetting.read(from: UserDefaults(suiteName: suite)),
+                       "Keep as typed is a choice against the default and must be remembered.")
+        XCTAssertEqual(defaults.object(forKey: StrictLineBreaksSetting.defaultsKey) as? Bool, false)
+        StrictLineBreaksSetting.write(true, to: defaults)
+        XCTAssertTrue(StrictLineBreaksSetting.read(from: defaults))
         XCTAssertNil(defaults.object(forKey: StrictLineBreaksSetting.defaultsKey))
+    }
+
+    /// The two choices, named for README files and for comments.
+    func testTheStylesMapToTheSavedValueAndHaveTheirNames() {
+        XCTAssertEqual(SingleNewLineStyle.allCases, [.reflow, .breakAtLine])
+        XCTAssertTrue(SingleNewLineStyle.reflow.joinsLines)
+        XCTAssertFalse(SingleNewLineStyle.breakAtLine.joinsLines)
+        XCTAssertEqual(SingleNewLineStyle.reflow.title, "Reflow (like a README)")
+        XCTAssertEqual(SingleNewLineStyle.breakAtLine.title, "Break (like a comment)")
+        XCTAssertEqual(SingleNewLineStyle.allCases.first { $0.joinsLines == StrictLineBreaksSetting.defaultValue },
+                       .reflow, "Reflow is the default.")
+    }
+
+    /// A value saved by 1.3 (true meaning join) still means join.
+    func testAValueSavedByEarlierVersionsStillReads() throws {
+        let suite = "StrictLineBreaksTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: StrictLineBreaksSetting.defaultsKey)
+        XCTAssertTrue(StrictLineBreaksSetting.read(from: defaults))
     }
 
     func testExplicitBreaksAndParagraphsSurviveBothModes() {

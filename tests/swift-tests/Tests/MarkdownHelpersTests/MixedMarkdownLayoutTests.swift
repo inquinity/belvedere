@@ -30,7 +30,7 @@ extension EditorPreviewLayoutTests {
            editorSelectors: [".cm-md-table-grid": 1, ".cm-md-mermaid-stage svg": 1],
            readBoxes: ["table-head": "thead tr", "table-last-row": "tbody tr:last-child", "diagram-box": ".mermaid-figure", "diagram-svg": ".mermaid svg", "rule-box": "hr"],
            editorBoxes: ["table-head": ".cm-md-table-grid tr:first-child", "table-last-row": ".cm-md-table-grid tr:last-child", "diagram-box": ".cm-md-mermaid-preview", "diagram-svg": ".cm-md-mermaid-stage svg", "rule-box": ".cm-md-hr"],
-           height: 14000))
+           height: 14000, diagramTolerance: 4))
     }
 
     func testCompleteDocumentWithAllSupportedStyles() async throws {

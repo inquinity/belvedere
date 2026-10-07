@@ -76,12 +76,12 @@ unchanged) means `bin/publish-release.sh` uploads the DMG verbatim. `FORK-NOTES.
 
 ### 4. Release notes come from a required per-version file, accumulated as work lands
 
-The fork keeps no changelog (`CHANGELOG.md` is upstream's and stays untouched so it
-merges clean). `gh --generate-notes` is noisy for this commit style. So:
+The fork keeps no changelog file: upstream's `CHANGELOG.md` was removed in 2.0, and the
+per-version files in `docs/release-notes/` are the record. `gh --generate-notes` is noisy for this commit style. So:
 
 - **`docs/release-notes/UNRELEASED.md`** is a running list. When a change is one a
   Belvedere user would notice or want, the same commit adds a bullet here — the
-  `README.md` / fixture rule from `AGENTS.md` ("documentation that describes behaviour
+  `README.md` / fixture rule from `CLAUDE.md` ("documentation that describes behaviour
   is part of the behaviour") applied to release notes.
 - **The test for every line is whether a reader cares.** The notes say what changed for
   someone using Belvedere. They do not carry upstream's version numbers, what

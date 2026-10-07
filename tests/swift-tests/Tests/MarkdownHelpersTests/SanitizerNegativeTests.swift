@@ -165,9 +165,9 @@ final class SanitizerNegativeTests: XCTestCase {
     @MainActor
     private func loadHarness(includesSanitizer: Bool = true) async throws -> WKWebView {
         let purify = includesSanitizer
-            ? try "<script>\(TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js"))</script>"
+            ? try "<script>\(TestVendor.script("belvedere/Vendor/DOMPurify/purify.min.js"))</script>"
             : ""
-        let morphdom = try TestVendor.script("md-preview/Vendor/Morphdom/morphdom.min.js")
+        let morphdom = try TestVendor.script("belvedere/Vendor/Morphdom/morphdom.min.js")
 
         let html = """
         <!DOCTYPE html>
@@ -312,8 +312,8 @@ final class SanitizerKeepsAppControlsTests: XCTestCase {
 
     @MainActor
     func testMermaidHUDButtonsSurviveSanitisation() async throws {
-        let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
-        let morphdom = try TestVendor.script("md-preview/Vendor/Morphdom/morphdom.min.js")
+        let purify = try TestVendor.script("belvedere/Vendor/DOMPurify/purify.min.js")
+        let morphdom = try TestVendor.script("belvedere/Vendor/Morphdom/morphdom.min.js")
         let page = """
         <!DOCTYPE html><html><head>
         <script>\(purify)</script><script>\(morphdom)</script>

@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class EditorFormattingTests: XCTestCase {
     func testFormattingMissingTableCellsDoesNotTargetBodySelection() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         for command in ["bold", "keyboard", "link"] {
             let source = "Before\n\n| First | Second |\n| --- | --- |\n| One |"
             let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
@@ -39,7 +39,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTableFormattingRejectsTargetAfterDocumentReplacement() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let source = "Before\n\n| Name |\n| --- |\n| Ada |"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
@@ -72,7 +72,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTableClickAnchorsBeforeRevealingSyntax() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         for cell in ["**target words**", "*target words*", "~~target words~~",
                      "`target words`", "`` target words ``", "==target words==",
                      "[target words](https://example.com)", "**before *target words***"] {
@@ -119,8 +119,110 @@ final class EditorFormattingTests: XCTestCase {
         }
     }
 
+    /// Tab, Shift-Tab and Enter land on the neighbouring cell with all of its
+    /// text selected (the revealed Markdown, for a formatted cell), so typing
+    /// replaces it. Before, only the focus moved and the cell's tint looked
+    /// like a selection that did not exist. Covers both paths: the table is
+    /// unchanged (focus right away) and the cell was edited (the widget is
+    /// replaced, then focused after two frames).
+    func testTabSelectsTheNextCellsContents() async throws {
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
+        let source = "| One | Two | Three |\n| --- | --- | --- |\n| *target words* | **bold words** | plain |"
+        for edited in [false, true] {
+            for (key, shift, from, to, expected) in [
+                ("Tab", false, 0, 1, "**bold words**"),
+                ("Enter", false, 0, 1, "**bold words**"),
+                ("Tab", true, 1, 0, "*target words*"),
+            ] {
+                let editor = WebViewLayoutHarness(
+                    html: EditorHTML.render(markdown: source, editorJavaScript: script),
+                    width: 600, isEditor: true, height: 400)
+                defer { editor.close() }
+                _ = try await editor.layout(texts: [], imageCount: 0)
+                let result = try await editor.webView.callAsyncJavaScript("""
+                    const cellAt = column => document.querySelector(
+                        `[data-table-row="1"][data-table-column="${column}"]`);
+                    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+                    const start = cellAt(from);
+                    start.focus();
+                    if (edited) start.textContent = 'edited ' + start.textContent;
+                    start.dispatchEvent(new KeyboardEvent('keydown',
+                        {key, shiftKey: shift, bubbles: true, cancelable: true}));
+                    // The edited path focuses after two animation frames; the
+                    // harness drives its own frame clock. Wait for the result
+                    // rather than a fixed time, so a slow machine does not fail.
+                    const deadline = Date.now() + 3000;
+                    while (Date.now() < deadline) {
+                        window.__layoutTestFrame();
+                        await wait(20);
+                        const candidate = cellAt(to);
+                        if (candidate && document.activeElement === candidate
+                            && !window.getSelection().isCollapsed) break;
+                    }
+                    const target = cellAt(to);
+                    const selection = window.getSelection();
+                    return JSON.stringify({
+                        focused: document.activeElement === target,
+                        text: target.textContent,
+                        selected: selection.toString(),
+                        collapsed: selection.isCollapsed,
+                    });
+                    """, arguments: ["key": key, "shift": shift, "from": from, "to": to, "edited": edited],
+                                                                in: nil, contentWorld: .page)
+                let json = try XCTUnwrap(result as? String)
+                let values = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+                let label = "\(key)\(shift ? "+Shift" : "") edited=\(edited): \(json)"
+                XCTAssertEqual(values["focused"] as? Bool, true, label)
+                XCTAssertEqual(values["text"] as? String, expected, label)
+                XCTAssertEqual(values["selected"] as? String, expected, label)
+                XCTAssertEqual(values["collapsed"] as? Bool, false, label)
+            }
+        }
+    }
+
+    /// Tab from the last cell adds a row and focuses its first, empty cell.
+    /// There is nothing to select, so the selection is a caret, not a range.
+    func testTabFromTheLastCellAddsARowAndFocusesIt() async throws {
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
+        let editor = WebViewLayoutHarness(
+            html: EditorHTML.render(markdown: "| One | Two |\n| --- | --- |\n| a | b |", editorJavaScript: script),
+            width: 600, isEditor: true, height: 400)
+        defer { editor.close() }
+        _ = try await editor.layout(texts: [], imageCount: 0)
+        let result = try await editor.webView.callAsyncJavaScript("""
+            const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+            const cellAt = (row, column) => document.querySelector(
+                `[data-table-row="${row}"][data-table-column="${column}"]`);
+            const last = cellAt(1, 1);
+            last.focus();
+            last.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true}));
+            const deadline = Date.now() + 3000;
+            while (Date.now() < deadline) {
+                window.__layoutTestFrame();
+                await wait(20);
+                const added = cellAt(2, 0);
+                if (added && document.activeElement === added) break;
+            }
+            const added = cellAt(2, 0);
+            return JSON.stringify({
+                added: added !== null,
+                focused: added !== null && document.activeElement === added,
+                text: added ? added.textContent : null,
+                collapsed: window.getSelection().isCollapsed,
+                rows: document.querySelectorAll('[data-table-column="0"]').length,
+            });
+            """, in: nil, contentWorld: .page)
+        let json = try XCTUnwrap(result as? String)
+        let values = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        XCTAssertEqual(values["added"] as? Bool, true, json)
+        XCTAssertEqual(values["focused"] as? Bool, true, json)
+        XCTAssertEqual(values["text"] as? String, "", json)
+        XCTAssertEqual(values["collapsed"] as? Bool, true, json)
+        XCTAssertEqual(values["rows"] as? Int, 3, json)
+    }
+
     func testTablePointerSelectionKeepsNativeTextRangeAndFormattingTarget() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "Before\n\n| Name | Status |\n| --- | --- |\n| Ada Lovelace | Ready |", editorJavaScript: script),
             width: 650, isEditor: true, height: 400)
@@ -155,7 +257,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testFormattingToolbarTargetsTableCellSelectionAfterBlur() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         for (command, marker) in [("bold", "**"), ("italic", "*"), ("strikethrough", "~~"), ("highlight", "=="), ("code", "`")] {
             let markdown = "Unrelated paragraph\n\n| Name | Status |\n| --- | --- |\n| Ada Lovelace | Ready |\n\nAfter table"
             let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: markdown, editorJavaScript: script),
@@ -190,7 +292,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTableLinkPopoverAndKeyboardFormattingPreservePendingTyping() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let markdown = "Before\n\n| Name |\n| --- |\n| Ada |"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: markdown, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
@@ -222,7 +324,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTableFormattingMapsPendingPipesWhitespaceUnicodeAndEmptyCells() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         for (text, start, end, expected) in [
             ("left | Ada", 7, 10, "left \\| **Ada**"),
             ("  Ada  ", 2, 5, "**Ada**"),
@@ -257,7 +359,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTaskSeparatorStaysStableOnContinuationLines() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let source = "- [ ] First\n\n- [ ] Second\n  continuation\n\n  Later paragraph"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 500)
@@ -283,7 +385,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testNewTaskAfterDoubleEnterKeepsBlankLineAndCaretPosition() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: "- [ ] First", editorJavaScript: script),
                                           width: 650, isEditor: true, height: 500)
         defer { editor.close() }
@@ -326,7 +428,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testCheckboxTogglePreservesKeyboardFocus() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: "- [ ] First\n- [ ] Second", editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
         defer { editor.close() }
@@ -351,7 +453,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testCompletedParentDoesNotStrikeNestedUncheckedItems() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let source = "- [x] Parent\n  continuation\n    - [ ] Child\n      child continuation\n    - [x] Done child\n        - [ ] Grandchild\n\n  Parent after children\n- [ ] Sibling"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 600)
@@ -373,7 +475,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testCompletedTaskStyleTracksCheckboxToggles() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let source = "- [x] Done **bold**\n  continuation\n- [ ] Pending"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
@@ -399,7 +501,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testFreshTaskTypingWaitsForCaretToLeaveAutoClosedBracket() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let html = EditorHTML.render(markdown: "", editorJavaScript: script)
             .replacingOccurrences(of: "editor = window.MDEditor.create(",
                                   with: "editor = window.__typingEditor = window.MDEditor.create(")
@@ -440,7 +542,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTypedTaskCheckboxContinuesAndExitsOnEmptyItem() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: "", editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
         defer { editor.close() }
@@ -497,7 +599,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testTaskEnterPreservesMarkersAndMarkdownContext() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let examples = [
             ("+ [X] One", "+ [X] One\n+ [ ] ", "+ [X] One\n\n"),
             ("* [ ] One", "* [ ] One\n* [ ] ", "* [ ] One\n\n"),
@@ -543,7 +645,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testLinkPopoverRejectsPartialOverlapAtEitherSelectionEdge() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let source = "Before [hello](https://example.com) after"
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: source, editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
@@ -568,7 +670,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testPopoverReviewRegressions() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let cases: [(String, String, String, String)] = [
             ("```swift\nhello\nworld\n```", "hello", "setBlockStyle('code')", "`hello world`"),
             ("    hello", "hello", "setBlockStyle('code')", "`hello`"),
@@ -595,7 +697,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testLinkPopoverReplacesExistingLinkAndEncodesUnicodeWhitespace() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(html: EditorHTML.render(markdown: "[hello](old)", editorJavaScript: script),
                                           width: 650, isEditor: true, height: 400)
         defer { editor.close() }
@@ -610,7 +712,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testFormattingStateIsPublishedSynchronouslyOnSelectionAndCommands() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "", editorJavaScript: script),
             width: 600, isEditor: true, height: 400)
@@ -646,7 +748,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testPointerGestureAnchorsClicksAndRevealsSyntaxImmediately() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let sources = ["Before **target words** after", "Before *target words* after",
                        "Before ~~target words~~ after", "Before `target words` after",
                        "Before [target words](https://example.com/a/long/path) after",
@@ -733,7 +835,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testHeadingMarkersRevealInlineAfterActivation() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         for sample in (1...6).flatMap({ level in (0...3).map { (level, $0) } }) {
             let (level, indentation) = sample
             let source = "Paragraph\n\n" + String(repeating: " ", count: indentation) + String(repeating: "#", count: level) + " Heading text that wraps onto another line with more words ###\n\nAfter"
@@ -796,7 +898,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testStylingPopoverConvertsBlocksWithoutLosingText() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "Example", editorJavaScript: script),
             width: 900, isEditor: true, height: 400)
@@ -823,7 +925,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testListPopoverReplacesMarkersAndPreservesIndentation() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "  - [x] Item", editorJavaScript: script),
             width: 900, isEditor: true, height: 400)
@@ -843,7 +945,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testLinkPopoverInsertionEscapingAndEmptyURL() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "Before selected after", editorJavaScript: script),
             width: 900, isEditor: true, height: 400)
@@ -869,7 +971,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testHeadingPopoverCommandsAndSelectedStyle() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let editor = WebViewLayoutHarness(
             html: EditorHTML.render(markdown: "Example", editorJavaScript: script),
             width: 900, isEditor: true, height: 400)

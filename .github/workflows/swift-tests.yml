@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     name: swift test
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
 
@@ -17,7 +17,7 @@ jobs:
 
       - name: Run tests
         env:
-          MDP_LAYOUT_ARTIFACTS: ${{ runner.temp }}/md-preview-layout-failures
+          MDP_LAYOUT_ARTIFACTS: ${{ runner.temp }}/belvedere-layout-failures
         run: swift test --package-path tests/swift-tests
 
       - name: Test editor transition callback ordering
@@ -28,5 +28,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: webkit-layout-failures
-          path: ${{ runner.temp }}/md-preview-layout-failures
+          path: ${{ runner.temp }}/belvedere-layout-failures
           if-no-files-found: ignore

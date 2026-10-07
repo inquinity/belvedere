@@ -16,8 +16,8 @@ final class DeferredImageRenderingTests: XCTestCase {
 
     @MainActor
     private func harness(withHostBridge: Bool = true) async throws -> WKWebView {
-        let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
-        let morphdom = try TestVendor.script("md-preview/Vendor/Morphdom/morphdom.min.js")
+        let purify = try TestVendor.script("belvedere/Vendor/DOMPurify/purify.min.js")
+        let morphdom = try TestVendor.script("belvedere/Vendor/Morphdom/morphdom.min.js")
         let html = """
         <!DOCTYPE html>
         <html><head>
@@ -283,7 +283,7 @@ final class DeferredImageRenderingTests: XCTestCase {
         // test has none — so the page's `sanitize()` would fail closed and
         // render nothing, and this test would pass vacuously against an empty
         // article. Supply DOMPurify from the repo instead.
-        let purify = try TestVendor.script("md-preview/Vendor/DOMPurify/purify.min.js")
+        let purify = try TestVendor.script("belvedere/Vendor/DOMPurify/purify.min.js")
         let page = pageHTML.replacingOccurrences(
             of: "<head>", with: "<head><script>\(purify)</script>", options: [], range: pageHTML.range(of: "<head>")
         )

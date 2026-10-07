@@ -102,7 +102,7 @@ work after leaving edit mode too.
 - **Native rendering** — `WKWebView` pipeline backed by [swift-markdown](https://github.com/swiftlang/swift-markdown), with heading anchors and link handling. Bare `http://` and `https://` URLs are clickable in the app and Quick Look previews.
 - **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>.
 - **Mermaid diagrams** — fenced `mermaid` code blocks render as diagrams in both the app and Quick Look previews, using a bundled renderer so previews work offline without a CDN request.
-- **Line breaks** — a single new line in the source stays a new line by default (*Keep as typed*, as GitHub shows comments and issues). Choose *Join into paragraphs* in *Settings → General → Reading → Line breaks* to let lines run together until a blank line, as standard Markdown does. Applies in the app and in Quick Look.
+- **Single new lines** — lines run together until a blank line, as standard Markdown does and as a README is shown on GitHub, so a hard-wrapped file reflows to the window (*Reflow (like a README)*, the default). Choose *Break (like a comment)* in *Settings → General → Reading → Single new lines* to show every new line in the source as a line break, as GitHub shows comments and issues. Settings holds the default for new windows and tabs; *View → Single New Lines* changes the front window only and is not saved. Applies in the app and in Quick Look (which follows the default).
 - **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source.
 - **Document outline** — sidebar TOC that mirrors your headings; click to jump.
 - **File navigator** — browse Markdown files in the sidebar. Opening a folder (rather than a single file) also sets the containment boundary described above.
@@ -114,7 +114,7 @@ work after leaving edit mode too.
 - **Customizable toolbar** — drag in the items you actually use via *View → Customize Toolbar…* Standard AppKit affordance, your layout sticks across launches.
 - **Share = copy the source** — the share toolbar feeds the picker the Markdown text itself, so **Copy** writes the raw source to the clipboard, and Mail, Messages, and Notes get the content in the body instead of a file URL.
 - **Quick Look extension** — system-wide `.md` previews from Finder spacebar, Spotlight, and Mail attachments without launching the app. Subject to the same network and containment restrictions above.
-- **URL scheme** — open a file or folder from a browser link or another app with `md-preview://file/<absolute path>` (e.g. `md-preview://file/Users/me/project/README.md`). Percent-encode special characters in the path.
+- **URL scheme** — open a file or folder from a browser link or another app with `belvedere://file/<absolute path>` (e.g. `belvedere://file/Users/me/project/README.md`). Percent-encode special characters in the path.
 - **Default handler** — offers to register itself as the default `.md` opener on first launch.
 
 Not in Belvedere: the command-line tools installer (`mdp`, `md-preview`) is removed, along
@@ -127,8 +127,8 @@ UTI: `net.daringfireball.markdown`
 
 ## Requirements
 
-- macOS 15 or later
-- Apple Silicon or Intel
+- macOS 26 or later
+- Apple silicon or Intel (the released builds are universal)
 
 ## Building from source
 
@@ -146,8 +146,8 @@ build — Sparkle and Sentry are not dependencies here; both were removed entire
 ## Project layout
 
 ```
-md-preview/         Main app target (AppKit, WKWebView)
-quick-look/         Quick Look extension (.appex)
+belvedere/         Main app target (AppKit, WKWebView)
+belvedere-quick-look/         Quick Look extension (.appex)
 bin/                This fork's build & release scripts (build.sh, publish-release.sh, …)
 scripts/            Upstream's own tooling, untouched so syncs apply cleanly
 Version.xcconfig    Marketing & build version (single source of truth)

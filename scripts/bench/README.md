@@ -10,7 +10,7 @@ GitHub Actions; see [the performance check](../../tests/performance/README.md).
 | File | Purpose |
 |---|---|
 | `bench-app.sh` | Launches the app cold per sample, samples RSS/CPU of the app + its WebContent process(es) every 500 ms, parses debug perf logs (FCP, Swift render, `MdPreview.update`) into a CSV. |
-| `bench-ql.sh` | Resets Quick Look, opens `qlmanage -p <sample>`, samples RSS/CPU of `qlmanage`, `QuickLookUIService`, and the `quick-look` appex; captures the appex's provide wall-time from debug logs. |
+| `bench-ql.sh` | Resets Quick Look, opens `qlmanage -p <sample>`, samples RSS/CPU of `qlmanage`, `QuickLookUIService`, and the `belvedere-quick-look` appex; captures the appex's provide wall-time from debug logs. |
 | `report.py` | Joins two CSV directories on (sample, metric) and prints a markdown comparison table. Stdlib python3 only. |
 | `../../samples/mermaid-heavy.md` | Stress sample: ~10 Mermaid diagrams, Swift/TypeScript/Bash code fences, `$...$` / `$$...$$` math — exercises all three renderers at once. |
 
@@ -54,7 +54,7 @@ serves `.md` previews. Open the built app once, or:
 
 ```bash
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f <path/to/Markdown Preview.app>
-pluginkit -m -p com.apple.quicklook.preview | grep md-preview   # verify
+pluginkit -m -p com.apple.quicklook.preview | grep belvedere   # verify
 ```
 
 (`qlmanage -m plugins` only lists legacy generators — appex-based extensions
@@ -74,7 +74,7 @@ one you just built. Beware: every Debug build of this project registers an
 appex with the same bundle id (`doc.md-preview.dev.quick-look`), so multiple
 worktrees/DerivedData folders compete and LaunchServices picks one
 arbitrarily. Verify which binary actually served the preview with
-`ps -axo pid,comm | grep quick-look.appex` while the panel is open, and
+`ps -axo pid,comm | grep belvedere-quick-look.appex` while the panel is open, and
 `lsregister -u` stale copies if the wrong one wins.
 
 ## Manual edit-cycle procedure
@@ -118,7 +118,7 @@ Measures the innerHTML-swap (or morphdom) update path under repeated edits:
   candidate to make sure you're averaging the same population.
 - `ps pcpu` is a decaying average, not an instantaneous reading — treat
   `cpu_mean_*` as relative between runs, not absolute utilization.
-- `bench-ql.sh` finds the appex via `pgrep -f quick-look`, which can match
+- `bench-ql.sh` finds the appex via `pgrep -f belvedere-quick-look`, which can match
   unrelated processes whose command line contains that string (e.g. an
   editor with this repo open). Close those first.
 - Runs are single-shot per invocation. For less noise, run each side 3× into

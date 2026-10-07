@@ -49,7 +49,7 @@ behaviour rather than as notes about it.
 
 ```bash
 ./bin/build.sh
-SOURCE_APP=build/Belvedere.app ./bin/install.sh   # required for Quick Look to register
+SOURCE_APP=build.noindex/Belvedere.app ./bin/install.sh   # required for Quick Look to register
 qlmanage -r && qlmanage -r cache
 ```
 
@@ -64,6 +64,7 @@ Quick Look will not pick up a new build until the app has been in
 | `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a placeholder naming the file, with a **Load** button — these sit outside the document's folder, so the reader is offered the choice. Clicking Load must report a failure, never show contents: any file contents on screen is a document reading files it has no right to. |
 | `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Nothing loads on open: every image is a placeholder naming the host, page still styled normally. In the app window each offers **Load** — that is the reader asking, and it is the only thing that reaches the network. Quick Look offers no button. **Load all** must not appear for these; it covers local files only. |
 | `tests/fixtures/relative-assets/post.md` | The other half: containment must not break *legitimate* relative images. Two must render, two must not. |
+| `tests/fixtures/link-guard/link-guard.md` | Clicked links to local files. Three links must bring up the "shown in Finder, not opened" sheet (one names **Calculator.app**, the symlink's real target); three must open with no sheet. **Calculator starting, or Terminal opening, means stop and do not ship.** App window only; Quick Look does not open local links. |
 
 Open each in **both** the app window and Quick Look. They resolve assets by
 different mechanisms and have failed independently before.
@@ -172,7 +173,6 @@ but the panel and the SwiftUI pane lay it out independently, so look at both.
 | Open **Acknowledgements** (About ▸ Acknowledgements) and press ⌘E: an explanation appears and there is **no editor**. Repeat with File ▸ Open… on the same file in **another** Belvedere, such as `/Applications/Belvedere.app/Contents/Resources/Acknowledgements.md` while you run a build from `build/`: also refused. Then `codesign --verify --deep --strict` on both apps must still pass | The page lives inside a signed bundle, and a dev build and an installed Belvedere are the same developer, so one can modify the other. Since 1.3.1 any document inside an application bundle cannot be edited, so there is nothing to save; before that a read-only flag was the only guard. Testing only the running app's own copy missed this once |
 | On that same page choose **Save As…** and pick your Desktop: the copy is written and the window follows it, and the copy *can* be edited. Choosing a location inside `Belvedere.app` in the panel is refused with the same explanation | Save As… to a copy is the supported way to change a bundled page |
 | With any document, File ▸ Export (HTML) and choose a folder inside `Belvedere.app`: refused, nothing written | The export panel is one of the places the guard is applied |
-| In Chinese (`zh-Hans`) both lines are translated | Missing keys fall back to English and give a half-translated box. **The zh-Hans strings for the tagline, security line and "Acknowledgements" (致谢) have not been checked by a native reader** |
 
 ## 5. Saving and leaving edit mode
 
@@ -189,6 +189,25 @@ From the Save-button work, offered upstream in [PR #379](https://github.com/pluk
 | Menu states: Save and Revert to Saved **off** with nothing changed; Save As… **on** for any open document | Revert also stays off for an untitled document — there is nothing on disk to go back to |
 | Settings › General › Editing › *Leave edit mode without asking to save* restores the silent exit | Off by default; takes effect on the next exit without reopening the window |
 
+## 5b. Opening a folder
+
+**File ▸ Open Folder…** has its own panel that can only choose folders, and no shortcut.
+Go to File… (it was Search for Document) keeps ⇧⌘O. Open `tests/fixtures/relative-assets/post.md` first.
+
+| Check | Why |
+|---|---|
+| File ▸ Open Folder… is in the File menu, right after Open…, with no shortcut, and Go ▸ Go to File… shows ⇧⌘O and File has no search item | Added with the fix for opening folders from inside the app. ⇧⌘F is kept free for a future search of text in the folder |
+| Pick `tests/fixtures` and press **Open**: the sidebar roots on `fixtures` and the shared logo in `post.md` renders | The folder widens the document's boundary |
+| With nothing selected in the panel, **Open** is enabled and chooses the folder being shown | The old Open… panel disabled it, so a reader could not choose the folder they were in |
+| Selecting a folder in the panel and pressing **Open** chooses it and does not drill in | The reported fault in Open… |
+| With every window closed, File ▸ Open Folder… still works and opens a window on the folder | It is the app's own command, not a window's |
+| Go to File with no folder open shows **Open Folder…**, and the button opens this same panel | It used to open the Open… panel |
+
+| Drop a folder on the Belvedere icon in the Dock: the folder opens, and the sidebar roots on it | `Info.plist` now declares folders as something it can open. Launch Services reads that when the app is first registered, so after a rebuild it may need `lsregister -f` on the app |
+| Belvedere is not the default for folders, and Finder's right-click menu offers no Open With for one | It is ranked Alternate, so it must never take over folders. Checked 2026-10-01: Finder shows no Open With for a folder, which is acceptable |
+
+Dropping a folder on a window is not covered yet.
+
 ## 5c. Editing a table
 
 Open `tests/fixtures/editor/table-cells.md` and follow the numbered sections in it; each
@@ -199,9 +218,57 @@ and always on a new one.
 |---|---|
 | Section 1: clicking a formatted cell reveals its Markdown with the caret where you clicked | Nine automated tests of this failed on macOS 27 because the test harness had no window, not because of the editor. They pass now, but only a real window on macOS 27 proves the editor itself |
 | Sections 2 to 4 and 6: drag-select, format, link and leave edit mode | The remaining automated table tests cover these with synthetic events |
-| Section 5: Tab selects the next cell's text | **Fails today by design (F17).** Found by hand on 2026-10-03: Tab only moves focus, and the shaded cell looks selected when it is not |
+| Section 5: Tab, Shift-Tab and Enter select the next cell's text | Found by hand on 2026-10-03: they only moved focus, and the shaded cell looked selected when it was not. Fixed for 2.0 |
 
 Not covered by this fixture: row and column editing, pasting a table, and right-to-left or CJK cells.
+
+## 5d. Content width
+
+Use a long document, such as `docs/FORK-NOTES.md`, so there is something to scroll.
+
+| Check | Why |
+|---|---|
+| A new window shows **Full Width**: widen it and the text follows; narrow it and the text follows back down | The saved default is Full Width. Before 2.0 a wide window was mostly margin |
+| Scroll to the middle, then View ▸ Content Width ▸ **Quick Look Width**: the same text is still at the top of the window, and the text is now a centered column | Changing the width re-renders the page, which used to jump back to the top |
+| The same, switching back to **Full Width** | |
+| Open a second window: it is still Full Width. Only the first window changed | View ▸ Content Width is per window and is not saved |
+| Quit and reopen: the window is Full Width again | Not saved |
+| Settings › General › **Default content width** ▸ Quick Look Width: **no open window or tab changes**; open a new window and a new tab: both use Quick Look Width | The default reaches new windows and tabs only. Open ones keep the width they opened with |
+| With the View menu open, the check mark is on the front window's width, and moves when you switch windows | The menu follows the front window, not the default |
+| Press ⌘E in each width: the editor column matches, and changing the width while editing re-flows it and keeps your place | The editor follows the same width |
+| Change **Font** in Settings while scrolled halfway: the position holds | Any setting that re-renders the page had the same jump |
+| `docs/FORK-NOTES.md` paragraphs run to the window's edge in Full Width, not to column 85 | Reflow, the default, is how a README shows; hard-wrapped files use the window |
+| View ▸ **Single New Lines** ▸ **Break (like a comment)** shows the source line ends in that window only; a second window and a new tab still reflow; back to **Reflow** reflows, and the place holds | Per window, not saved |
+| Settings › General › **Single new lines** ▸ Break: no open window changes; a new window and a new tab show the source line ends | The default reaches new windows and tabs only |
+
+Not covered here: Quick Look itself, which does not change.
+
+## 5e. Windows and folder boundaries
+
+Needs a second folder, such as `samples/` next to `tests/fixtures/relative-assets/`. Turn on
+Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn it off again.
+
+| Check | Why |
+|---|---|
+| With a window open, **File ▸ New** (⌘N) opens a separate window, not a tab, whether or not *Open documents in tabs* or macOS's *Prefer tabs* is on | ⌘N used to join the front window's tab group |
+| **File ▸ New Tab** (⌘T) still opens a tab | Tabs stay an explicit choice |
+| ⌘O in any window, then choose a file that is already open in another window: that window comes forward and no second copy opens | One file, one window. A file that is not open gets a new window |
+| Click a file in a window's sidebar: it loads in that window | Sidebar selection is not ⌘O |
+| Open `relative-assets/` as a folder in window A and a different folder in window B. In B, open a document that links an image in A's folder with `../`: the image stays blocked in B | Each window has its own boundary |
+| Drag a tab out into its own window: its folder and what it may read stay what they were | The boundary belongs to the tab, and does not follow another window |
+
+## 5f. Link destination bar and Go to File
+
+| Check | Why |
+|---|---|
+| Hover a web link in the reading view: a small bar at the window's bottom-left shows the full address, and it goes when the pointer leaves | The destination the document really links to, not what its text says |
+| Hover a link whose text says one address and whose target is another (`[github.com/x](https://example.org/y)`): the bar shows `example.org`, not the text | The reason for the feature |
+| Hover a relative link to another file: the bar shows that file's full path. A `#section` link shows `#section` | Resolved target, shown as the file |
+| Hover a very long link: the host stays whole and the middle of the path is cut with … | A reader must always be able to judge the host |
+| The bar never takes a click: click through where it sits over a link | It is drawn over the page |
+| Not in Quick Look, and not in edit mode | App window reading view only |
+| Go to File: type `man` in a folder with `remote-beacon.md`: it is not offered. `ug` still finds `user-guide.md` | Letters scattered through a name no longer match |
+| Settings › General: *Highlight outline section under the pointer* has a subtitle and an ⓘ that opens a popover | The setting explains itself |
 
 ## 6. Release build
 
@@ -212,7 +279,18 @@ xcrun stapler validate "dist/Belvedere-<version>.dmg"
 spctl -a -vvv -t open --context context:primary-signature "dist/Belvedere-<version>.dmg"
 ```
 
-Both must pass. Then **check it on a second Mac** — one that has never run this
+Both must pass. Then confirm the build is universal, and run it on **both** kinds of Mac:
+
+```bash
+lipo -archs "/Applications/Belvedere.app/Contents/MacOS/Belvedere"
+lipo -archs "/Applications/Belvedere.app/Contents/PlugIns/belvedere-quick-look.appex/Contents/MacOS/belvedere-quick-look"
+```
+
+Each prints `x86_64 arm64`. Then open a document, edit one, open a Mermaid sample and press Space
+on a `.md` file in Finder on an **Intel Mac running macOS 26**, and again on Apple silicon. Run
+it natively; never under Rosetta (`arch -x86_64`), which tests nothing real.
+
+Then **check it on a second Mac** — one that has never run this
 app and never had the developer certificate. That is the only test of what a
 colleague actually experiences, and it has caught problems that every local
 check missed.
@@ -227,3 +305,8 @@ check missed.
   `brew upgrade --cask belvedere`.
 - **The command line tools are gone.** The installer is orphaned and its
   Settings button was removed in 1.0.3.
+- **A Mermaid diagram can be a pixel or two different in size between reading and
+  editing.** Shipped as known in 2.0. The reading view and the editor measure the
+  diagram's labels slightly differently, so the diagram, and the text after it, can
+  differ by 1 to 4 px when you switch. `testCompleteMixedFormattingDocument` allows 4 px
+  for the diagram and what follows it, and 1 px everywhere above it.

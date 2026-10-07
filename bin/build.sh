@@ -3,15 +3,14 @@ set -euo pipefail
 
 # Build Belvedere locally for development and testing.
 #
-# Lighter-weight than bin/build-release.sh: no archive step -- compiles
+# Lighter-weight than an archive build: no archive step -- compiles
 # with signing disabled, then signs it ourselves -- with the Developer ID
 # identity and notarization if those credentials are already in the keychain,
-# or an ad-hoc signature otherwise so the app still runs on this machine.
+# or an ad-hoc signature otherwise so the app still runs on this machine. The
+# result is universal (arm64 and x86_64) and is checked to be.
 #
-# --release additionally packages a signed, notarized DMG into ./dist, the
-# same artifact build-release.sh produces, but without its CHANGELOG.md
-# requirement -- for a quick distributable build rather than an official,
-# changelog-documented release.
+# --release additionally packages a signed, notarized DMG into ./dist. `just
+# release` wraps it; the release notes come from docs/release-notes/.
 #
 # Source of truth: Version.xcconfig -> MARKETING_VERSION, CURRENT_PROJECT_VERSION
 
@@ -29,14 +28,17 @@ print_colored() {
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_CONFIG="$PROJECT_ROOT/Version.xcconfig"
-OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build}"
+# build.noindex, not build: Spotlight and Launch Services skip folders whose names
+# end in .noindex, so a dev build never shows up as another Belvedere in
+# Spotlight, Open With or Launchpad.
+OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/build.noindex}"
 DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
 
-SCHEME="md-preview"
+SCHEME="belvedere"
 APP_NAME="Belvedere"
-APPEX_NAME="quick-look"
-APP_ENTITLEMENTS="$PROJECT_ROOT/md-preview/md-preview.entitlements"
-APPEX_ENTITLEMENTS="$PROJECT_ROOT/quick-look/quick-look.entitlements"
+APPEX_NAME="belvedere-quick-look"
+APP_ENTITLEMENTS="$PROJECT_ROOT/belvedere/belvedere.entitlements"
+APPEX_ENTITLEMENTS="$PROJECT_ROOT/belvedere-quick-look/belvedere-quick-look.entitlements"
 DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-45GJWJVQN2}"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application: Altman Software Design, LLC ($DEVELOPMENT_TEAM)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-altman-notary}"
@@ -60,9 +62,7 @@ usage() {
     printf '%s\n' '                          image into ./dist. Requires the signing'
     printf '%s\n' '                          identity and notary profile below --'
     printf '%s\n' '                          unlike a plain build, this does not fall'
-    printf '%s\n' '                          back to an ad-hoc signature. No'
-    printf '%s\n' '                          CHANGELOG.md entry is required, unlike'
-    printf '%s\n' '                          bin/build-release.sh.'
+    printf '%s\n' '                          back to an ad-hoc signature.'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Notarization:${COLOR_RESET}"
     printf '%s\n' '  Signs with the Developer ID identity and notarizes if both'
@@ -73,6 +73,7 @@ usage() {
     printf '%b\n' "${COLOR_YELLOW}Environment:${COLOR_RESET}"
     printf '%s\n' '  OUTPUT_DIR        Where the .app lands. Default: ./build'
     printf '%s\n' '  DIST_DIR          Where --release puts the .dmg. Default: ./dist'
+    printf '%s\n' '  DMG_EXTRA_FILES   Colon-separated files or folders to put in the .dmg beside the app.'
     printf '%s\n' '  SIGNING_IDENTITY  Developer ID Application identity.'
     printf '%s\n' '  NOTARY_PROFILE    notarytool keychain profile. Default: altman-notary'
 }
@@ -160,6 +161,24 @@ can_notarize() {
         && xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1
 }
 
+# Every executable in the bundle must carry both architectures. Belvedere runs on
+# Apple Silicon and on Intel Macs (macOS 26 is the last release that runs on
+# Intel), so a slice that quietly went missing would ship an app that will not
+# launch on one of them. Mach-O files are found by content, not by name.
+require_universal() {
+    local bundle=$1 file archs checked=0
+    while IFS= read -r -d '' file; do
+        file "$file" | grep -q "Mach-O" || continue
+        archs="$(lipo -archs "$file" 2>/dev/null)" || die "cannot read the architectures of $file"
+        for want in arm64 x86_64; do
+            [[ " $archs " == *" $want "* ]] || die "$file lacks the $want slice (has: $archs)"
+        done
+        checked=$((checked + 1))
+    done < <(find "$bundle" -type f -print0)
+    (( checked > 0 )) || die "found no executables in $bundle"
+    printf '%s\n' "Both architectures present in $checked executables"
+}
+
 # codesign each bundle's own entitlements -- CODE_SIGNING_ALLOWED=NO during
 # the build left both the app and the extension unsigned, so signing has to
 # reattach them manually instead of inheriting what Xcode would normally set.
@@ -209,7 +228,7 @@ verify_app_group() {
 # the signed bundle and break its seal. Read-only makes that save fail: the
 # app's in-place write fallback is refused. It is a narrow guard for the one
 # document the app links to; treating the whole bundle as read-only is still
-# to do (FORK-NOTES backlog). Permissions are not part of the code seal, so
+# to do (docs/ROADMAP.md). Permissions are not part of the code seal, so
 # this is safe before or after signing.
 protect_bundled_documents() {
     local app_path=$1
@@ -238,7 +257,7 @@ stamp_build() {
 }
 
 # Wrap the built, Developer-ID-signed .app in a disk image for handing to
-# someone else. Mirrors bin/build-release.sh's DMG steps -- starting from
+# someone else. Follows the DMG steps of upstream's archive-based release script (removed) -- starting from
 # the app this script already built rather than re-archiving, since there is
 # no separate release build to keep in sync.
 #
@@ -257,6 +276,17 @@ package_dmg() {
     mkdir -p "$staging_dir" "$DIST_DIR"
     cp -R "$app_path" "$staging_dir/"
     ln -s /Applications "$staging_dir/Applications"
+    # Files and folders named in DMG_EXTRA_FILES (paths separated by colons) are
+    # copied next to the app, for notes that belong to one test build and not to
+    # the source. Symlinks inside a folder stay symlinks.
+    if [[ -n "${DMG_EXTRA_FILES:-}" ]]; then
+        local extra_files extra
+        IFS=':' read -ra extra_files <<< "$DMG_EXTRA_FILES"
+        for extra in "${extra_files[@]}"; do
+            [[ -e "$extra" ]] || die "DMG_EXTRA_FILES names something that does not exist: $extra"
+            cp -R "$extra" "$staging_dir/"
+        done
+    fi
     rm -f "$dmg_path"
     hdiutil create \
         -volname "$APP_NAME" \
@@ -315,8 +345,8 @@ main() {
     local built_app="$derived_data/Build/Products/Release/$APP_NAME.app"
     local output_app="$OUTPUT_DIR/$APP_NAME.app"
     local appex_path="$output_app/Contents/PlugIns/$APPEX_NAME.appex"
-    local app_entitlements="$work_dir/md-preview.entitlements"
-    local appex_entitlements="$work_dir/quick-look.entitlements"
+    local app_entitlements="$work_dir/belvedere.entitlements"
+    local appex_entitlements="$work_dir/belvedere-quick-look.entitlements"
 
     # Before compiling, so a setting it cannot expand fails in seconds.
     render_entitlements "$APP_ENTITLEMENTS" "$app_entitlements"
@@ -324,11 +354,13 @@ main() {
 
     print_colored "$COLOR_BRIGHTYELLOW" "* Compiling"
     xcodebuild build \
-        -project "$PROJECT_ROOT/md-preview.xcodeproj" \
+        -project "$PROJECT_ROOT/belvedere.xcodeproj" \
         -scheme "$SCHEME" \
         -configuration Release \
-        -destination 'platform=macOS' \
+        -destination 'generic/platform=macOS' \
         -derivedDataPath "$derived_data" \
+        ARCHS="arm64 x86_64" \
+        ONLY_ACTIVE_ARCH=NO \
         CODE_SIGNING_ALLOWED=NO
 
     [[ -d "$built_app" ]] || die "build did not produce $built_app"
@@ -340,6 +372,7 @@ main() {
     mkdir -p "$OUTPUT_DIR"
     cp -R "$built_app" "$output_app"
     [[ -d "$appex_path" ]] || die "build did not embed $appex_path"
+    require_universal "$output_app"
     protect_bundled_documents "$output_app"
     stamp_build "$output_app"
 

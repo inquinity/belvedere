@@ -1,1 +1,1 @@
-../../../../md-preview/Rendering/MarkdownHTML+Footnotes.swift
+../../../../belvedere/Rendering/MarkdownHTML+Footnotes.swift
