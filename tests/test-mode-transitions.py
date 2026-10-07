@@ -46,6 +46,10 @@ struct Deadline { static func now() -> Self { Self() }; static func +(lhs: Self,
     var anchorCallback: ((SourceScrollAnchor?) -> Void)?
     var scrollCallback: (() -> Void)?
     var findOverlay: View?
+    // The window's width choice, which production passes to the editor on
+    // every entry; only the hand-off is under test here.
+    var contentWidth = 0
+    func applyContentWidth(_ width: Int) { contentWidth = width }
     func loadViewIfNeeded() {}
     func load(markdown: String, assetBaseURL: URL?, containmentRoot: URL?) {}
     private(set) var pageZoom: Double = 1
@@ -95,6 +99,7 @@ swift += '''
     var isEditorExiting = false
     var pendingExitCompletions: [() -> Void] = []
     var layeredContentViewController: Host? = Host()
+    var contentWidth = 0
     var findOverlayView: View?
     var editorViewController: EditorViewController? { isEditingDocument ? cachedEditorViewController : nil }
     var editModeGeneration = UUID()
