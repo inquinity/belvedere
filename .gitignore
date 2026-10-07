@@ -36,6 +36,9 @@ playground.xcworkspace
 .swiftpm/
 *.swiftpm/
 Package.resolved
+# The app's own pin is tracked: it records which swift-markdown and swift-cmark
+# versions a release was built from, and a fresh clone must resolve to the same.
+!belvedere.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 Secrets.xcconfig
 
 .build/
