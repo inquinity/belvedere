@@ -41,6 +41,8 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 | **H4** | Delete six old Belvedere releases on the tap repo | Due on or after 2026-10-28. | — |
 | **H5** | Understand the Greptile comments on our upstream PRs | Not started. | — |
 | **H6** | Two click-to-load test gaps | The `too large` label and duplicate references to one blocked file are untested. | — |
+| **H7** | Sign release tags | `just release` makes an annotated tag (`git tag -a`). Switch to a signed tag (`git tag -s`, like signed commits) and have `bin/publish-release.sh` refuse a tag without a signature, as Desktop Name Manager's release check does. | — |
+| **H8** | Keep the notary profile name out of the public repo | `bin/build.sh` hard-codes defaults for the signing identity and the `notarytool` keychain profile, so the profile name is public. Move both into the already git-ignored `Secrets.xcconfig` (which `Version.xcconfig` already includes with `#include?`), read them from there when `SIGNING_IDENTITY` and `NOTARY_PROFILE` are not set, and fall back to the keychain's only "Developer ID Application" identity. Say which setting is missing without printing values. Desktop Name Manager's `scripts/release.sh` does this. | — |
 
 ## Done
 
