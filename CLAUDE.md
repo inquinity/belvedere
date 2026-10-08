@@ -12,7 +12,7 @@ Read these before acting on anything they cover:
 
 - [docs/FORK-NOTES.md](docs/FORK-NOTES.md) — how this fork differs from upstream, and why. The
   source of truth for posture, branch model and per-item notes.
-- [docs/ROADMAP.md](docs/ROADMAP.md) — what is planned, open and done.
+- [ROADMAP.md](ROADMAP.md) — what is planned, open and done.
 - [docs/Upstream-Changed.md](docs/Upstream-Changed.md) — upstream changes Belvedere reshaped or
   declined, and the files kept deleted. Read it before a sync; add a section after one.
 - [docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md) — releasing.

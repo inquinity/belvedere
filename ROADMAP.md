@@ -1,7 +1,7 @@
 # Belvedere roadmap
 
 What is planned, what is open, and what is done, one line each. The reasoning, the
-investigation and the decisions behind an item are in [FORK-NOTES.md](FORK-NOTES.md), under
+investigation and the decisions behind an item are in [FORK-NOTES.md](docs/FORK-NOTES.md), under
 *Item notes*, by the same ID. What a release says to readers is in `docs/release-notes/`.
 
 IDs are permanent: **F** feature, **S** security, **H** housekeeping, **UF** an upstream

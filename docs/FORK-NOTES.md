@@ -13,7 +13,7 @@ It started for one reason:
 > corporate network.** Belvedere removes them.
 
 That reason still holds, and the project is now also a reader with its own features and releases
-(see `docs/ROADMAP.md`). This file records how it differs from upstream, and why.
+(see `ROADMAP.md`). This file records how it differs from upstream, and why.
 
 ## Relationship to upstream
 
@@ -205,7 +205,7 @@ be added by someone who will maintain it.
 
 ## Item notes
 
-The roadmap, what is planned, open and done at one line each, is in [ROADMAP.md](ROADMAP.md).
+The roadmap, what is planned, open and done at one line each, is in [ROADMAP.md](../ROADMAP.md).
 This section keeps the full note for every item, by its permanent ID: what was found, what was
 decided, what was tested and what was not. Add to an item’s note here; change its status in
 ROADMAP.md. The mapping from older IDs follows the table.

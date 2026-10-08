@@ -228,7 +228,7 @@ verify_app_group() {
 # the signed bundle and break its seal. Read-only makes that save fail: the
 # app's in-place write fallback is refused. It is a narrow guard for the one
 # document the app links to; treating the whole bundle as read-only is still
-# to do (docs/ROADMAP.md). Permissions are not part of the code seal, so
+# to do (ROADMAP.md). Permissions are not part of the code seal, so
 # this is safe before or after signing.
 protect_bundled_documents() {
     local app_path=$1
