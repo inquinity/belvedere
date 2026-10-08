@@ -2,10 +2,11 @@
 
 A sandboxed macOS app for reading and editing Markdown, with a Quick Look extension.
 AppKit and SwiftUI, a `WKWebView` reader, a CodeMirror editor. This is
-**[inquinity/belvedere](https://github.com/inquinity/belvedere)**, a fork of
-[pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) ("upstream") that is
-moving its own way. Documents come from other people, so it is security-centric: no telemetry, no
-updater, no network except what the reader asks for.
+**[inquinity/belvedere](https://github.com/inquinity/belvedere)**. It began as a fork of
+[pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview) ("upstream") and has gone
+its own way: this repository is no longer a GitHub fork, and upstream is a remote to read from.
+Documents come from other people, so it is security-centric: no telemetry, no updater, no network
+except what the reader asks for.
 
 Read these before acting on anything they cover:
 
@@ -49,18 +50,22 @@ Fork-authored scripts live in `bin/`; `scripts/` holds only upstream's tooling, 
 touches `bin/`. **Never build, notarize or publish a release without an explicit go-ahead.** A
 build a person will test must be handed over with its About-box build string and app path.
 
-## How this fork works
+## How this project works
 
-- **Remotes and branches.** `origin` is inquinity, `upstream` is pluk-inc. Sync with
-  `git merge upstream/main`. **Never rebase `main`**; it is published. Work on `feat/*`, `fix/*`
-  and `chore/*` branches and merge with a `Fork: …` message.
-- **Upstream issues and PRs** are worked on a `contrib/<topic>` branch cut from `upstream/main`,
-  never on `main`. Everything behind a claim in the PR or reply (building, running, manual
-  tests, screenshots) uses a **Markdown Preview build of that branch**, not Belvedere: Belvedere
-  carries the same fix plus the fork's hardening, so a result there says nothing about what
-  upstream will merge. Carry the fix into `main` afterwards. Open PRs ready for review, never as
-  drafts. For a local test install of an upstream build, blank `SentryDSN` and `SUFeedURL` and
-  set `SUEnableAutomaticChecks` to false in a local commit that is never pushed.
+- **Remotes and branches.** `origin` is `inquinity/belvedere`, `upstream` is `pluk-inc/markdown-preview`
+  (read-only; never pushed to). Sync with `git merge upstream/main`. **Never rebase `main`**; it is
+  published. Work on `feat/*`, `fix/*` and `chore/*` branches and merge with a `Fork: …` message.
+- **This repository has no `contrib/*` branches and no fork remote.** Work for upstream is prepared in
+  a separate clone of [`inquinity/markdown-preview`](https://github.com/inquinity/markdown-preview),
+  the GitHub fork kept for that purpose (`origin` there, `upstream` is pluk-inc). In that clone an
+  issue or PR is worked on a `contrib/<topic>` branch cut from `upstream/main`, never on `main`.
+  Everything behind a claim in the PR or reply (building, running, manual tests, screenshots) uses a
+  **Markdown Preview build of that branch**, not Belvedere: Belvedere carries the same fix plus its
+  own hardening, so a result here says nothing about what upstream will merge. Bring the fix into
+  this repository afterwards as an ordinary change. Open PRs ready for review, never as drafts. For a
+  local test install of an upstream build, blank `SentryDSN` and `SUFeedURL` and set
+  `SUEnableAutomaticChecks` to false in a local commit that is never pushed. See the contribution
+  clone's own notes below before staging anything there.
 - **On a sync:** review all incoming changes for security with the `security-oss-app-reviewer`
   skill; keep our `Version.xcconfig` and `README.md`; keep the files listed under *Standing
   removals* in `docs/Upstream-Changed.md` deleted (a modify/delete conflict means keep the
@@ -130,8 +135,8 @@ Commit messages follow the global Conventional Commits rules, with these excepti
   of what this fork changes.
 - Release commits are exactly `Release <v> build <n>`; `bin/publish-release.sh` refuses anything
   else.
-- `contrib/*` commits follow upstream's style: a plain imperative subject, no type prefix. They
-  are squashed into upstream under the PR title.
+- Commits on `contrib/*` branches, in the contribution clone, follow upstream's style: a plain
+  imperative subject, no type prefix. They are squashed into upstream under the PR title.
 
 ## A parameter that enforces a boundary must not default to nil
 
@@ -174,14 +179,16 @@ goes away. Its limits:
 - Its repository is archived. If `periphery scan` starts failing outright rather than reporting
   findings, replace the tool.
 
-## A fresh clone needs its own .git/info/exclude entries
+## The contribution clone needs its own .git/info/exclude entries
 
-`dist/`, `build/` and `build.noindex/` are in `main`'s `.gitignore`, but a `contrib/*` branch is
+This applies to the clone of `inquinity/markdown-preview`, not to this repository.
+`dist/`, `build/` and `build.noindex/` are in Belvedere's `.gitignore`, but a `contrib/*` branch is
 cut from `upstream/main`, which does not know them. There they are untracked and **not ignored**,
 so a broad `git add -A` stages old release artifacts. Five notarized `Belvedere-*.dmg` files once
-went into a PR to upstream this way, and the maintainer asked that they be excluded.
-`.git/info/exclude` applies to every branch in the clone, and does not survive a fresh clone, so
-add it again there before any `contrib/*` work, along with `git config rerere.enabled true`:
+went into a PR to upstream this way, when the branches were cut inside this repository, and the
+maintainer asked that they be excluded. `.git/info/exclude` applies to every branch in a clone, and
+does not survive a fresh one, so add it there before any `contrib/*` work, along with
+`git config rerere.enabled true`:
 
 ```bash
 printf 'build/\nbuild.noindex/\ndist/\n' >> .git/info/exclude

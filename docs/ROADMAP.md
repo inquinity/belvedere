@@ -11,12 +11,9 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 ## Plan
 
-**2.0, in progress** on `feat/2.0.0`. Its scope is everything under *2.0* in Done below. Before it ships:
+**2.0 shipped 2026-10-06** (tag `v2.0.0`, build 17). Its scope is everything under *2.0* in Done below. It was reviewed branch-wide and hand-tested on an M5 (macOS 26), an Intel Mac (macOS 26) and an Apple silicon Mac (macOS 27), so the x86_64 slice has run. Rosetta is never used.
 
-- Branch-wide security review of `v1.3.2..HEAD`.
-- Hand tests: manual checklist sections 5e and 5f, and the ⌘N row.
-- The build is universal and the minimum is macOS 26 (H10, H11). The x86_64 slice is built and checked for presence but has not been run; the maintainer will test it on an Intel Mac running macOS 26 before release (manual checklist, section 6). Rosetta is never used.
-- `just release major`, then `just publish --go`. Each needs an explicit go-ahead.
+**In progress: leaving the GitHub fork link (H12).** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`. Left to do: clean the contribution fork down to what it is for (`main` reset to upstream, Belvedere's releases, tags and branches removed), and delete the throwaway test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview`. The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
@@ -35,7 +32,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 | **F14** | Drop a folder on a window or sidebar to open it | Works on the Dock icon only. | — |
 | **F15** | Search the text of files across the opened folder | Idea, on ⇧⌘F, beside Go to File on ⇧⌘O. | — |
 | **F18** | Stray whitespace after an italic table cell | Seen once while editing; not reproduced. | — |
-| **UC1** | Offer click-to-load upstream | As its own PR, once the containment PR (#337) is resolved. | — |
+| **UC1** | Offer click-to-load upstream | As its own PR. The containment PR (#337) was closed 2026-10-01; the maintainer would revisit strict folder boundaries "with a clear experience for blocked images", which is what this is. | — |
 | **UC2** | Pitch an optional network-egress block upstream | Low priority; the maintainer floated it. | — |
 | **UF1** | Upstream render-extension registry (their PR 429) | Reviewed, not imported; revisit if it merges and is reviewed. | — |
 | **H4** | Delete six old Belvedere releases on the tap repo | Due on or after 2026-10-28. | — |
@@ -48,7 +45,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 Newest release first.
 
-### 2.0 (on `feat/2.0.0`, not yet released)
+### 2.0 (released 2026-10-06)
 
 | ID | Item | Outcome |
 |---|---|---|
@@ -66,6 +63,7 @@ Newest release first.
 | **H8** | Rename project, folders and keys to `belvedere` | `belvedere://`, `belvedere.*` settings keys, one-time key migration. |
 | **H10** | Minimum macOS is 26 | Every `#available(macOS 26)` check and fallback removed: one code path for the window chrome. 26.1 and 27 checks stay. |
 | **H11** | Universal build | Release builds carry arm64 and x86_64, and the build script checks both. |
+| **H12** | Belvedere is no longer a GitHub fork | The repository was replaced, not detached: the old repository became `inquinity/markdown-preview`, the contribution fork, and a new non-fork `inquinity/belvedere` took the name, with all history, tags and the ten releases. README and About credit Markdown Preview as the origin. In progress, see Plan. |
 | **F21** | Go to File matched scattered letters | A letter may sit at most three characters past the last, unless at a word start. |
 
 ### 1.3.2
@@ -125,7 +123,7 @@ Newest release first.
 | # | Milestone | Status |
 |---|---|---|
 | **M0** | Repo setup: remotes, `rerere`, tracking scripts, notes | done |
-| **M1** | Upstream contributions: advisory, CSP, URI allowlist | in progress; advisory filed, containment PR #337 open upstream |
+| **M1** | Upstream contributions: advisory, CSP, URI allowlist | closed out 2026-10-01: the advisory was accepted, the containment, CSP and link PRs were closed (the link guard was redone upstream in a smaller form). Further contributions are prepared in `inquinity/markdown-preview`. |
 | **M2** | Identity and release: team, bundle IDs, app group, release pipeline | done |
 | **M2b** | New app icon | done |
 | **M3** | Deprivileging: telemetry stubbed, Sparkle removed, `network.client` dropped | done |

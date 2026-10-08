@@ -1,20 +1,30 @@
 # Fork notes
 
-This repository is a fork of [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview),
-maintained by [inquinity](https://github.com/inquinity). It exists for one reason:
+Belvedere began as a fork of [pluk-inc/markdown-preview](https://github.com/pluk-inc/markdown-preview),
+maintained by [inquinity](https://github.com/inquinity), and has since gone its own way. Since
+2026-10-07 this repository is **no longer a GitHub fork**; the fork lives on as
+[inquinity/markdown-preview](https://github.com/inquinity/markdown-preview), kept to prepare
+contributions to upstream. The credit stays: the reader, the editor and the Quick Look extension
+are Markdown Preview's work, and its notice ships in the app.
+
+It started for one reason:
 
 > **The upstream app makes outbound network connections that are not acceptable on a
-> corporate network.** This fork removes them. It does not add features.
+> corporate network.** Belvedere removes them.
 
-Everything else — reading, printing, PDF export, Quick Look — is upstream's work and
-should stay upstream's work.
+That reason still holds, and the project is now also a reader with its own features and releases
+(see `docs/ROADMAP.md`). This file records how it differs from upstream, and why.
 
 ## Relationship to upstream
 
 | Remote | URL | Role |
 |---|---|---|
-| `origin` | `inquinity/belvedere` | This fork. Where our `main` lives. |
-| `upstream` | `pluk-inc/markdown-preview` | The base project. Read-only; never pushed to. |
+| `origin` | `inquinity/belvedere` | Belvedere. Where our `main` lives. Not a GitHub fork. |
+| `upstream` | `pluk-inc/markdown-preview` | The project Belvedere began from. Read-only; never pushed to. |
+
+There is no remote for the contribution fork in this clone. `inquinity/markdown-preview` is a
+GitHub fork of upstream, and work for upstream is prepared in a separate clone of it (see *Branch
+model*)
 
 Upstream is actively maintained (142 commits in the two months before this fork was
 cut), so staying close to it is worth real effort. Every change here is shaped to keep
@@ -61,14 +71,17 @@ sudo lsof -i -a -p $(pgrep -f "Belvedere") -r 2
 
 ```
 upstream/main          remote-tracking only; never a local branch we edit
-main         (origin)  our product line: upstream + our changes
-fork/<topic>           short-lived; merged with --no-ff, then deleted
-contrib/<topic>        cut from upstream/main; ONE fix each; for PRs to pluk-inc
+main         (origin)  our product line: upstream's work + our own
+feat/<topic>           short-lived; merged with --no-ff and a "Fork: …" message, then deleted
+fix/<topic>            the same, for a fix
+chore/<topic>          the same, for housekeeping
 ```
 
-`contrib/*` branches are cut fresh from `upstream/main` and contain only the fix being
-offered — never our deprivileging — so the PR diff is exactly what upstream is being
-asked to review.
+Branches for PRs to pluk-inc are **not made in this repository.** They are `contrib/<topic>`
+branches in a clone of `inquinity/markdown-preview` (the contribution fork), cut fresh from
+`upstream/main`, one fix each, containing only the fix being offered — never our deprivileging —
+so the PR diff is exactly what upstream is being asked to review. They were made here until
+2026-10-07; the existing ones moved to the fork with the history.
 
 ### Syncing with upstream
 
@@ -148,12 +161,14 @@ guide lives in `docs/INTERNAL-INSTALL.md` rather than in `README.md`.
 
 ## Upstream contribution track
 
-Not everything here is fork-only. Genuine hardening goes back to upstream, because once
-merged it stops being our diff to carry:
+Not everything here is Belvedere-only. Genuine hardening goes back to upstream, because once
+merged it stops being our diff to carry. The work is prepared on `contrib/*` branches in
+[inquinity/markdown-preview](https://github.com/inquinity/markdown-preview), not in this
+repository. Status as of 2026-10-08:
 
 | Finding | Form | Status |
 |---|---|---|
-| `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337) open, **changes requested** 2026-09-06: bound by an explicitly opened project folder, treat link clicks separately from asset loads, and no silent no-ops. **Reworked and pushed 2026-09-11** (`a18b235`…`d8cf9f3`), taking the maintainer's shape rather than our layered proposal: the boundary follows an explicitly opened folder, clicks are handled apart from asset loads, and a program named by a link is shown rather than run. **Click-to-load is deliberately not part of it** — tested and shipping here, and offered as its own PR as soon as #337 is completed (row below). **Updated 2026-09-11:** upstream's link context menu (`7ce6cd5`) also resolves `md-asset:` links, and once GitHub's *Update branch* merged it in, the PR branch no longer compiled — its CI builds only the test package, so the check stayed green. The menu now passes the document folder the same way the click path does, matching the fix on our `main`; app built and the menu retested |
+| `md-asset:` scheme has no path containment (`MarkdownAssetResolution.swift:49`) | Advisory → PR | **accepted**; [GHSA-vgmc-h5g6-xh2q](https://github.com/pluk-inc/markdown-preview/security/advisories/GHSA-vgmc-h5g6-xh2q). Maintainer asked us to write the fix — [PR #337](https://github.com/pluk-inc/markdown-preview/pull/337), **closed by the maintainer 2026-10-01**: he prefers a smaller hardening PR that keeps relative images and links working from a directly opened file, and defers strict folder boundaries, with a clear experience for blocked images, for later. The containment stays Belvedere's own. Earlier, **changes requested** 2026-09-06: bound by an explicitly opened project folder, treat link clicks separately from asset loads, and no silent no-ops. **Reworked and pushed 2026-09-11** (`a18b235`…`d8cf9f3`), taking the maintainer's shape rather than our layered proposal: the boundary follows an explicitly opened folder, clicks are handled apart from asset loads, and a program named by a link is shown rather than run. **Click-to-load is deliberately not part of it** — tested and shipping here, and offered as its own PR as soon as #337 is completed (row below). **Updated 2026-09-11:** upstream's link context menu (`7ce6cd5`) also resolves `md-asset:` links, and once GitHub's *Update branch* merged it in, the PR branch no longer compiled — its CI builds only the test package, so the check stayed green. The menu now passes the document folder the same way the click path does, matching the fix on our `main`; app built and the menu retested |
 | Preview document has no Content-Security-Policy | Issue → PR | **closed** 2026-09-15 by the maintainer — [issue #339](https://github.com/pluk-inc/markdown-preview/issues/339) led to [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399), with both working policies attached. Declined: *"we want to preserve remote-image support, so we're going to close this PR. We may revisit an optional privacy setting or a narrower CSP separately."* No consequence for us — `PreviewContentPolicy` and `QuickLookContentPolicy` (table above) stay a fork-only patch, same as before the PR; nothing changes on the next `git merge upstream/main`. Worth re-offering as the optional setting they named, if one gets built |
 | `ALLOWED_URI_REGEXP` permits `http`/`https` | Issue → PR, after the CSP lands | **stalled** — premise was landing behind #399; with that closed, revisit as its own issue instead of waiting on a CSP that isn't coming |
 | DOMPurify's KEEP_CONTENT lets form controls survive a forbidden `<form>` | PR | **closed** 2026-09-15 by the maintainer — [PR #369](https://github.com/pluk-inc/markdown-preview/pull/369). Declined: *"I've decided to keep the current sanitized HTML behavior. The example doesn't demonstrate credential submission, and I don't think we need the additional restrictions on visible controls for this app."* Reported publicly rather than by advisory: no exfiltration path, patch attached, and the analysis was already public in this fork's history. Both review findings were correct; see *The Mermaid HUD regression* below. No consequence for us — stays a fork-only patch, nothing to reconcile on the next sync |
@@ -164,7 +179,7 @@ merged it stops being our diff to carry:
 | The Quick Look preview steals keyboard focus, so arrow keys scroll the document instead of moving the Finder selection | Issue → PR | ✅ **merged** — upstream's own issue [#292](https://github.com/pluk-inc/markdown-preview/issues/292), [PR #370](https://github.com/pluk-inc/markdown-preview/pull/370) landed as `d09f500`, in upstream 0.0.58. Review found ⌘A / ⌘C no longer work without a click, which the PR had claimed they did: key events reach the extension only while its view has focus, and not taking focus is the fix. Accepted as the trade and documented on the PR branch. Same patch we'd carried here since 2026-09-11, so the sync sees it as already applied |
 | Mermaid diagrams draw at 0 × 0 in the app window since upstream made the article a flex column (#376) | Issue → PR | **merged upstream** — [issue #387](https://github.com/pluk-inc/markdown-preview/issues/387), [PR #388](https://github.com/pluk-inc/markdown-preview/pull/388), in Markdown Preview 0.0.57; our carried copy was superseded by the upstream sync. Shipped broken in our 1.2.0; the manual checklist caught it, the automated tests did not, because the width-toggle test's checks held for a 0-wide figure. The PR pins the size. Merged into our `main` from the PR branch |
 | A blocked image is a silent broken image, with no way to see it | PR, after #337 | **planned** — click-to-load: the image renders as a placeholder naming the file, with Load and Load all; only real images are loaded, after the click, and nothing is remembered; Quick Look gets labels only. Tested and shipping here. Kept out of #337 so it does not hold up the security fix, and opened as its own PR as soon as #337 is completed. It must first follow the reworked boundary — the opened project folder, not the document folder — or it would offer Load for images that are now inside |
-| A link could start a program (app, script, installer, disk image) with one click, once containment let the click through | PR | **submitted** — [PR #405](https://github.com/pluk-inc/markdown-preview/pull/405), open. Split out of #337 per review; independent of the containment rework, so it applies against `main` as it stands today rather than waiting on #337 to merge. Same fix as ships here (legacy F12, under Done in the backlog), tested on a plain Markdown Preview build with Sentry/Sparkle disabled locally |
+| A link could start a program (app, script, installer, disk image) with one click, once containment let the click through | PR | **closed 2026-10-01** — [PR #405](https://github.com/pluk-inc/markdown-preview/pull/405); the maintainer re-did it in a cleaner form as [PR #478](https://github.com/pluk-inc/markdown-preview/pull/478). Belvedere's own, stricter allowlist ships here. Was: split out of #337 per review; independent of the containment rework, so it applies against `main` as it stands today rather than waiting on #337 to merge. Same fix as ships here (legacy F12, under Done in the backlog), tested on a plain Markdown Preview build with Sentry/Sparkle disabled locally |
 
 The `md-asset:` finding goes through GitHub's private vulnerability reporting (enabled
 on upstream), **not** a public issue: it describes an unfixed weakness in a shipping app
@@ -219,6 +234,7 @@ ROADMAP.md. The mapping from older IDs follows the table.
 | **F20** | Search for Document is now Go to File… in the Go menu | ✅ **done on `feat/2.0.0`, hand-tested 2026-10-05 on build `1.3.1 (dev f5e40a7)`.** The file-name palette (⇧⌘O) jumps to a file in the opened folder and never searched inside one, so *Search for Document* misdescribed it and sat in File beside Open…. It is now **Go ▸ Go to File…**, the toolbar label is *Go to File*. VS Code and the JetBrains IDEs use *Go to File*; Xcode calls it *Open Quickly*. ⇧⌘O is unchanged and ⇧⌘F stays reserved for F15. Internal names (`searchForDocument`, `FileSearch*`) were left alone. |
 | **H10** | Minimum macOS is 26 | ✅ **done 2026-10-06 on `feat/2.0.0`** (commit `34abbcc`). `MACOSX_DEPLOYMENT_TARGET` is 26.0 in all four configurations and in the test package, and the CI runner is `macos-26`. Every `#available(macOS 26.0)` check and its fallback is gone: the full-width Sequoia formatting row, the old toolbar-layout migration, the fallback backdrops and glass replacements, the editor's legacy background view and the page pinning used when the web view could not run under the titlebar. The 26.1 and 27 checks stay because they separate releases we still support. The reason was one code path to plan, write and test instead of two. Readers on macOS 15 or earlier cannot update past 1.3.2. |
 | **H11** | Universal build | ✅ **done 2026-10-06 on `feat/2.0.0`** (commit `f8de442`). `bin/build.sh` builds with `ARCHS="arm64 x86_64"`, `ONLY_ACTIVE_ARCH=NO` and a generic destination, and `require_universal` fails the build unless both the app and the Quick Look extension carry both slices. Intel Macs run macOS 26, the lowest release supported, so there is no reason to leave them out. **Not yet run:** the x86_64 slice has not been run. The maintainer will test it on an Intel Mac running macOS 26 (manual checklist, section 6); Rosetta is never used. |
+| **H12** | Belvedere is no longer a GitHub fork | **Done except the fork clean-up, 2026-10-08.** The GitHub banner "forked from pluk-inc/markdown-preview" cannot be removed through the API; GitHub Support can detach a fork, but replacing the repository was in our hands and kept a ready-made fork for upstream PRs. Sequence: backup (mirror, bundles, the ten releases with checksums checked against GitHub's digests) in `~/dev/backups/belvedere-repo-2026-10-07/`; create `inquinity/newBelvedere`, push all branches and tags plus `main`, re-create the ten releases with their DMGs (release dates show the re-creation day); verify against the backup; rename `belvedere` to `markdown-preview`, then `newBelvedere` to `belvedere`; delete `contrib/*` and `pr/*` from the new repository. The cask, `bin/publish-release.sh` and every link name `inquinity/belvedere`, so nothing changed for them. Scripts and a rehearsal on two private test repositories are in the backup's `scripts/`. **Left:** reset `inquinity/markdown-preview`'s `main` to upstream's and remove Belvedere's releases, tags and branches from it (`05-clean-fork.sh`, not yet run); delete the two test repositories. The README, the About box's Acknowledgements and this file say *began from*, not *fork of*. |
 | **F21** | Go to File matches names that only contain the letters in order | ✅ **done 2026-10-05.** A matched letter may now sit at most three characters after the previous one, unless it starts a word or is a separator the reader typed (`FileSearchMatcher.maxInWordGap`, applied inside the alignment so the best *allowed* alignment is chosen). `man` no longer offers `remote-beacon.md`; `ug` still finds `user-guide.md`, and `rdme` finds `README.md`. Only matches were removed from the pinned baseline, for five cases, each listed in `tests/fixtures/file-search/README.md` with the reason; no remaining score, range or order changed. Option (1) of the original three. Tests: `FileSearchMatcherTests` (scattered letters, abbreviations, the three-character limit). |
 | **F22** | The editor's Mermaid diagrams differ slightly in size from the reading view's | **Investigated 2026-10-05, not fixed.** `EditorPreviewLayoutTests.testCompleteMixedFormattingDocument` fails by about 1.25 px after a diagram at 1280 px full width, on macOS 26.7 and 27.0.1. **What was found:** the reader initializes Mermaid with `fontFamily: '-apple-system, … "SF Pro Text", …'` (`MarkdownHTML+Mermaid.swift`) and the editor (`EditorHTML.swift`) with none, so the editor's labels measure in Mermaid's default font. Giving the editor the same font made the mixed-document diagram identical in both views (viewBox 437.0156 × 70, height 160.20), **but** made `testMermaidWithRealBundledRenderer` fail at every width, because with the same font its `A[Source] --> B[Preview]` diagram still came out 4 px wider in the editor (viewBox 294.05 vs 290.05), so the editor ended 1.4 to 3.9 px shorter after the diagram. Net effect of the one-line change: one failing test traded for another, so it was reverted. **Conclusion:** the two pages also measure text differently for a reason beyond the font family. Look at what Mermaid inherits where it measures: letter-spacing, kerning or font features, `text-rendering`, `white-space` and `font-size` on `.cm-content` against `.markdown-body`. Impact for readers is about a pixel after a diagram when switching between reading and editing. | **Second investigation, 2026-10-05.** *Established:* the diagram width is fixed when Mermaid measures the labels, not when it draws them (the drawn label is 176.23 px wide in both views); the two views give different `viewBox` widths for the same source and the same configured font (`A[Source] --> B[Preview]`: reading view 290.05, editor 294.05; `A[Draft] --> B[Review] --> C[Publish]`: 434.20 against 437.02), and the difference depends on the diagram, not on a fixed amount. Re-rendering the same source in the reading view with `mermaid.render(...)`, the call the editor uses, gives the editor's number (294.05), so the reading view's first render, through `mermaid.run`, is what differs. *Ruled out:* page timing (`document.fonts.ready` and a 150 ms delay before the first run changed nothing), inherited text styles (a plain span measures 51.06 px in `<body>`, in `.mermaid` and in `article` alike), the configured font alone (it fixes the mixed document and breaks the simple one), and passing the stage as `render`'s third argument (no change, so the vendored `mermaid.render` probably ignores it). *Likely cause, not proved:* `mermaid.run` builds its temporary measuring SVG inside the `.mermaid` node, a flex container with padding, while `mermaid.render` builds it on `<body>`, and Mermaid's label boxes or layout come out a pixel or two narrower per node there. *Options:* make the reading view render through `mermaid.render` like the editor (changes the reader's core diagram path, which Quick Look, print and the popup share, so it needs the Mermaid tests and a hand check of each); or relax the test tolerance after a diagram to about 4 px with a comment, since the visible effect is a pixel or so when switching between reading and editing. Nothing was changed in the code. | **Resolved as known, 2026-10-05:** shipped in 2.0 as a cosmetic difference of 1 to 4 px; the cause is still unproved. The test now allows 4 px (`Fixture.diagramTolerance`) for the diagram and everything at or below it, and 1 px above, so the suite is green. Fixing it for real means making the reading view render through `mermaid.render`, as noted above. |
 | **F23** | Content width: Full Width by default, Quick Look Width, a width per window, and the reader's place kept | ✅ **done and hand-tested 2026-10-05** on build `1.3.2 (dev 7c49007)`: Full Width default, the place kept when the width changes, a default that reaches new windows and tabs only, and paragraphs reflowing under Join into paragraphs. (1) The saved default is now **Full Width**: the text uses the whole window and follows it as it grows or shrinks. (2) The capped 820 px column, which was called *Normal*, is now **Quick Look Width**, because it wraps lines where a Quick Look preview does; it is still stored as `normal`, so nothing saved needs migrating. A user who never saved anything, **including one who had chosen Normal on purpose** (the old code stored nothing for Normal), now gets Full Width. (3) **Each window keeps the width it opened with.** **Settings › General › Default content width** is the saved default, and it reaches **new windows and tabs only**; a window or tab that is already open does not change when the default does. **View ▸ Content Width** changes the front window alone and is not saved. (The first version let open windows follow the default; that was reported on 2026-10-05 and removed.) (4) Changing the width, the font or the line-break choice used to send the reader back to the top, because the page is re-rendered from scratch; the reader's place is now captured first as the heading above the top of the window plus the fraction of the way through that section, and restored once the new page is ready and has measured its headings (`ContentViewController.reloadPreviewForSettingChange`, `captureSectionAnchor`). A first version restored a source position, as the edit-mode switch does; it did not hold in the reading view. Three things changed together to fix it (the web view is laid out before the reload, the restore waits for the new page, and the anchor is a section), so which one was the cause is not known. Edit mode still uses its own source anchor and works. (5) The editor re-flows live (a `--mdp-column-max` custom property in `EditorHTML`) and keeps its line the same way. `ContentWidthSetting` moved to its own file so the test package compiles it; the Quick Look target lists it in the project's membership exceptions. Tests: `ContentWidthSettingTests`. **Not covered by a test:** keeping the reader's place, which needs the running app. | **Single new lines (same change, 2026-10-05):** the *Line breaks* setting is renamed **Single new lines** with the choices **Reflow (like a README)**, the default, and **Break (like a comment)**, and it follows the width's scope: Settings holds the default for new windows and tabs only, and **View ▸ Single New Lines** changes the front window alone, unsaved (`ContentViewController.strictLineBreaks`, `SingleNewLineStyle`). It is a view setting only: the editor always shows source lines, and the file is never changed. Reflow is now the default, because breaking at the document's own line ends enforces its author's wrapping and a hard-wrapped file (this one is wrapped at about 85 columns) then ignores the window; the principle is that Belvedere should show a Markdown file the way other tools do, with Quick-Look-style fixed layouts as options, not core behaviour. The stored value is unchanged (`strictLineBreaks`, true means join); the default is now stored as nothing and *Keep as typed* is stored as an explicit false. A reader who had chosen *Keep as typed* before had nothing stored and now sees Join. `EditorPreviewLayoutTests` measures parity against the editor with newlines kept, since the editor shows each source line. |
@@ -396,7 +412,7 @@ problem or create a new collision.
 
 This is the opposite of how the security work is treated. Containment (#337), the Quick
 Look Mermaid fix (#343) and the CSP (#339) are upstream's defects and go back to them;
-identity is a product decision. `contrib/*` branches are cut from `upstream/main`, so
+identity is a product decision. `contrib/*` branches, now in the contribution fork, are cut from `upstream/main`, so
 nothing under `artwork/` or `docs/icon-concepts/` can reach one by accident — but the rule
 is written down rather than left to that.
 
@@ -792,8 +808,9 @@ No separate comment was added to the issue: the PR body carries the analysis, an
 it twice is noise. If #343 is merged, this fork's copy becomes redundant and drops out on
 the next `git merge upstream/main`.
 
-**M4 — the `md-asset:` containment fix is carried locally, on purpose, and must be
-dropped again.** The fix went upstream as PR #337 and was deliberately *not* on this
+**M4 — the `md-asset:` containment fix is carried locally, on purpose.** (Written when it
+was expected to be dropped once upstream merged it. PR #337 was closed on 2026-10-01 without
+merging, so it stays.) The fix went upstream as PR #337 and was deliberately *not* on this
 fork's `main` for a while: the reasoning was that the build was for one person who mostly
 opens documents he wrote himself.
 
@@ -802,7 +819,7 @@ author's — they will open whatever arrives in `~/Downloads`. That is the trigg
 here for revisiting the decision, and it has now fired, so the fix is cherry-picked onto
 `main` rather than waiting on a maintainer who has not yet reviewed it.
 
-**How to remove it when upstream merges #337.** The cherry-pick and upstream's merge will
+**How to remove it if upstream ever merges an equivalent.** The cherry-pick and upstream's merge will
 be the same change arriving twice. If upstream merges it verbatim, `git merge
 upstream/main` resolves silently — both sides made the same edit. If the maintainer
 modified it, revert the cherry-pick *before* merging so the merge is clean and their
