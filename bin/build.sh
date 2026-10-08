@@ -288,13 +288,15 @@ package_dmg() {
         done
     fi
     rm -f "$dmg_path"
-    hdiutil create \
-        -volname "$APP_NAME" \
-        -srcfolder "$staging_dir" \
-        -ov -format UDZO \
+    # `hdiutil create` is deprecated. The result is the same kind of image: a
+    # compressed UDZO disk image holding an APFS volume of that name.
+    diskutil image create from \
+        --format UDZO \
+        --volumeName "$APP_NAME" \
+        "$staging_dir" \
         "$dmg_path"
 
-    # hdiutil leaves the image unsigned, and `spctl -t open` then answers "no
+    # The disk image is created unsigned, and `spctl -t open` then answers "no
     # usable signature" however well notarized the app inside it is.
     print_colored "$COLOR_BRIGHTYELLOW" "* Signing and notarizing the disk image"
     codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$dmg_path"
@@ -323,7 +325,7 @@ main() {
         || die "DEVELOPMENT_TEAM must be a 10-character team ID, got '$DEVELOPMENT_TEAM'"
 
     if [[ "$release_flag" == "true" ]]; then
-        require_command hdiutil
+        require_command diskutil
         security find-identity -v -p codesigning 2>/dev/null | grep -qF "$SIGNING_IDENTITY" \
             || die "signing identity not found in the keychain: $SIGNING_IDENTITY"
         xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
