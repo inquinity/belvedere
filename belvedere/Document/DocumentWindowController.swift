@@ -87,6 +87,9 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     var editorDraftMarkdown: String?
     /// Last known on-disk source, retained while preview displays a draft.
     var editorBaselineMarkdown: String?
+    /// The text of the file when the reader last answered "Cancel" to the
+    /// changed-on-disk prompt, so the same text does not ask again.
+    var declinedDiskMarkdown: String?
     var isEditorCommitInFlight = false
     var pendingEditorCommitRequested = false
     var pendingCommitShouldExit = false
@@ -525,13 +528,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, NSTo
     func startWatching(_ url: URL) {
         fileWatcher?.cancel()
         let watcher = FileWatcher(url: url) { [weak self] in
-            // While editing, disk changes (including our own ⌘S writes)
-            // must not re-render or clobber the in-progress session. Every
-            // commit revalidates the disk contents before writing, so an
-            // external edit is either reloaded or resolved explicitly.
-            guard let self, self.currentFileURL == url,
-                  !self.isEditing, !self.hasPendingEditorChanges else { return }
-            self.loadFile(at: url, silentOnFailure: true)
+            // The file changed on disk. Reloading is the default; unsaved
+            // edits are never replaced without the reader choosing. See
+            // `DiskChangePolicy` and `handleDiskChange(of:)`.
+            guard let self, self.currentFileURL == url else { return }
+            self.handleDiskChange(of: url)
         }
         watcher.onRename = { [weak self] newURL in
             self?.handleRename(to: newURL)

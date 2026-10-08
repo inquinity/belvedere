@@ -10,4 +10,12 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **A file that changes on disk now reloads, every time.** Belvedere could stop noticing changes to an
+  open file if another app deleted it and wrote it back a moment later, as some tools and syncing
+  do; the window then kept showing the old text until you closed and reopened the file. It now keeps
+  looking until the file is back.
+- **Changes made by another app while you are editing are no longer missed.** With nothing unsaved,
+  the editor takes the new text. With unsaved edits, a sheet asks what to keep: **Save As…** (your
+  edits go to a new file and the other app's version stays), **Overwrite** (your edits replace the
+  file), **Discard My Edits** (the file's text replaces them) or **Cancel**. Nothing is replaced until
+  you choose.

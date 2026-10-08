@@ -271,6 +271,24 @@ Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn
 | Go to File: type `man` in a folder with `remote-beacon.md`: it is not offered. `ug` still finds `user-guide.md` | Letters scattered through a name no longer match |
 | Settings › General: *Highlight outline section under the pointer* has a subtitle and an ⓘ that opens a popover | The setting explains itself |
 
+## 5g. The open file changes on disk
+
+Use a scratch copy of any note, opened in the app window. Change it from Terminal with `printf` or
+`cat >>`, or with another editor.
+
+| Check | Why |
+|---|---|
+| Reading view, nothing unsaved: append a line from Terminal. The new text appears within a second, no prompt | The default is to reload |
+| Delete the file, wait two seconds, write it again. The new text appears; then append once more and it appears too | The watcher used to go deaf after a slow recreate |
+| Replace the file by renaming another file over it (`mv new.md note.md`). The text appears, and a second replace works too | Atomic saves by editors and tools |
+| Edit mode, nothing typed: append from Terminal. The editor shows the new text with no prompt | Nothing unsaved is at risk |
+| Edit mode, type a few characters, then append from Terminal before autosave. A sheet says the file changed on disk, with **Save As…** (default), **Overwrite**, **Discard My Edits** and **Cancel** | Unsaved edits are never replaced without a choice |
+| In that sheet, **Cancel**: your edits stay; the same file text does not ask again; a different change asks again | A declined prompt must not nag |
+| **Discard My Edits**: the editor shows the file's text and the unsaved mark goes | The file's version wins |
+| **Overwrite**: the file now contains your edits, and editing continues | Your version wins |
+| **Save As…**: a save panel opens; after saving the window follows the new file, and the original still has the other app's version | Neither version is lost |
+| Leave edit mode with **Continue** so the edits stay as a draft, then append from Terminal: the same sheet appears | A kept draft is also unsaved work |
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:

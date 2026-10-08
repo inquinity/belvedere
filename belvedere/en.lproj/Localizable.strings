@@ -289,6 +289,13 @@
 "Back to reference %d" = "Back to reference %d";
 "KaTeX renderer is unavailable.\n\n" = "KaTeX renderer is unavailable.\n\n";
 
+/* Changed on disk while editing */
+"“%@” changed on disk" = "“%@” changed on disk";
+"Another app changed this file while you have unsaved edits. Your edits are still here, and nothing is lost until you choose." = "Another app changed this file while you have unsaved edits. Your edits are still here, and nothing is lost until you choose.";
+"Save As…" = "Save As…";
+"Overwrite" = "Overwrite";
+"Discard My Edits" = "Discard My Edits";
+
 /* Folder link confirmation */
 "Open the folder “%@”?" = "Open the folder “%@”?";
 "A link asked Belvedere to open %@. Documents open in this window may then show images from that folder." = "A link asked Belvedere to open %@. Documents open in this window may then show images from that folder.";

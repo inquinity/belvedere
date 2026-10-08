@@ -656,6 +656,106 @@ extension DocumentWindowController {
         }
     }
 
+    // MARK: - The open file changed on disk
+
+    /// Called by the file watcher. The file is reloaded without asking unless
+    /// there are unsaved edits, in which case the reader decides what to keep.
+    func handleDiskChange(of url: URL) {
+        guard currentFileURL == url, !isEditorCommitInFlight,
+              documentWindow.attachedSheet == nil else { return }
+        let disk = try? String(contentsOf: url, encoding: .utf8)
+        if isEditing, let editor = mainSplit?.editorViewController {
+            // The editor's own text is the truth about unsaved edits; the
+            // flag that tracks them can lag a keystroke behind.
+            editor.fetchMarkdown { [weak self] local in
+                guard let self else { return }
+                if local == nil, self.hasUnsavedEditorChanges { return }
+                self.applyDiskChange(disk: disk, local: local, url: url)
+            }
+        } else {
+            applyDiskChange(disk: disk, local: editorDraftMarkdown, url: url)
+        }
+    }
+
+    private func applyDiskChange(disk: String?, local: String?, url: URL) {
+        guard currentFileURL == url, !isEditorCommitInFlight,
+              documentWindow.attachedSheet == nil else { return }
+        let lastSaved = editorBaselineMarkdown ?? currentMarkdown
+        let action = DiskChangePolicy.action(disk: disk, lastSaved: lastSaved,
+                                             local: local, isEditing: isEditing)
+        switch action {
+        case .ignore:
+            break
+        case .reloadPreview:
+            if editorDraftMarkdown != nil || editorBaselineMarkdown != nil, let disk {
+                adoptExternalMarkdown(disk, editor: nil, exitAfter: false)
+            } else {
+                loadFile(at: url, silentOnFailure: true)
+            }
+        case .reloadEditor:
+            guard let disk else { return }
+            adoptExternalMarkdown(disk, editor: mainSplit?.editorViewController, exitAfter: false)
+        case .askWhatToDo:
+            guard let disk, let local, disk != declinedDiskMarkdown else { return }
+            presentDiskChangedWhileEditing(localMarkdown: local, diskMarkdown: disk, fileURL: url)
+        }
+    }
+
+    /// Unsaved edits and a file that changed under them: keep neither version
+    /// by accident. Save As… is the default because it loses nothing.
+    private func presentDiskChangedWhileEditing(localMarkdown: String,
+                                                diskMarkdown: String,
+                                                fileURL: URL) {
+        stopAutoSaveTimer()
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(
+            format: NSLocalizedString("“%@” changed on disk", comment: "Changed on disk alert title"),
+            fileURL.lastPathComponent
+        )
+        alert.informativeText = NSLocalizedString(
+            "Another app changed this file while you have unsaved edits. Your edits are still here, and nothing is lost until you choose.",
+            comment: "Changed on disk alert message"
+        )
+        alert.addButton(withTitle: NSLocalizedString("Save As…", comment: "Changed on disk alert button"))
+        alert.addButton(withTitle: NSLocalizedString("Overwrite", comment: "Changed on disk alert button"))
+        let discard = alert.addButton(withTitle: NSLocalizedString("Discard My Edits", comment: "Changed on disk alert button"))
+        discard.hasDestructiveAction = true
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Alert button"))
+        let editor = isEditing ? mainSplit?.editorViewController : nil
+        let revision = editorChangeRevision
+        alert.beginSheetModal(for: documentWindow) { [weak self] response in
+            guard let self else { return }
+            switch response {
+            case .alertFirstButtonReturn:
+                // Writes my edits to a new file and follows it; the file
+                // that changed keeps the other app's version.
+                self.isEditorCommitInFlight = true
+                self.saveMarkdownThroughPanel(localMarkdown) { result in
+                    self.handleEditedMarkdownSaveResult(result, body: localMarkdown, editor: editor,
+                                                        revision: revision, exitAfter: false)
+                }
+            case .alertSecondButtonReturn:
+                self.isEditorCommitInFlight = true
+                self.persistEditedMarkdown(localMarkdown, to: fileURL) { result in
+                    self.handleEditedMarkdownSaveResult(result, body: localMarkdown, editor: editor,
+                                                        revision: revision, exitAfter: false)
+                }
+            case .alertThirdButtonReturn:
+                // Read again: the file may have changed once more while the
+                // sheet was open.
+                guard let latest = try? String(contentsOf: fileURL, encoding: .utf8) else {
+                    NSSound.beep()
+                    return
+                }
+                self.adoptExternalMarkdown(latest, editor: editor, exitAfter: false)
+            default:
+                self.declinedDiskMarkdown = diskMarkdown
+                self.startAutoSaveTimerIfNeeded()
+            }
+        }
+    }
+
     func diskFileState(for url: URL?, expectedMarkdown: String?) -> DiskFileState {
         guard let url, let expectedMarkdown else { return .unreadable }
         do {
