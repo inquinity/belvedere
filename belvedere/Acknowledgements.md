@@ -1,7 +1,7 @@
 # Acknowledgements
 
-Belvedere is a fork of Markdown Preview and includes the open-source
-software below.
+Belvedere began from Markdown Preview, by pluk-inc, and includes the
+open-source software below.
 
 - **Markdown Preview** is used under the [MIT License](https://github.com/pluk-inc/markdown-preview/blob/main/LICENSE).
 - **swift-markdown** is used under the [Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.8.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.8.0/NOTICE.txt).

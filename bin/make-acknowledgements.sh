@@ -174,8 +174,8 @@ validate_sources() {
 render() {
     local entry
     printf '# Acknowledgements\n\n'
-    printf 'Belvedere is a fork of Markdown Preview and includes the open-source\n'
-    printf 'software below.\n\n'
+    printf 'Belvedere began from Markdown Preview, by pluk-inc, and includes the\n'
+    printf 'open-source software below.\n\n'
     for entry in "${ENTRIES[@]}"; do
         split_entry "$entry"
         printf -- '- **%s** is used under the %s.\n' "$entry_component" "$entry_license"

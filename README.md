@@ -10,7 +10,7 @@
   a document can reach the network, run something, or fake a sign-in prompt.
 </p>
 
-<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2015%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/belvedere?label=belvedere" /></p>
+<p align="center"><img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2026%2B-blue" />&nbsp;<img alt="Swift" src="https://img.shields.io/badge/swift-6.0-orange" />&nbsp;<img alt="License" src="https://img.shields.io/badge/license-MIT-green" />&nbsp;<img alt="Latest release" src="https://img.shields.io/github/v/release/inquinity/belvedere?label=belvedere" /></p>
 
 ---
 
@@ -139,7 +139,7 @@ just build
 ```
 
 Requires [`just`](https://github.com/casey/just) (`brew install just`). `just --list` shows
-the rest of the fork's build/release tasks, which wrap the scripts in `bin/`. Swift Package
+the rest of the build and release tasks, which wrap the scripts in `bin/`. Swift Package
 Manager resolves [swift-markdown](https://github.com/swiftlang/swift-markdown) on first
 build — Sparkle and Sentry are not dependencies here; both were removed entirely.
 
@@ -148,8 +148,8 @@ build — Sparkle and Sentry are not dependencies here; both were removed entire
 ```
 belvedere/         Main app target (AppKit, WKWebView)
 belvedere-quick-look/         Quick Look extension (.appex)
-bin/                This fork's build & release scripts (build.sh, publish-release.sh, …)
-scripts/            Upstream's own tooling, untouched so syncs apply cleanly
+bin/                Build & release scripts (build.sh, publish-release.sh, …)
+scripts/            Tooling inherited from Markdown Preview
 Version.xcconfig    Marketing & build version (single source of truth)
 ```
 
@@ -174,9 +174,9 @@ you'd like to change.
 3. Keep PRs focused; one logical change per PR.
 4. Match the existing Swift style (no formatter is enforced; mirror nearby code).
 
-A fix that belongs in Markdown Preview itself — rather than being specific to this fork's
+A fix that belongs in Markdown Preview itself — rather than being specific to Belvedere's
 hardening — is usually better sent there directly; see the upstream contribution track in
-[docs/FORK-NOTES.md](docs/FORK-NOTES.md) for how this fork handles that split.
+[docs/FORK-NOTES.md](docs/FORK-NOTES.md) for how that split is handled.
 
 ## Credits
 
@@ -184,15 +184,17 @@ hardening — is usually better sent there directly; see the upstream contributi
 - [Mermaid](https://mermaid.js.org/) — Bundled diagram renderer for `mermaid` fenced code blocks
 - [KaTeX](https://katex.org/) — Bundled math typesetter for inline `$…$`, display `$$…$$`, and ` ```math ` blocks
 
-## About this fork
+## Origins and credit
 
-Belvedere is a fork of [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
-[pluk-inc](https://github.com/pluk-inc), hardened to remove its outbound network connections
-and tighten how it handles untrusted documents. See
-[docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and why. For upstream's
-own branding, screenshots, and ways to support that project, see its repository directly.
+Belvedere began from [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
+[pluk-inc](https://github.com/pluk-inc), and owes it the original reader, editor and Quick
+Look extension. It has since gone its own way: no outbound network connections, a stricter
+handling of untrusted documents, and its own releases. Several of its fixes were sent back to
+Markdown Preview. See [docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and
+why. For Markdown Preview's own branding, screenshots, and ways to support that project, see
+its repository directly.
 
-Belvedere and upstream Markdown Preview install side by side — different bundle ID, different
+Belvedere and Markdown Preview install side by side — different bundle ID, different
 icon — so having one doesn't remove or conflict with the other. Markdown Preview itself is
 `brew install --cask markdown-preview` from the
 [official cask repository](https://formulae.brew.sh/cask/markdown-preview).
