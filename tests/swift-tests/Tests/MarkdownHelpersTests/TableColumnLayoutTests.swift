@@ -36,13 +36,52 @@ final class TableColumnLayoutTests: XCTestCase {
         """)
     }
 
-    private func assertColumnsKeepTheirWords(_ markdown: String) async throws {
+    /// The reported case: Full Width, a wide window, and a wide column between
+    /// narrow ones at both ends, the way the roadmap table is shaped. The
+    /// last column squeezed to a letter as badly as the first.
+    func testNarrowFirstAndLastColumnsKeepTheirWordsInFullWidth() async throws {
+        let long = Self.long
+        let rows = (1...3).map { "| F\($0)9 | Quick Look repair setting | \(long) | 2.1 candidate |" }.joined(separator: "\n")
+        let markdown = "| ID | Item | Where it stands | Release |\n| --- | --- | --- | --- |\n" + rows
+        try await assertColumnsKeepTheirWords(markdown, contentWidth: .full, width: 2000)
+        try await assertColumnsKeepTheirWords(markdown, contentWidth: .full, width: 1100)
+    }
+
+    /// Something that cannot break, such as a long address, widens its column and
+    /// the table scrolls sideways. It is not cut into pieces and it does not
+    /// squeeze the other columns.
+    func testAnUnbreakableStringScrollsInsteadOfSqueezingTheOthers() async throws {
+        let address = "https://example.com/" + String(repeating: "segment/", count: 40) + "end"
+        let markdown = "| ID | Link | Release |\n| --- | --- | --- |\n| F19 | \(address) | 2.1 candidate |"
         let html = MarkdownHTML.render(
-            markdown: markdown, allowsScroll: true, contentWidth: .centered,
+            markdown: markdown, allowsScroll: true, contentWidth: .full,
             documentFont: .system, readerLayout: ReaderLayoutSetting(),
             pageTopClearance: MarkdownHTML.appPageTopClearance
         ).html
         let harness = WebViewLayoutHarness(html: html, width: 900, isEditor: false, height: 900)
+        defer { harness.close() }
+        _ = try await harness.layout(texts: [], imageCount: 0, selectors: ["table": 1])
+        let result = try await harness.webView.callAsyncJavaScript("""
+            const table = document.querySelector('table');
+            const widths = [...table.querySelector('tr').children].map(c => c.getBoundingClientRect().width);
+            return JSON.stringify({scrolls: table.scrollWidth > table.clientWidth + 1, first: widths[0], last: widths[2]});
+            """, in: nil, contentWorld: .page)
+        let json = try XCTUnwrap(result as? String)
+        let measured = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+        XCTAssertEqual(measured["scrolls"] as? Bool, true)
+        XCTAssertGreaterThan(measured["first"] as? Double ?? 0, 30, "The first column was squeezed.")
+        XCTAssertGreaterThan(measured["last"] as? Double ?? 0, 60, "The last column was squeezed.")
+    }
+
+    private func assertColumnsKeepTheirWords(_ markdown: String,
+                                             contentWidth: MarkdownHTML.ContentWidth = .centered,
+                                             width: CGFloat = 900) async throws {
+        let html = MarkdownHTML.render(
+            markdown: markdown, allowsScroll: true, contentWidth: contentWidth,
+            documentFont: .system, readerLayout: ReaderLayoutSetting(),
+            pageTopClearance: MarkdownHTML.appPageTopClearance
+        ).html
+        let harness = WebViewLayoutHarness(html: html, width: width, isEditor: false, height: 900)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0, selectors: ["table": 1])
 
@@ -53,7 +92,7 @@ final class TableColumnLayoutTests: XCTestCase {
             probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
             document.body.appendChild(probe);
             const problems = [];
-            for (const cell of document.querySelectorAll('tr > :nth-child(-n+2)')) {
+            for (const cell of document.querySelectorAll('tr > *')) {
                 const style = getComputedStyle(cell);
                 probe.style.font = style.font;
                 const room = cell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
