@@ -73,6 +73,46 @@ final class TableColumnLayoutTests: XCTestCase {
         XCTAssertGreaterThan(measured["last"] as? Double ?? 0, 60, "The last column was squeezed.")
     }
 
+    /// The editor draws tables itself, and its cells had the same `anywhere`.
+    /// Opening a document with a wide table in edit mode showed the first and last
+    /// columns a letter wide ("I" over "D", "R-el-e-a-s-e"). The reader had been
+    /// fixed; the editor had not, and the tests only looked at the reader.
+    func testEditorTableColumnsKeepTheirWords() async throws {
+        let long = Self.long
+        let rows = (1...3).map { "| F\($0)9 | Quick Look repair setting | \(long) | 2.1 candidate |" }.joined(separator: "\n")
+        let markdown = "| ID | Item | Where it stands | Release |\n| --- | --- | --- | --- |\n" + rows + "\n"
+        let editorScript = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
+        for width in [CGFloat(2000), 1100] {
+            let html = EditorHTML.render(
+                markdown: markdown, editorJavaScript: editorScript, mermaidJavaScript: nil,
+                configuration: .init(fullWidth: true, usesPageScrolling: true)
+            )
+            let harness = WebViewLayoutHarness(html: html, width: width, isEditor: true, height: 900)
+            defer { harness.close() }
+            _ = try await harness.layout(texts: [], imageCount: 0, selectors: [".cm-md-table-grid": 1])
+            let result = try await harness.webView.callAsyncJavaScript("""
+                const probe = document.createElement('span');
+                probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+                document.body.appendChild(probe);
+                const problems = [];
+                for (const cell of document.querySelectorAll('.cm-md-table-grid .cm-md-table-cell')) {
+                    const style = getComputedStyle(cell);
+                    probe.style.font = style.font;
+                    const room = cell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                    for (const word of cell.textContent.trim().split(/[\\s-]+/)) {
+                        probe.textContent = word;
+                        const needed = probe.getBoundingClientRect().width;
+                        if (needed > room + 0.5) problems.push(word + ': needs ' + needed.toFixed(1) + ', has ' + room.toFixed(1));
+                    }
+                }
+                return JSON.stringify(problems);
+                """, in: nil, contentWorld: .page)
+            let json = try XCTUnwrap(result as? String)
+            let problems = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String])
+            XCTAssertEqual(problems, [], "Editor table at \(Int(width)) px: a column is narrower than its longest word.")
+        }
+    }
+
     private func assertColumnsKeepTheirWords(_ markdown: String,
                                              contentWidth: MarkdownHTML.ContentWidth = .centered,
                                              width: CGFloat = 900) async throws {

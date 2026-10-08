@@ -19,3 +19,6 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
   edits go to a new file and the other app's version stays), **Overwrite** (your edits replace the
   file), **Discard My Edits** (the file's text replaces them) or **Cancel**. Nothing is replaced until
   you choose.
+- **Wide tables are readable in the editor.** In edit mode a table with one wide column squeezed the
+  others to a letter each ("I" over "D"); each column now keeps at least its longest word, as in the
+  reading view.

@@ -15,6 +15,8 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **Leaving the GitHub fork link (H12): done on 2026-10-08, one thing left.** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`, cleaned down to a contribution fork. Left: delete the two private test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview` (the CLI token cannot delete repositories). The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
+**Next (2.0.1):** two fixes already on `main`, to be released together: F25 (wide tables squeezed to a letter per column in the editor) and F26 (changes to the open file made by another app were missed, and are now offered a choice). F26's sheet has unit tests but has not been run in the app yet.
+
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
 **Unscheduled:** the ideas, upstream work and housekeeping under Open.
@@ -24,6 +26,8 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 | ID | Item | Where it stands | Release |
 |---|---|---|---|
 | **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.1 candidate |
+| **F25** | Wide tables squeezed to a letter per column in the editor | Fixed on `main`; ships in 2.0.1. The editor's cells had the same wrapping as the reading view's before 1.3.2. | 2.0.1 |
+| **F26** | Changes to the open file made by another app | Fixed on `main`; ships in 2.0.1. Reloads by itself unless there are unsaved edits, then asks. Needs a hand test. | 2.0.1 |
 | **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.1 candidate |
 | **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.1 candidate |
 | **F22** | Mermaid size differs 1–4 px between reader and editor | Cause unproved. Ships as a known limitation in 2.0; the layout test allows 4 px after a diagram. | 2.0, known |

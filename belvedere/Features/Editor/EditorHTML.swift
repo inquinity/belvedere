@@ -604,9 +604,20 @@ nonisolated enum EditorHTML {
             padding: 8px 12px;
             outline: none;
             white-space: pre-wrap;
-            overflow-wrap: anywhere;
+            /* Not `anywhere`: that also lowers a cell's minimum width to one
+               character, so beside one wide column the others were squeezed to
+               a letter each ("I" over "D"). `break-word` still breaks a string
+               that cannot fit and keeps each column as wide as its longest
+               word. The reading view's cells follow the same rule. */
+            overflow-wrap: break-word;
+            /* CodeMirror's line wrapping also sets `word-break: break-word`,
+               which behaves like `anywhere` for the minimum width. */
+            word-break: normal;
             cursor: text;
         }
+        /* Inline code sets `anywhere` itself; a column of code spans would
+           shrink to a letter the same way. */
+        .cm-md-table-cell .cm-md-inline-code { overflow-wrap: break-word; word-break: normal; }
         .cm-md-table-grid th .cm-md-table-cell[data-placeholder]:empty::before {
             content: attr(data-placeholder);
             color: var(--secondary);
