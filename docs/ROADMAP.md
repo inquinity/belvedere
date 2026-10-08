@@ -13,7 +13,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **2.0 shipped 2026-10-06** (tag `v2.0.0`, build 17). Its scope is everything under *2.0* in Done below. It was reviewed branch-wide and hand-tested on an M5 (macOS 26), an Intel Mac (macOS 26) and an Apple silicon Mac (macOS 27), so the x86_64 slice has run. Rosetta is never used.
 
-**In progress: leaving the GitHub fork link (H12).** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`. Left to do: clean the contribution fork down to what it is for (`main` reset to upstream, Belvedere's releases, tags and branches removed), and delete the throwaway test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview`. The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
+**Leaving the GitHub fork link (H12): done on 2026-10-08, one thing left.** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`, cleaned down to a contribution fork. Left: delete the two private test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview` (the CLI token cannot delete repositories). The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
 **Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
@@ -63,7 +63,7 @@ Newest release first.
 | **H8** | Rename project, folders and keys to `belvedere` | `belvedere://`, `belvedere.*` settings keys, one-time key migration. |
 | **H10** | Minimum macOS is 26 | Every `#available(macOS 26)` check and fallback removed: one code path for the window chrome. 26.1 and 27 checks stay. |
 | **H11** | Universal build | Release builds carry arm64 and x86_64, and the build script checks both. |
-| **H12** | Belvedere is no longer a GitHub fork | The repository was replaced, not detached: the old repository became `inquinity/markdown-preview`, the contribution fork, and a new non-fork `inquinity/belvedere` took the name, with all history, tags and the ten releases. README and About credit Markdown Preview as the origin. In progress, see Plan. |
+| **H12** | Belvedere is no longer a GitHub fork | The repository was replaced, not detached: the old repository became `inquinity/markdown-preview`, the contribution fork, and a new non-fork `inquinity/belvedere` took the name, with all history, tags and the ten releases. README and About credit Markdown Preview as the origin. The ten releases were re-created, so GitHub shows 2026-10-08 as their date; each release's notes say the original date, taken from its tag. See Plan for what is left. |
 | **F21** | Go to File matched scattered letters | A letter may sit at most three characters past the last, unless at a word start. |
 
 ### 1.3.2
