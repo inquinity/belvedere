@@ -154,6 +154,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// finishes. Unlike heightDidChange, this also fires when the new
     /// document happens to lay out at the same height as the old one.
     var contentDidReplace: (() -> Void)?
+    var selectedTextDidChange: ((String?) -> Void)?
     var zoomDidChange: ((CGFloat) -> Void)?
     var fragmentLinkActivated: ((String) -> Void)?
     var pointerDocumentYDidChange: ((CGFloat) -> Void)?
@@ -569,6 +570,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             return
         }
 
+        // A full page load drops any selection in the old page without a
+        // selectionchange, and the new page starts with no selection.
+        selectedTextDidChange?(nil)
+
         #if DEBUG
         let loadStartedAt = DispatchTime.now().uptimeNanoseconds
         webView.loadHTMLString(PreviewContentPolicy.applying(to: rendered.html), baseURL: nil)
@@ -769,6 +774,9 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             }
             handler(LinkDestinationLabel.text(for: url, sameDocumentFragment: sameDocumentFragmentID(from: url)))
         #endif
+        case "selectedText":
+            guard dict["value"] is String || dict["value"] is NSNull else { return }
+            selectedTextDidChange?(dict["value"] as? String)
         case "linkContextMenu":
             guard let raw = dict["url"] as? String, let url = URL(string: raw) else { return }
             showLinkContextMenu(url)
