@@ -26,6 +26,9 @@ final class MainSplitViewController: NSSplitViewController {
     /// visible tab bar, reduced in full screen. The overlay constraints
     /// and the editor's page padding must use the same value.
     static func tabBarOverlap(for window: NSWindow?) -> CGFloat {
+        // macOS 27 closes the tab bar with a hard header edge instead of an
+        // empty margin, so tucking upward presses the rows against it.
+        if #available(macOS 27.0, *) { return 0 }
         guard let window, window.tabGroup?.isTabBarVisible == true else { return 0 }
         return window.styleMask.contains(.fullScreen)
             ? formattingBarTabBarOverlapFullScreen : formattingBarTabBarOverlap
