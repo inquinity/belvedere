@@ -33,6 +33,13 @@ enum PreviewContentPolicy {
     ///   images from the document's folder, which go out with an `image/*`
     ///   type and `nosniff` so WebKit will not run them as scripts. So this is
     ///   narrower than it looks.
+    /// - `style-src md-asset:` — the editor loads KaTeX's stylesheet over the
+    ///   scheme the first time a formula renders, rather than carrying 360 KB
+    ///   of CSS in every editor page. The same handler serves it: only
+    ///   allow-listed bundle files, and user files only as `image/*` with
+    ///   `nosniff`, which WebKit refuses as a stylesheet. Documents cannot
+    ///   add a `<link>` or `<style>` (the sanitizer forbids both), and the
+    ///   editor shows a document as text.
     /// - `img-src md-asset:` — local images in the document, resolved against
     ///   the page's `<base href>`.
     /// - `font-src data:` — the bundled KaTeX CSS carries its fonts as base64
@@ -44,7 +51,7 @@ enum PreviewContentPolicy {
     static let policy = [
         "default-src 'none'",
         "script-src 'unsafe-inline' md-asset:",
-        "style-src 'unsafe-inline'",
+        "style-src 'unsafe-inline' md-asset:",
         "img-src md-asset: data:",
         "font-src data:"
     ].joined(separator: "; ")

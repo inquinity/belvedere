@@ -391,6 +391,7 @@
 
 /* Table fullscreen control. */
 "Expand Table" = "Expand Table";
+"Math formula. Click to edit source." = "Math formula. Click to edit source.";
 
 /* Reading text alignment */
 "Text alignment" = "Text alignment";
