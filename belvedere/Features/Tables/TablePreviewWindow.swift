@@ -40,6 +40,22 @@ final class TablePreviewWindow: NSObject, NSWindowDelegate {
                     article.markdown-body { max-width: none !important; margin: 0 !important; }
                     [data-md-app="table-actions"] { display: none !important; }
                     .md-table-wrap { padding-top: 0 !important; margin-top: 0 !important; }
+                    /* The header row sticks to the window, so the page
+                       must be the only scroller: the article and the table
+                       scroll horizontally in the document. A theme page
+                       color wins over the default background here. */
+                    html { overflow-x: auto !important; }
+                    :where(html) { background: -apple-system-text-background; }
+                    article.markdown-body, table { overflow: visible; }
+                    /* Only a single column header row: row headers in a raw
+                       HTML table body, or several header rows, would pile
+                       up at the top. */
+                    thead > tr:only-child > th {
+                        position: sticky;
+                        top: 0;
+                        background: var(--mdp-page-bg, -apple-system-text-background);
+                        box-shadow: inset 0 -1px var(--grid);
+                    }
                 `;
                 document.head.append(tableWindowStyle);
                 """, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
