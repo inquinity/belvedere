@@ -400,3 +400,13 @@
 "Right" = "Right";
 "Justified" = "Justified";
 "Alignment applies to prose in reading view and Quick Look. Automatic follows the document. Code, tables and explicit HTML alignment are preserved." = "Alignment applies to prose in reading view and Quick Look. Automatic follows the document. Code, tables and explicit HTML alignment are preserved.";
+
+/* Project navigator filter bar */
+"Filter" = "Filter";
+"Show Only Recent Files" = "Show Only Recent Files";
+"Add" = "Add";
+"New Empty File" = "New Empty File";
+"New File from Clipboard" = "New File from Clipboard";
+"New Folder" = "New Folder";
+"Add Files to “%@”…" = "Add Files to “%@”…";
+"Allow Belvedere to make files in “%@”." = "Allow Belvedere to make files in “%@”.";

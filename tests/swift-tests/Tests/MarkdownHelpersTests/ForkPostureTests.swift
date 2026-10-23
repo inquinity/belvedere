@@ -122,6 +122,19 @@ final class ForkPostureTests: XCTestCase {
         )
     }
 
+    /// The navigator's + menu asks for write access to a folder and keeps it
+    /// until the app quits. Upstream saves it as a security-scoped bookmark,
+    /// which needs this entitlement and leaves a lasting grant with no way to
+    /// see or revoke it. Lasting grants belong with trusted folders.
+    func testFolderWriteGrantsAreNotSavedAsBookmarks() throws {
+        let entitlements = try plist(at: "belvedere/belvedere.entitlements")
+        XCTAssertNil(entitlements["com.apple.security.files.bookmarks.app-scope"],
+                     "The bookmarks entitlement is back; see the navigator's withWriteAccess.")
+        let navigator = try text(at: "belvedere/Features/Sidebar/ProjectNavigatorView.swift")
+        XCTAssertFalse(navigator.contains("bookmarkData("), "The navigator saves a folder grant again.")
+        XCTAssertFalse(navigator.contains("resolvingBookmarkData"), "The navigator restores a folder grant again.")
+    }
+
     // MARK: - Telemetry and updater
 
     func testInfoPlistCarriesNoTelemetryOrUpdaterKeys() throws {
