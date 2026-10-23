@@ -142,6 +142,10 @@ nonisolated extension MarkdownHTML {
         // Controls injected into the article. Copying and Inspector counts
         // both leave them out.
         const MD_CHROME_SELECTOR = '.md-code-header, [data-md-app="table-actions"], .mermaid-hud';
+        // A decorated table sits in its wrapper, or in the inner scroller
+        // that column resize adds. Both carry the app's marker, which the
+        // sanitizer removes from documents.
+        const MD_TABLE_PARENT_SELECTOR = '[data-md-app="table-wrap"], [data-md-app="table-scroll"]';
         // Rendered but not document text: diagram zoom controls and KaTeX's
         // visually hidden MathML twin. Inspector counts only.
         const MD_UNCOUNTED_SELECTOR = MD_CHROME_SELECTOR + ', .mermaid-hud, .katex-mathml';
@@ -662,7 +666,7 @@ nonisolated extension MarkdownHTML {
             if (!hasHostBridge || !\(tablePopupEnabled)) return;
             root.querySelectorAll('table').forEach(table => {
                 if (table.closest('.md-frontmatter') || table.parentElement.closest('table')
-                    || table.parentElement.dataset.mdApp === 'table-wrap') return;
+                    || table.parentElement.matches(MD_TABLE_PARENT_SELECTOR)) return;
                 const wrap = document.createElement('div');
                 wrap.className = 'md-table-wrap';
                 wrap.dataset.mdApp = 'table-wrap';
@@ -682,6 +686,17 @@ nonisolated extension MarkdownHTML {
                 wrap.prepend(actions);
             });
         }
+        // Undoes everything column resize adds to a table (below). The
+        // Expand button and export use it, so neither copies dragged widths.
+        function clearColumnResize(table) {
+            table.querySelector('.mdp-column-edge-active')?.classList.remove('mdp-column-edge-active');
+            if (!table.classList.contains('mdp-columns-resized')) return;
+            const scroller = table.parentElement;
+            if (scroller?.dataset.mdApp === 'table-scroll') scroller.replaceWith(table);
+            table.querySelector(':scope > colgroup[data-md-app="column-widths"]')?.remove();
+            table.classList.remove('mdp-columns-resized');
+            table.style.removeProperty('width');
+        }
         document.addEventListener('click', event => {
             const button = event.target.closest('[data-md-app="table-expand"]');
             // No `isTrusted` check: documents run no script, so the marker,
@@ -692,6 +707,8 @@ nonisolated extension MarkdownHTML {
             event.preventDefault();
             const clone = table.cloneNode(true);
             clone.querySelectorAll('[data-md-app="table-actions"], .md-code-header').forEach(node => node.remove());
+            // The table window starts at natural widths, not the document's.
+            clearColumnResize(clone);
             let title = '';
             for (const heading of document.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
                 if (heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -700,6 +717,152 @@ nonisolated extension MarkdownHTML {
             }
             post({kind: 'tablePopup', markdown: clone.outerHTML, title});
         });
+
+        // Drag the edge between two header cells to resize a column, in the
+        // document and in the table window; double-click an edge to fit that
+        // column to its header text. The first drag fixes each column at its
+        // current width, so the others keep theirs. Widths are not saved: a
+        // new render, export, or print uses the natural widths.
+        if (hasHostBridge && \(tablePopupEnabled)) (() => {
+            const edgeSlop = 5;
+            const minimumWidth = 40;
+            let drag = null;
+            let activeCell = null;
+
+            function headerCells(table) {
+                const row = table.tHead?.rows[0] ?? table.rows[0];
+                return row ? Array.from(row.cells) : [];
+            }
+
+            // A cell's start edge is the previous column's end edge, so the
+            // pointer can grab an edge from either side of it.
+            function edgeAt(event) {
+                const cell = event.target.closest?.('th');
+                if (!cell) return null;
+                // Runs on every pointer move over a header: bail out before
+                // the table checks unless the pointer is near a cell side.
+                const rect = cell.getBoundingClientRect();
+                if (Math.abs(event.clientX - rect.left) > edgeSlop
+                    && Math.abs(event.clientX - rect.right) > edgeSlop) return null;
+                const table = cell.closest('table');
+                if (!table?.parentElement.matches(MD_TABLE_PARENT_SELECTOR)) return null;
+                const cells = headerCells(table);
+                const index = cells.indexOf(cell);
+                if (index < 0 || cells.some(c => c.colSpan > 1)
+                    || table.querySelector(':scope > colgroup:not([data-md-app="column-widths"])')) return null;
+                const rtl = getComputedStyle(table).direction === 'rtl';
+                const end = rtl ? rect.left : rect.right;
+                const start = rtl ? rect.right : rect.left;
+                if (Math.abs(event.clientX - end) <= edgeSlop) return { table, cells, index, rtl };
+                if (index > 0 && Math.abs(event.clientX - start) <= edgeSlop)
+                    return { table, cells, index: index - 1, rtl };
+                return null;
+            }
+
+            function fixColumns(table, cells) {
+                const existing = table.querySelector(':scope > colgroup[data-md-app="column-widths"]');
+                if (existing) return Array.from(existing.children);
+                const widths = cells.map(cell => cell.getBoundingClientRect().width);
+                const group = document.createElement('colgroup');
+                group.dataset.mdApp = 'column-widths';
+                const cols = widths.map(width => {
+                    const col = document.createElement('col');
+                    col.style.width = `${width}px`;
+                    return group.appendChild(col);
+                });
+                table.prepend(group);
+                // Fixed widths need a real table box, which cannot scroll, so
+                // an inner box scrolls it. The wrapper stays put, and with it
+                // the Expand button.
+                // Keep the reader's place: before this, the table itself
+                // scrolled horizontally.
+                const scrollLeft = table.scrollLeft;
+                const scroller = document.createElement('div');
+                scroller.className = 'md-table-scroll';
+                scroller.dataset.mdApp = 'table-scroll';
+                table.before(scroller);
+                scroller.append(table);
+                table.classList.add('mdp-columns-resized');
+                table.style.width = `${widths.reduce((sum, width) => sum + width, 0)}px`;
+                // Only after the width is set: until then the table fits the box.
+                scroller.scrollLeft = scrollLeft;
+                return cols;
+            }
+
+            // Measures the header text on one line, so the column is just
+            // wide enough for its name. Body cells keep wrapping in it.
+            function fitColumn(table, cells, index) {
+                const col = fixColumns(table, cells)[index];
+                const cell = cells[index];
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                cell.style.whiteSpace = 'nowrap';
+                const textWidth = range.getBoundingClientRect().width;
+                cell.style.removeProperty('white-space');
+                const style = getComputedStyle(cell);
+                const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                const width = Math.max(minimumWidth, Math.ceil(textWidth + padding) + 1);
+                const tableWidth = parseFloat(table.style.width) - parseFloat(col.style.width) + width;
+                col.style.width = `${width}px`;
+                table.style.width = `${tableWidth}px`;
+            }
+
+            function showEdge(cell) {
+                if (cell === activeCell) return;
+                activeCell?.classList.remove('mdp-column-edge-active');
+                activeCell = cell;
+                cell?.classList.add('mdp-column-edge-active');
+            }
+
+            function endDrag() {
+                drag = null;
+                showEdge(null);
+                document.documentElement.classList.remove('mdp-column-resizing');
+            }
+
+            document.addEventListener('pointermove', event => {
+                // The release can go to a context menu instead of the page.
+                if (drag && !(event.buttons & 1)) endDrag();
+                if (!drag) {
+                    const edge = edgeAt(event);
+                    showEdge(edge ? edge.cells[edge.index] : null);
+                    return;
+                }
+                const delta = (event.clientX - drag.x) * (drag.rtl ? -1 : 1);
+                const width = Math.max(minimumWidth, drag.width + delta);
+                drag.col.style.width = `${width}px`;
+                drag.table.style.width = `${drag.tableWidth - drag.width + width}px`;
+            });
+            document.addEventListener('pointerdown', event => {
+                // Control-click opens the context menu on macOS.
+                if (event.button !== 0 || event.ctrlKey) return;
+                const edge = edgeAt(event);
+                if (!edge) return;
+                // Without this the drag selects the header text.
+                event.preventDefault();
+                const col = fixColumns(edge.table, edge.cells)[edge.index];
+                drag = {
+                    table: edge.table, col, rtl: edge.rtl, x: event.clientX,
+                    width: parseFloat(col.style.width),
+                    tableWidth: parseFloat(edge.table.style.width),
+                };
+                document.documentElement.classList.add('mdp-column-resizing');
+                event.target.setPointerCapture?.(event.pointerId);
+            });
+            // A double-click starts its word selection on mousedown, which
+            // the pointerdown handler alone does not stop.
+            document.addEventListener('mousedown', event => {
+                if (edgeAt(event)) event.preventDefault();
+            });
+            document.addEventListener('pointerup', endDrag);
+            document.addEventListener('pointercancel', endDrag);
+            document.addEventListener('dblclick', event => {
+                const edge = edgeAt(event);
+                if (!edge) return;
+                event.preventDefault();
+                fitColumn(edge.table, edge.cells, edge.index);
+            });
+        })();
 
         function selectionFragment(selection) {
             const fragment = document.createDocumentFragment();
@@ -1202,6 +1365,7 @@ nonisolated extension MarkdownHTML {
         // second update without the flag once the real document arrives,
         // which clears the inline style and reveals the article.
         window.MdPreview.markdownForSelection = markdownForSelection;
+        window.MdPreview.clearColumnResize = clearColumnResize;
 
         window.MdPreview.update = (articleHTML, opts) => {
             // The Markdown behind the article, for copy-as-source.

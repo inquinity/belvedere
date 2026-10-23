@@ -26,7 +26,7 @@ nonisolated extension MarkdownHTML {
 
     static let tableControlsCSS = """
     .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
-    .md-table-wrap > table { margin-top: 0; }
+    .md-table-wrap > table, [data-md-app="table-scroll"] > table { margin-top: 0; }
     /* Just above the table's leading edge, 4px clear of it, so the control
        reads as belonging to the table. At the far end of the column it was
        nowhere near a narrow table. */
@@ -44,6 +44,46 @@ nonisolated extension MarkdownHTML {
     .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }
     html.\(previewPrintClass) [data-md-app="table-actions"] { display: none; }
+    /* Column resize. A short divider between header cells shows where to
+       grab a column edge; the edge under the pointer is darker, and the last
+       edge has a divider only then. A border, not a 1px background, so
+       WebKit snaps it to whole pixels and it stays as sharp as the row lines
+       at every zoom. :where keeps these weaker than the table window's
+       sticky header. */
+    @media screen {
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th { position: relative; }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th::after {
+            content: '';
+            position: absolute;
+            inset-inline-end: 0;
+            top: 25%;
+            bottom: 25%;
+            border-inline-end: 1px solid transparent;
+        }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th:not(:last-child)::after { border-color: var(--grid); }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th.mdp-column-edge-active::after { border-color: var(--secondary); }
+        [data-md-app="table-scroll"] {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+        }
+        table.mdp-columns-resized { display: table; table-layout: fixed; max-width: none; }
+        table.mdp-columns-resized :is(th, td) { overflow-wrap: anywhere; }
+        /* The hover cursor sits on the one cell under the pointer: a class on
+           the root would restyle the whole page at each edge crossing. */
+        thead th.mdp-column-edge-active, html.mdp-column-resizing * { cursor: col-resize !important; }
+        html.mdp-column-resizing { -webkit-user-select: none; user-select: none; }
+    }
+    html.\(previewPrintClass) :is([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th::after { content: none; }
+    html.\(previewPrintClass) table.mdp-columns-resized {
+        display: block; table-layout: auto; max-width: 100%; width: auto !important;
+    }
+    html.\(previewPrintClass) colgroup[data-md-app="column-widths"] { display: none; }
+    @media print {
+        table.mdp-columns-resized { width: auto !important; }
+        colgroup[data-md-app="column-widths"] { display: none; }
+    }
     html.\(previewPrintClass) .md-table-wrap { padding-top: 0; }
     @media print {
         [data-md-app="table-actions"] { display: none !important; }

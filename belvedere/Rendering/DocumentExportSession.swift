@@ -62,6 +62,8 @@ final class DocumentExportSession {
             // By the app's own marker, never by class: a document's own
             // `md-table-actions` or `md-table-wrap` must reach the output.
             copy.querySelectorAll('script, [data-md-app="table-actions"]').forEach(node => node.remove());
+            // Dragged column widths are for reading; exports use natural widths.
+            copy.querySelectorAll('table').forEach(table => window.MdPreview?.clearColumnResize?.(table));
             copy.querySelectorAll('[data-md-app="table-wrap"]').forEach(wrap => wrap.replaceWith(...wrap.childNodes));
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             copy.querySelectorAll('input[type="checkbox"]').forEach((box, index) => {
