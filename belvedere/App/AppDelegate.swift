@@ -71,7 +71,7 @@ private extension AppearanceMode {
 }
 
 @main
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenuItemValidation {
 
     private var settingsWindowController: SettingsWindowController?
     /// Non-zero while `withCoalescedPreviewReloads` is holding reloads back.
@@ -121,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installOpenFolderMenuItem()
         installFileExportMenuItems()
         installGoMenu()
+        installSelectTabMenuItems()
         installSettingsMenuItem()
         NSApp.windowsMenu?.delegate = self
         installAboutMenuItem()
@@ -556,6 +557,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return activeDocumentWindowController?.canToggleEditMode ?? false
         case #selector(formatMarkdownFromMenu(_:)):
             return activeDocumentWindowController?.canFormatMarkdown ?? false
+        case #selector(selectTabFromMenu(_:)):
+            return tabWindow(forShortcut: menuItem.tag) != nil
         default:
             return true
         }
@@ -854,6 +857,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let insertIndex = fileMenu.items
             .firstIndex { $0.action == #selector(openDocument(_:)) } ?? 0
         fileMenu.insertItem(item, at: insertIndex)
+    }
+
+    private func installSelectTabMenuItems() {
+        guard let windowMenu = NSApp.windowsMenu ?? topLevelSubmenu(matching: Self.windowMenuTitles),
+              !windowMenu.items.contains(where: {
+                  $0.action == #selector(selectTabFromMenu(_:))
+              }) else { return }
+
+        // Hidden, as in Safari: ⌘1–⌘8 select that tab and ⌘9 the last one.
+        for number in 1...9 {
+            let item = NSMenuItem(title: "Select Tab \(number)",
+                                  action: #selector(selectTabFromMenu(_:)),
+                                  keyEquivalent: String(number))
+            item.tag = number
+            item.target = self
+            item.isHidden = true
+            item.allowsKeyEquivalentWhenHidden = true
+            windowMenu.addItem(item)
+        }
+    }
+
+    @objc private func selectTabFromMenu(_ sender: NSMenuItem) {
+        tabWindow(forShortcut: sender.tag)?.makeKeyAndOrderFront(nil)
+    }
+
+    private func tabWindow(forShortcut number: Int) -> NSWindow? {
+        guard let windows = NSApp.mainWindow?.tabGroup?.windows,
+              windows.count > 1 else { return nil }
+        if number == 9 { return windows.last }
+        return windows.indices.contains(number - 1) ? windows[number - 1] : nil
     }
 
     /// Open Folder… sits right after Open…, with no shortcut, as in VS Code.
