@@ -174,6 +174,59 @@ final class DeferredImageRenderingTests: XCTestCase {
                       "the placeholder should be gone once the image loads \(swapped)")
     }
 
+    /// A granted SVG must reach the page as an `<img>` and nothing else. Drawn
+    /// as an image, its script cannot run; put into the DOM, or into an
+    /// `<object>` or `<iframe>`, it would. The bytes go through the real
+    /// loader, so this also pins the base64 that keeps them out of the
+    /// JavaScript string.
+    @MainActor
+    func testAGrantedSVGIsShownAsAnImageAndItsScriptNeverRuns() async throws {
+        let webView = try await harness()
+        try await update(doc, in: webView)
+        _ = try await waitForPlaceholders(webView)
+
+        _ = try await webView.evaluateJavaScript("""
+        document.querySelector('[data-mdp-deferred]:not([data-mdp-remote]) .mdp-deferred-load').click(); true
+        """)
+        let token = try await webView.evaluateJavaScript("""
+        (window.__posted || []).filter((m) => m.kind === 'loadDeferredAsset').pop().token
+        """) as? String ?? ""
+
+        let hostile = Data("""
+        <?xml version="1.0"?>
+        <svg id="mdp-hostile" xmlns="http://www.w3.org/2000/svg" width="40" height="20"
+             onload="top.__svgRan = 'onload'">
+          <rect width="40" height="20" fill="#777"/>
+          <script>top.__svgRan = 'script'; parent.__svgRan = 'script';</script>
+        </svg>
+        """.utf8)
+        guard case let .loaded(dataURL) = DeferredAssetLoader.outcome(for: hostile) else {
+            return XCTFail("an SVG document must be eligible")
+        }
+        _ = try await webView.evaluateJavaScript(
+            "window.MdPreview.resolveDeferredAsset('\(token)', '\(dataURL)', null); true"
+        )
+
+        let raw = try await webView.callAsyncJavaScript("""
+        const img = document.querySelector('.markdown-body img[src^="data:image/svg+xml"]');
+        if (img) { try { await img.decode(); } catch (e) {} }
+        return JSON.stringify({
+          tag: img ? img.tagName : null,
+          drawn: img ? img.naturalWidth : 0,
+          inlined: !!document.getElementById('mdp-hostile'),
+          embedded: document.querySelectorAll('.markdown-body object, .markdown-body iframe, .markdown-body embed').length,
+          ran: window.__svgRan || null
+        });
+        """, contentWorld: .page) as? String ?? "{}"
+        let state = try JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any] ?? [:]
+
+        XCTAssertEqual(state["tag"] as? String, "IMG", "the granted SVG must be swapped in as an <img> \(raw)")
+        XCTAssertEqual(state["drawn"] as? Int, 40, "the SVG should draw at its own width \(raw)")
+        XCTAssertEqual(state["inlined"] as? Bool, false, "the SVG's markup reached the page DOM \(raw)")
+        XCTAssertEqual(state["embedded"] as? Int, 0, "the SVG was embedded as a document \(raw)")
+        XCTAssertTrue(state["ran"] is NSNull, "script inside a granted SVG ran: \(raw)")
+    }
+
     /// A refusal has to be visible, not silent — that is the whole reason the
     /// placeholder exists rather than a broken icon.
     @MainActor

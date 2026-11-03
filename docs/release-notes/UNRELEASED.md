@@ -10,4 +10,4 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- **Load** now works for SVG images, including README badges from shields.io. Before, a click fetched the badge and then reported "load failed: not an image". An SVG is shown only as a picture: none of its scripts run and nothing it links to is fetched.

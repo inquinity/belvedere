@@ -666,7 +666,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     ///
     /// This is the only path by which content outside the containment boundary
     /// reaches the page, so it is deliberately narrow. `DeferredAssetLoader`
-    /// verifies the bytes really are a raster image and caps the size; the
+    /// verifies the bytes really are an image and caps the size; the
     /// result goes back as a `data:` URL, which `img-src` already allows, so
     /// no policy is relaxed to make the click work.
     ///

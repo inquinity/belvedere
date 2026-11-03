@@ -501,7 +501,7 @@ you that.
 
 **Shipped for both kinds of block.** A local file outside the boundary, and a remote
 image, each render as a placeholder naming what was withheld, with a Load button that asks
-the host. The host verifies the bytes really are a raster image before answering with a
+the host. The host verifies the bytes really are an image before answering with a
 `data:` URL. Verified end to end in the running app: a real PNG loads on click, and a text
 file renamed `.png` comes back "not an image" with the dead action removed.
 
@@ -580,6 +580,17 @@ the whole of the consent. What the click then buys is deliberately small:
   first only because refusing early is cheaper when it is honest; the running total is
   what actually stops the transfer. A host that declares nothing and sends forever is cut
   off at the ceiling, and nothing bigger is ever held in memory.
+- **SVG is accepted, as an image only.** Badges from shields.io and the like are SVG, and
+  refusing them did not spare the reader anything: the click had already fetched the badge
+  before the bytes were turned away. The host checks the prologue lexically (byte-order
+  mark, declaration, comments, a DOCTYPE without an internal subset, then `<svg`) and
+  parses nothing, so libxml2 never sees the bytes in the app process. The page shows a
+  granted asset only as `<img src="data:…">`, where WebKit runs no SVG script and loads
+  nothing the SVG names. That is how an SVG inside the document's folder is already
+  shown. The `data:` URL stays base64, because it is spliced into a JavaScript string.
+  Local grants accept SVG on the same terms. One side effect: an SVG inside the folder
+  that WebKit fails to draw is now labelled `load failed` rather than `not an image`,
+  because its bytes do pass the check.
 - **Quick Look does not compile the fetcher at all.** It has no window to ask in, so a
   fetch there could only happen without consent. `ForkPostureTests` pins both halves: the
   extension's source list must not name the file, and the app's one and only URL session
