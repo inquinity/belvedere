@@ -664,7 +664,13 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
         decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
         guard navigationAction.navigationType == .linkActivated else {
-            decisionHandler(.allow)
+            // Only the preview's own page; a dropped file or link would
+            // otherwise replace it. See `WebViewNavigationPolicy`.
+            let allowed = WebViewNavigationPolicy.allows(
+                url: navigationAction.request.url,
+                isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
+            )
+            decisionHandler(allowed ? .allow : .cancel)
             return
         }
         guard let url = navigationAction.request.url else {

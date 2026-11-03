@@ -10,4 +10,4 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- Dropping a file or a web link on a document no longer replaces it. A dropped SVG file used to open in the document's place and could run its scripts there.

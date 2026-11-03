@@ -303,6 +303,27 @@ final class ForkPostureTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(loads, 4, "Found too few page loads; has the scan stopped matching?")
     }
 
+    /// `DropNavigationTests` proves the policy refuses a dropped file, but it
+    /// drives its own delegate. This pins that every web view the app owns
+    /// asks it: a delegate without the call, or a new web view with no
+    /// `decidePolicyFor` at all, lets a dropped SVG become the page and run
+    /// its script with that page's message handlers.
+    func testEveryWebViewAsksTheNavigationPolicy() throws {
+        var delegates = 0
+        for file in try swiftSources() {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            guard source.contains(".navigationDelegate = ") else { continue }
+            delegates += 1
+            XCTAssertTrue(
+                source.contains("decidePolicyFor navigationAction")
+                    && source.contains("WebViewNavigationPolicy.allows("),
+                "\(file.lastPathComponent) sets a navigation delegate that does not ask WebViewNavigationPolicy."
+            )
+        }
+        // The reader, the editor, the Mermaid popup and Quick Look.
+        XCTAssertGreaterThanOrEqual(delegates, 4, "Found too few web views; has the scan stopped matching?")
+    }
+
     // MARK: - Features declined from upstream
 
     /// Upstream's reopen snapshots wrote a PNG of each opened document's
