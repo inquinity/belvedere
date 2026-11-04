@@ -14,11 +14,18 @@ import Foundation
 /// Everything here is deliberately narrow, because the click is the only thing
 /// standing between document content and an arbitrary file read:
 ///
-/// - **Only raster images are eligible.** Verified by magic bytes rather than
-///   by file extension, so `passwd` renamed to `.png` is still refused. SVG is
-///   excluded on purpose: it is a document format, and while an `<img>` will
-///   not run its scripts, it is the one image type where that sentence needs a
-///   caveat at all.
+/// - **Only images are eligible.** Verified by the leading bytes rather than by
+///   file extension, so `passwd` renamed to `.png` is still refused. SVG is
+///   admitted (badges from shields.io and the like are SVG, and a click that
+///   fetched one only to discard it had already told the host) on two
+///   conditions. Its prologue is checked lexically here, never parsed: a full
+///   XML parse of untrusted bytes would put libxml2 in the app process, which
+///   is more privileged than the WebKit process that renders it. And the page
+///   shows a granted asset only as an `<img src="data:…">`, where WebKit runs
+///   none of its scripts and loads nothing it names. That is the treatment an
+///   SVG inside the document's folder already gets from `md-asset:`. Inlining
+///   one into the DOM, or opening it in an `<object>`, `<iframe>` or a window
+///   of its own, would run its scripts.
 /// - **A size cap**, so a click cannot pull a multi-gigabyte file into memory
 ///   and base64 it.
 /// - **No persistence.** The caller grants one asset at a time and forgets it
@@ -67,7 +74,11 @@ nonisolated enum DeferredAssetLoader {
         case refused(Refusal)
     }
 
-    /// Wraps `data` as a `data:` URL when it is a raster image within budget.
+    /// Wraps `data` as a `data:` URL when it is an image within budget.
+    ///
+    /// Always base64. The URL is spliced into a single-quoted JavaScript string
+    /// to reach the page, and base64's alphabet cannot close the quote; SVG
+    /// text written into the URL as-is could.
     static func outcome(for data: Data, maxBytes: Int = defaultMaxBytes) -> Outcome {
         guard data.count <= maxBytes else { return .refused(.tooLarge) }
         guard let mime = imageMIMEType(of: data) else { return .refused(.notAnImage) }
@@ -152,8 +163,8 @@ nonisolated enum DeferredAssetLoader {
     }
 
     /// Sniffs the leading bytes. Extensions are attacker-controlled; these are
-    /// not. Returns nil for anything that is not a raster image this app is
-    /// willing to render.
+    /// not. Returns nil for anything that is not an image this app is willing
+    /// to render.
     static func imageMIMEType(of data: Data) -> String? {
         func starts(_ bytes: [UInt8], at offset: Int = 0) -> Bool {
             guard data.count >= offset + bytes.count else { return false }
@@ -178,6 +189,74 @@ nonisolated enum DeferredAssetLoader {
             }
             if starts([0x61, 0x76, 0x69, 0x66], at: 8) { return "image/avif" }
         }
+        if isSVGDocument(data) { return "image/svg+xml" }
         return nil
+    }
+
+    /// How far into the bytes `isSVGDocument` looks for the root element.
+    /// A real prologue (declaration, a licence comment, a DOCTYPE) fits
+    /// easily; one that does not is refused rather than scanned further.
+    static let svgPrologueLimit = 4096
+
+    /// Whether `data` starts the way an SVG document does: an optional UTF-8
+    /// byte-order mark, then any whitespace, processing instructions
+    /// (`<?xml …?>`), comments and a DOCTYPE, then `<svg` as the first element.
+    ///
+    /// A lexical check on purpose; nothing is parsed. Everything it does not
+    /// recognise is a refusal: a DOCTYPE with an internal subset (`[`, where
+    /// entity declarations live), a namespace-prefixed root, UTF-16, an HTML
+    /// page that merely contains an `<svg>`, and a prologue longer than
+    /// `svgPrologueLimit`. Whether the rest is well-formed is WebKit's
+    /// business, in its own sandbox; a malformed SVG just fails to draw.
+    static func isSVGDocument(_ data: Data) -> Bool {
+        let bytes = [UInt8](data.prefix(svgPrologueLimit))
+        var index = 0
+
+        func hasPrefix(_ text: String) -> Bool {
+            let pattern = Array(text.utf8)
+            guard bytes.count - index >= pattern.count else { return false }
+            return Array(bytes[index..<index + pattern.count]) == pattern
+        }
+        /// Moves past the next `terminator`, or reports that it is not there.
+        func skip(past terminator: String) -> Bool {
+            let pattern = Array(terminator.utf8)
+            while index + pattern.count <= bytes.count {
+                if Array(bytes[index..<index + pattern.count]) == pattern {
+                    index += pattern.count
+                    return true
+                }
+                index += 1
+            }
+            return false
+        }
+        func isSpace(_ byte: UInt8) -> Bool {
+            byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D
+        }
+
+        if hasPrefix("\u{FEFF}") { index += 3 }
+        while index < bytes.count {
+            if isSpace(bytes[index]) {
+                index += 1
+            } else if hasPrefix("<?") {
+                guard skip(past: "?>") else { return false }
+            } else if hasPrefix("<!--") {
+                guard skip(past: "-->") else { return false }
+            } else if hasPrefix("<!DOCTYPE") {
+                while index < bytes.count, bytes[index] != UInt8(ascii: ">") {
+                    if bytes[index] == UInt8(ascii: "[") { return false }
+                    index += 1
+                }
+                guard index < bytes.count else { return false }
+                index += 1
+            } else if hasPrefix("<svg") {
+                index += 4
+                guard index < bytes.count else { return false }
+                let next = bytes[index]
+                return isSpace(next) || next == UInt8(ascii: ">") || next == UInt8(ascii: "/")
+            } else {
+                return false
+            }
+        }
+        return false
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Click-to-load fixture: see remote-svg-badge.md. Drawn as an <img>, none of
+     the script below may run. If it does, the badge turns red and reads
+     "SCRIPT RAN". (An alert would prove nothing: the app shows none.) -->
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20"
+     onload="document.getElementById('bg').setAttribute('fill', '#d00')">
+  <rect id="bg" width="120" height="20" rx="3" fill="#777"/>
+  <text id="label" x="60" y="14" fill="#fff" font-family="Verdana" font-size="11"
+        text-anchor="middle">inert</text>
+  <script>
+    document.getElementById('bg').setAttribute('fill', '#d00');
+    document.getElementById('label').textContent = 'SCRIPT RAN';
+  </script>
+</svg>

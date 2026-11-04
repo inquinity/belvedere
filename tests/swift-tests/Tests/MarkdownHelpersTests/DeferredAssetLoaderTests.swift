@@ -55,10 +55,62 @@ final class DeferredAssetLoaderTests: XCTestCase {
         )
     }
 
-    /// SVG is excluded deliberately — it is a document format, not a raster.
-    func testSVGIsNotEligible() {
-        let svg = Data("<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"1\"/></svg>".utf8)
-        XCTAssertEqual(DeferredAssetLoader.outcome(for: svg), .refused(.notAnImage))
+    /// The SVG check is lexical and refuses whatever it does not recognise.
+    /// Each of these would need the check to understand more XML than it does,
+    /// or is simply not an SVG document.
+    func testThingsThatAreNotPlainlySVGAreRefused() {
+        let cases: [(String, String)] = [
+            ("an HTML page containing an svg",
+             "<!DOCTYPE html><html><body><svg xmlns=\"http://www.w3.org/2000/svg\"/></body></html>"),
+            ("a DOCTYPE with an internal subset, where entities are declared",
+             "<?xml version=\"1.0\"?><!DOCTYPE svg [<!ENTITY a \"aaaa\">]><svg>&a;</svg>"),
+            ("a namespace-prefixed root",
+             "<svg:svg xmlns:svg=\"http://www.w3.org/2000/svg\"/>"),
+            ("an element that merely starts with svg", "<svgfoo/>"),
+            ("text before the root", "hello <svg/>"),
+            ("an unterminated comment", "<!-- <svg/>"),
+            ("an unterminated processing instruction", "<?xml version=\"1.0\" <svg/>"),
+            ("a root cut off at the end of the bytes", "<svg"),
+            ("a bare word", "svg"),
+        ]
+        for (name, text) in cases {
+            XCTAssertEqual(DeferredAssetLoader.outcome(for: Data(text.utf8)), .refused(.notAnImage), name)
+        }
+    }
+
+    func testOversizeSVGIsRefusedLikeAnyOtherImage() {
+        let big = Data(("<svg>" + String(repeating: " ", count: 4096) + "</svg>").utf8)
+        XCTAssertEqual(DeferredAssetLoader.outcome(for: big, maxBytes: 1024), .refused(.tooLarge))
+    }
+
+    /// Conservative on purpose: XML spells it upper-case, and a refusal costs
+    /// a badge, where a misreading could cost more.
+    func testLowerCaseDoctypeAndBracketsInADoctypeAreRefused() {
+        for text in ["<!doctype svg><svg/>", "<!DOCTYPE svg SYSTEM \"a[b].dtd\"><svg/>"] {
+            XCTAssertNil(DeferredAssetLoader.imageMIMEType(of: Data(text.utf8)), text)
+        }
+    }
+
+    func testSVGRootJustInsideThePrologueLimitIsRecognised() {
+        let limit = DeferredAssetLoader.svgPrologueLimit
+        let padded = String(repeating: " ", count: limit - 5) + "<svg/>"
+        XCTAssertEqual(DeferredAssetLoader.imageMIMEType(of: Data(padded.utf8)), "image/svg+xml")
+        let cut = String(repeating: " ", count: limit - 4) + "<svg/>"
+        XCTAssertNil(DeferredAssetLoader.imageMIMEType(of: Data(cut.utf8)),
+                     "the byte after <svg falls past the limit, so the root cannot be confirmed")
+    }
+
+    func testUTF16SVGIsRefused() {
+        let utf16 = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".data(using: .utf16)!
+        XCTAssertNil(DeferredAssetLoader.imageMIMEType(of: utf16))
+    }
+
+    func testSVGRootBeyondThePrologueLimitIsRefused() {
+        let padding = "<!--" + String(repeating: "x", count: DeferredAssetLoader.svgPrologueLimit) + "-->"
+        XCTAssertNil(
+            DeferredAssetLoader.imageMIMEType(of: Data((padding + "<svg/>").utf8)),
+            "the check must stop at its limit rather than scan an arbitrarily long prologue"
+        )
     }
 
     // MARK: - What must be allowed
@@ -68,6 +120,18 @@ final class DeferredAssetLoaderTests: XCTestCase {
             return XCTFail("a real PNG must be eligible")
         }
         XCTAssertTrue(url.hasPrefix("data:image/png;base64,"))
+    }
+
+    /// A local file outside the folder is granted on the same terms as a
+    /// remote one; the extension still decides nothing.
+    func testLocalSVGOutsideTheFolderLoadsOnItsBytes() {
+        let svg = Data("<?xml version=\"1.0\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\"/>".utf8)
+        guard case let .loaded(url) = DeferredAssetLoader.outcome(forFileAt: "/elsewhere/logo.txt",
+                                                                  exists: { _ in true },
+                                                                  reader: { _ in svg }) else {
+            return XCTFail("a local SVG must be eligible on its bytes")
+        }
+        XCTAssertTrue(url.hasPrefix("data:image/svg+xml;base64,"))
     }
 
     func testJPEGLoads() {
@@ -89,6 +153,42 @@ final class DeferredAssetLoaderTests: XCTestCase {
         for (mime, bytes) in cases {
             XCTAssertEqual(DeferredAssetLoader.imageMIMEType(of: Data(bytes)), mime, mime)
         }
+    }
+
+    /// Badges from shields.io and similar services are SVG. A page shows a
+    /// granted image only through `<img>`, where WebKit runs no SVG script and
+    /// loads nothing the SVG names.
+    func testSVGDocumentsAreRecognised() {
+        let cases: [(String, String)] = [
+            ("a bare root", "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"90\" height=\"20\"></svg>"),
+            ("a self-closing root", "<svg/>"),
+            ("a root followed by a newline", "<svg\n xmlns=\"http://www.w3.org/2000/svg\"/>"),
+            ("an XML declaration", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg/>"),
+            ("a comment", "<!-- Generator: Sketch -->\n<svg/>"),
+            ("an external DOCTYPE",
+             "<?xml version=\"1.0\"?>\n<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "
+                + "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n<svg/>"),
+            ("leading whitespace", "  \r\n\t<svg/>"),
+        ]
+        for (name, text) in cases {
+            XCTAssertEqual(DeferredAssetLoader.imageMIMEType(of: Data(text.utf8)), "image/svg+xml", name)
+        }
+        let withBOM = Data([0xEF, 0xBB, 0xBF]) + Data("<svg/>".utf8)
+        XCTAssertEqual(DeferredAssetLoader.imageMIMEType(of: withBOM), "image/svg+xml", "a UTF-8 byte-order mark")
+    }
+
+    /// The data URL is spliced into a single-quoted JavaScript string by the
+    /// host. SVG is text and can hold a quote or a `</script>`; only base64
+    /// keeps them out of that string.
+    func testSVGDataURLIsBase64AndCannotCloseAJavaScriptString() {
+        let hostile = Data("<svg onload=\"alert('x')\"><script>'</script></svg>".utf8)
+        guard case let .loaded(url) = DeferredAssetLoader.outcome(for: hostile) else {
+            return XCTFail("an SVG document must be eligible")
+        }
+        XCTAssertTrue(url.hasPrefix("data:image/svg+xml;base64,"))
+        let payload = url.dropFirst("data:image/svg+xml;base64,".count)
+        XCTAssertTrue(payload.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "+/=".contains($0)) },
+                      "the payload must be pure base64")
     }
 
     func testEmptyAndTruncatedInputAreRefusedWithoutReadingPastTheEnd() {
