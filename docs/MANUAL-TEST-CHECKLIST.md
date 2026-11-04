@@ -63,7 +63,7 @@ Quick Look will not pick up a new build until the app has been in
 | `tests/fixtures/security/inline-html.md` | Sanitisation. **Most sections collapse to nothing, and that is the pass.** Judge the *control*, not the words: a stripped element leaves its text behind, so the credential section may show an inert "Sign in" with no button under it. A **text field you can click into**, or a button that behaves like one, means stop and do not ship. Also check the task list still toggles — clicking a checkbox writes back to the file. |
 | `tests/fixtures/security/path-traversal.md` | Containment. Every image must be a placeholder naming the file, with a **Load** button — these sit outside the document's folder, so the reader is offered the choice. Clicking Load must report a failure, never show contents: any file contents on screen is a document reading files it has no right to. |
 | `tests/fixtures/security/remote-beacon.md` | Tracking pixels. Nothing loads on open: every image is a placeholder naming the host, page still styled normally. In the app window each offers **Load** — that is the reader asking, and it is the only thing that reaches the network. Quick Look offers no button. **Load all** must not appear for these; it covers local files only. |
-| `tests/fixtures/security/remote-svg-badge.md` | SVG badges. Two shields.io badges are placeholders on open; **Load** shows each badge. A click is a real request to `img.shields.io`. Its second half, `hostile-badge.svg`, needs the local server below. |
+| `tests/fixtures/security/remote-svg-badge.md` | SVG badges. Two shields.io badges are placeholders on open; **Load** shows each badge. A click is a real request to `img.shields.io`. Its second half, `hostile-svg-test.md`, needs the local server below. |
 | `tests/fixtures/relative-assets/post.md` | The other half: containment must not break *legitimate* relative images. Two must render, two must not. |
 | `tests/fixtures/link-guard/link-guard.md` | Clicked links to local files. Three links must bring up the "shown in Finder, not opened" sheet (one names **Calculator.app**, the symlink's real target); three must open with no sheet. **Calculator starting, or Terminal opening, means stop and do not ship.** App window only; Quick Look does not open local links. |
 
@@ -123,8 +123,8 @@ in the app window. Expected, and each line is a separate claim:
 - A response that is not really an image: `load failed: not an image`. Serving
   it as `Content-Type: image/png` must not change that — the bytes are what is
   checked.
-- An SVG loads. Copy `tests/fixtures/security/hostile-badge.svg` into the
-  served folder and load it: a grey "inert" badge and **one** GET in the log.
+- An SVG loads. Serve `tests/fixtures/security/` instead and open
+  `hostile-svg-test.md` there, which points at `hostile-badge.svg`. Load it: a grey "inert" badge and **one** GET in the log.
   A red badge, or one reading "SCRIPT RAN", means its script ran because it
   was shown as a document rather than drawn as an image. (No alert can appear
   either way; the app shows none.) The same file loaded as a local image

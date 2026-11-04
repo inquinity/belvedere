@@ -28,13 +28,8 @@ mean to do.
 ## An SVG that tries to do more than draw
 
 `hostile-badge.svg`, next to this file, carries an `onload` handler and a
-`<script>` that would turn it red and rewrite its text. Serve it as described
-under *Checking click-to-load for remote images* in
-docs/MANUAL-TEST-CHECKLIST.md, then point an image at it:
-
-```markdown
-![](http://127.0.0.1:8731/hostile-badge.svg)
-```
+`<script>` that would turn it red and rewrite its text. Serve this folder as
+described in `hostile-svg-test.md`, and open that file to load it.
 
 > **EXPECT:** after **Load**, a grey badge reading "inert", and exactly one GET
 > in the server log.
