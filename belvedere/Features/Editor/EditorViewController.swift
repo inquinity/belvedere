@@ -122,6 +122,19 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         )
     }
 
+    /// Keeps the editor page in place: a file or link dropped where
+    /// CodeMirror does not take it would otherwise replace the page, and
+    /// any unsaved edits with it. See `WebViewNavigationPolicy`.
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+        let allowed = WebViewNavigationPolicy.allows(
+            url: navigationAction.request.url,
+            isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
+        )
+        decisionHandler(allowed ? .allow : .cancel)
+    }
+
     /// Mirror the preview's page zoom so the type size and measure don't
     /// jump when toggling edit mode. CSS pixels scale with pageZoom, so
     /// the 900px column and the body gutters track the preview exactly.

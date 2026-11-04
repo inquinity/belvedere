@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="200" viewBox="0 0 640 200">
+  <!--
+    Drag this file from Finder and drop it on a Belvedere reader, on the
+    editor (⌘E), and on a Mermaid diagram popup.
+    EXPECT: nothing happens. The document stays on screen. In the editor,
+    CodeMirror takes the drop and inserts this file's text; that is a pass.
+    Saved into a document, the reader draws the box with its script removed,
+    reading "Inert".
+    FAIL IF: this picture replaces the document. If it says SCRIPT RAN, its
+    script ran in a page that can message the app: stop and do not ship.
+  -->
+  <rect width="640" height="200" fill="#fff3c4"/>
+  <text id="state" x="24" y="110" font-family="-apple-system, sans-serif" font-size="28" fill="#5c4400">
+    Inert: this SVG's script did not run
+  </text>
+  <script>
+    const state = document.getElementById('state');
+    state.textContent = 'SCRIPT RAN: dropped SVG ran in the page';
+    state.setAttribute('fill', '#b00020');
+    document.querySelector('rect').setAttribute('fill', '#ffd6dc');
+  </script>
+</svg>

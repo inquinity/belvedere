@@ -1620,7 +1620,11 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        decisionHandler(.allow)
+        let allowed = WebViewNavigationPolicy.allows(
+            url: navigationAction.request.url,
+            isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
+        )
+        decisionHandler(allowed ? .allow : .cancel)
     }
 
     /// A clicked link is not an asset load: the reader asked for it, so it is

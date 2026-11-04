@@ -306,6 +306,18 @@ final class MermaidDiagramPopup: NSObject, WKNavigationDelegate {
         pendingNavigation = webView?.loadHTMLString(html, baseURL: nil)
     }
 
+    /// Only the diagram page this popup built may load: see
+    /// `WebViewNavigationPolicy`.
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+        let allowed = WebViewNavigationPolicy.allows(
+            url: navigationAction.request.url,
+            isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
+        )
+        decisionHandler(allowed ? .allow : .cancel)
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let navigation, navigation === pendingNavigation else { return }
         Task { @MainActor [weak self] in
