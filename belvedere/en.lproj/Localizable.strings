@@ -410,3 +410,6 @@
 "New Folder" = "New Folder";
 "Add Files to “%@”…" = "Add Files to “%@”…";
 "Allow Belvedere to make files in “%@”." = "Allow Belvedere to make files in “%@”.";
+
+/* Edit menu and reader context menu */
+"Copy as Plain Text" = "Copy as Plain Text";
