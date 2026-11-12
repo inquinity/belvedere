@@ -67,10 +67,13 @@ final class FileWatcher {
             }
             self.scheduleChange()
         }
+        // Close the descriptor this source was made with, not whatever
+        // `fileDescriptor` holds when the handler runs: cancellation is
+        // asynchronous, so by then a reopen may have stored a newer one,
+        // which would be closed under its live source while this one leaked.
         source.setCancelHandler { [weak self] in
-            guard let self else { return }
-            if self.fileDescriptor >= 0 {
-                Darwin.close(self.fileDescriptor)
+            Darwin.close(fd)
+            if let self, self.fileDescriptor == fd {
                 self.fileDescriptor = -1
             }
         }
