@@ -161,13 +161,20 @@ three localizations, each to be cut out again on every later sync.
   GH-543, GH-532, GH-472, GH-530); the coffee and Discord links (GH-601); upstream's dark
   icon (GH-607); upstream agent tooling (CodeRabbit, the `pull-requests`, `resolve` and
   `headless-ui-test` skills, whose `vdisplay.m` uses a private API).
+- **Pele in place of Mermaid** (GH-539, GH-596, and the Pele bump in GH-630): declined
+  for now. Pele was about four weeks old, Mermaid is what GitHub and most other tools
+  render with, and Pele draws diagrams in its own style. Belvedere updates Mermaid
+  instead. The checkpoints for revisiting are under UF2 in `docs/FORK-NOTES.md`.
+  *On later rounds:* upstream changes to `MarkdownHTML+Mermaid.swift`, the diagram
+  popup and the editor's diagram widget assume Pele; read them for fixes that also
+  apply to Mermaid, and do not pick them as they are.
 
 ### Waiting for a decision
 
 - **Library updates (GH-630):** DOMPurify 3.4.2 → 3.4.17, highlight.js 11.12, KaTeX
   0.16 → 0.19, swift-markdown 0.9. Each must be checked against its published package,
   which needs a network fetch. Sparkle and Sentry bumps do not apply.
-- **Features under evaluation:** Pele in place of Mermaid (GH-539, GH-596); every
+- **Features under evaluation:** every
   `[!type]` callout (GH-629); live math in the editor (GH-555); table column resizing
   (GH-564, on top of GH-476 and GH-563); EPUB export (GH-517, on top of GH-476's export
   rewrite); selection word counts (GH-534); text alignment (GH-480); the navigator's
