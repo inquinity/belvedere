@@ -265,6 +265,7 @@ Settings ▸ General ▸ **Open documents in tabs** for the first row, then turn
 | Open `relative-assets/` as a folder in window A and a different folder in window B. In B, open a document that links an image in A's folder with `../`: the image stays blocked in B | Each window has its own boundary |
 | Drag a tab out into its own window: its folder and what it may read stay what they were | The boundary belongs to the tab, and does not follow another window |
 | In Terminal, run `open "belvedere://file/<full path of a folder>"`: a sheet asks to open the folder, with Cancel and Open Folder. Cancel changes nothing; Open Folder shows the folder in the front window's sidebar | A link can come from a web page. Finder, the Dock and Open With open a folder without asking |
+| Settings ▸ General ▸ *Prepare the next window in advance*: on by default. With a document open, turn it off: in Activity Monitor (search *WebContent*), Belvedere has one fewer web content process within a few seconds; the next document still opens. Turn it on again: about a second later the extra process is back | Off frees the prepared reader at once, not at the next window; on prepares one again while documents are open |
 
 ## 5f. Link destination bar and Go to File
 

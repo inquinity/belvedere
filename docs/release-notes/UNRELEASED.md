@@ -10,4 +10,4 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
-_(nothing yet)_
+- A new setting, Settings ▸ General ▸ Prepare the next window in advance, keeps a reader ready so the next document opens faster. It is on, as before; turn it off to save the memory of one extra page process.

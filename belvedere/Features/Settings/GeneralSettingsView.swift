@@ -9,6 +9,8 @@ import SwiftUI
 
 struct GeneralSettingsView: View {
     @AppStorage("belvedere.outlineFollowsPointer") private var outlineFollowsPointer = false
+    /// Stored negated; see `SpareReaderSetting`.
+    @AppStorage(SpareReaderSetting.disabledDefaultsKey) private var spareReaderDisabled = false
     @Bindable private var model = SettingsModel.shared
 
     var body: some View {
@@ -104,6 +106,15 @@ struct GeneralSettingsView: View {
                 Toggle(isOn: $model.opensDocumentsInTabs) {
                     Text(L("Open documents in tabs"))
                     Text(L("A file opened from Finder joins the front window as a tab instead of getting one of its own — Open in New Window still opens a window."))
+                }
+
+                Toggle(isOn: Binding(get: { !spareReaderDisabled },
+                                     set: { spareReaderDisabled = !$0 })) {
+                    Text(L("Prepare the next window in advance"))
+                    Text(L("While a document is open, keep a reader ready so the next document opens faster. Turn this off to save the memory it uses: one extra page process."))
+                }
+                .onChange(of: spareReaderDisabled) {
+                    SpareReaderPool.shared.settingDidChange()
                 }
             } header: {
                 Text(L("Windows"))

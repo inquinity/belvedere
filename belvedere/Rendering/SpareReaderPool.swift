@@ -10,8 +10,6 @@ import os
 final class SpareReaderPool {
     static let shared = SpareReaderPool()
 
-    /// Launch argument / default that turns the pool off, for A/B timing.
-    private static let disabledDefaultsKey = "belvedere.disableSpareReader"
     /// Gives the painted document's lazy renderers the main thread first.
     private static let replenishDelay: DispatchTimeInterval = .seconds(1)
 
@@ -19,8 +17,10 @@ final class SpareReaderPool {
     private var spareSettings: ReaderRenderSettings?
     private var replenishScheduled = false
 
+    /// Settings ▸ General ▸ "Prepare the next window in advance", also
+    /// settable as a launch argument for timing runs.
     private var isEnabled: Bool {
-        !UserDefaults.standard.bool(forKey: Self.disabledDefaultsKey)
+        SpareReaderSetting.isEnabled(in: .standard)
     }
 
     /// Hands over the spare, or a fresh reader when there is none. A spare
@@ -53,6 +53,19 @@ final class SpareReaderPool {
             guard isEnabled, spare == nil, Self.appIsShowingDocuments else { return }
             spareSettings = ReaderRenderSettings.current
             spare = MarkdownWebView(spare: true)
+        }
+    }
+
+    /// Applies the setting at once: turning it off frees a spare that is
+    /// already prepared, and its WebContent process, instead of keeping it
+    /// until a window takes it; turning it on prepares one if documents are
+    /// on screen, after the usual idle delay.
+    func settingDidChange() {
+        if isEnabled {
+            documentDidPaint()
+        } else {
+            spare = nil
+            spareSettings = nil
         }
     }
 
