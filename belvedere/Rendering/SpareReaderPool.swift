@@ -17,7 +17,7 @@ final class SpareReaderPool {
     private var spareSettings: ReaderRenderSettings?
     private var replenishScheduled = false
 
-    /// Settings ▸ General ▸ "Prepare the next window in advance", also
+    /// Settings ▸ General ▸ "Optimize renderer performance", also
     /// settable as a launch argument for timing runs.
     private var isEnabled: Bool {
         SpareReaderSetting.isEnabled(in: .standard)

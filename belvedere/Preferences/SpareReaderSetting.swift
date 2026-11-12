@@ -2,7 +2,7 @@
 //  SpareReaderSetting.swift
 //  belvedere
 //
-//  Storage behind "Prepare the next window in advance" (Settings ▸ General).
+//  Storage behind "Optimize renderer performance" (Settings ▸ General).
 //  Kept free of AppKit so the SPM helper tests can exercise it.
 //
 

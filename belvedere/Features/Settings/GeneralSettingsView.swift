@@ -114,7 +114,7 @@ struct GeneralSettingsView: View {
                                          SpareReaderSetting.write(isEnabled, to: .standard)
                                          SpareReaderPool.shared.settingDidChange()
                                      })) {
-                    Text(L("Prepare the next window in advance"))
+                    Text(L("Optimize renderer performance"))
                     Text(L("While a document is open, keep a reader ready so the next document opens faster. Turn this off to save the memory it uses: one extra page process."))
                 }
             } header: {
