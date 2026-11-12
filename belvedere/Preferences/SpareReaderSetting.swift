@@ -22,4 +22,15 @@ nonisolated enum SpareReaderSetting {
     static func isEnabled(in defaults: UserDefaults) -> Bool {
         !defaults.bool(forKey: disabledDefaultsKey)
     }
+
+    /// On clears the key rather than storing `false`, as the other
+    /// preferences do: an untouched preference leaves no trace. A launch
+    /// argument still wins over what is stored here, for that run.
+    static func write(_ isEnabled: Bool, to defaults: UserDefaults) {
+        if isEnabled {
+            defaults.removeObject(forKey: disabledDefaultsKey)
+        } else {
+            defaults.set(true, forKey: disabledDefaultsKey)
+        }
+    }
 }

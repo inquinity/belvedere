@@ -9,7 +9,8 @@ import SwiftUI
 
 struct GeneralSettingsView: View {
     @AppStorage("belvedere.outlineFollowsPointer") private var outlineFollowsPointer = false
-    /// Stored negated; see `SpareReaderSetting`.
+    /// Stored negated and read here only for display; the toggle writes
+    /// through `SpareReaderSetting` and tells the pool. See there.
     @AppStorage(SpareReaderSetting.disabledDefaultsKey) private var spareReaderDisabled = false
     @Bindable private var model = SettingsModel.shared
 
@@ -109,12 +110,12 @@ struct GeneralSettingsView: View {
                 }
 
                 Toggle(isOn: Binding(get: { !spareReaderDisabled },
-                                     set: { spareReaderDisabled = !$0 })) {
+                                     set: { isEnabled in
+                                         SpareReaderSetting.write(isEnabled, to: .standard)
+                                         SpareReaderPool.shared.settingDidChange()
+                                     })) {
                     Text(L("Prepare the next window in advance"))
                     Text(L("While a document is open, keep a reader ready so the next document opens faster. Turn this off to save the memory it uses: one extra page process."))
-                }
-                .onChange(of: spareReaderDisabled) {
-                    SpareReaderPool.shared.settingDidChange()
                 }
             } header: {
                 Text(L("Windows"))

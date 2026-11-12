@@ -56,7 +56,8 @@ final class SpareReaderPool {
         }
     }
 
-    /// Applies the setting at once: turning it off frees a spare that is
+    /// Called by the Settings toggle after it writes the setting. Applies it
+    /// at once: turning it off frees a spare that is
     /// already prepared, and its WebContent process, instead of keeping it
     /// until a window takes it; turning it on prepares one if documents are
     /// on screen, after the usual idle delay.

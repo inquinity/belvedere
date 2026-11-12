@@ -17,11 +17,21 @@ final class SpareReaderSettingTests: XCTestCase {
         XCTAssertFalse(SpareReaderSetting.isEnabled(in: defaults))
     }
 
-    /// The Settings toggle stores false when turned back on; that is on too.
+    /// A `false` left by an earlier build still means on.
     func testStoredFalseMeansEnabled() throws {
         let defaults = try makeDefaults()
         defaults.set(false, forKey: SpareReaderSetting.disabledDefaultsKey)
         XCTAssertTrue(SpareReaderSetting.isEnabled(in: defaults))
+    }
+
+    func testTurningOnClearsTheKey() throws {
+        let defaults = try makeDefaults()
+        SpareReaderSetting.write(false, to: defaults)
+        XCTAssertFalse(SpareReaderSetting.isEnabled(in: defaults))
+        SpareReaderSetting.write(true, to: defaults)
+        XCTAssertTrue(SpareReaderSetting.isEnabled(in: defaults))
+        XCTAssertNil(defaults.object(forKey: SpareReaderSetting.disabledDefaultsKey),
+                     "an untouched preference leaves no trace")
     }
 
     private func makeDefaults() throws -> UserDefaults {
