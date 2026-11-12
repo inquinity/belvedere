@@ -29,8 +29,10 @@ enum PreviewContentPolicy {
     ///   renderer.
     /// - `script-src md-asset:` — the reader lazy-loads KaTeX, highlight.js and
     ///   Mermaid over the custom scheme after first paint (`VendorLoading.lazy`).
-    ///   The scheme handler serves only an allow-listed set of bundled files,
-    ///   so this is narrower than it looks.
+    ///   The scheme handler serves an allow-listed set of bundled files, plus
+    ///   images from the document's folder, which go out with an `image/*`
+    ///   type and `nosniff` so WebKit will not run them as scripts. So this is
+    ///   narrower than it looks.
     /// - `img-src md-asset:` — local images in the document, resolved against
     ///   the page's `<base href>`.
     /// - `font-src data:` — the bundled KaTeX CSS carries its fonts as base64

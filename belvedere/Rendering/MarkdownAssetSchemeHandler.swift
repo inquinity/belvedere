@@ -119,7 +119,7 @@ nonisolated final class MarkdownAssetScheme: NSObject, WKURLSchemeHandler {
             // and the warmup page — and only from inside that document's
             // folder. Document content chooses this path, so an unbounded
             // resolve here is an arbitrary local file read. Within the
-            // folder, only media is served: the page loads nothing else here.
+            // folder, only images are served: the page loads nothing else here.
             //
             // Opens and reads the file as one operation — see
             // `readContainedFile`'s doc comment — rather than resolving a
@@ -127,14 +127,14 @@ nonisolated final class MarkdownAssetScheme: NSObject, WKURLSchemeHandler {
             // check one filesystem object and read a second one reopened
             // from the same path string moments later.
             guard let boundary,
-                  let (data, _, type) = MarkdownAssetResolution.readContainedFile(
+                  let (data, _, mimeType) = MarkdownAssetResolution.readContainedFile(
                       for: requestURL,
                       containedIn: boundary
                   ) else {
                 wrapper.fail(with: URLError(.badURL))
                 return
             }
-            Self.respond(data: data, mimeType: Self.mimeType(type),
+            Self.respond(data: data, mimeType: mimeType,
                          requestURL: requestURL, task: wrapper)
         }
     }
@@ -182,6 +182,9 @@ nonisolated final class MarkdownAssetScheme: NSObject, WKURLSchemeHandler {
             // handler being asked again. Vendor bundles are immutable and
             // stay cacheable.
             headerFields["Cache-Control"] = "no-store"
+            // A user file is always served as an image type. `nosniff` keeps
+            // WebKit from treating it as anything else, such as a script.
+            headerFields["X-Content-Type-Options"] = "nosniff"
         }
         let response = HTTPURLResponse(
             url: requestURL,

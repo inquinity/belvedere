@@ -5,7 +5,6 @@
 
 import Darwin
 import Foundation
-import ImageIO
 import Markdown
 import UniformTypeIdentifiers
 
@@ -111,9 +110,9 @@ nonisolated enum MarkdownAssetResolution {
     /// between the filter and the open; the check on the open descriptor
     /// below remains the one that counts.
     ///
-    /// Only media is served — see `servableType(ofResolvedFile:header:)` —
-    /// so a file the page may not load is refused before its bytes are read.
-    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL, type: UTType)? {
+    /// Only images are served — see `servableImageMIMEType(ofResolvedFile:header:)`
+    /// — so a file the page may not load is refused before the rest of it is read.
+    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL, mimeType: String)? {
         guard let candidate = fileURL(for: assetURL, containedIn: documentFolder) else { return nil }
         let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
         guard fd >= 0 else { return nil }
@@ -130,42 +129,41 @@ nonisolated enum MarkdownAssetResolution {
         guard isContained(resolved, in: documentFolder) else { return nil }
 
         let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
-        guard let header = try? handle.read(upToCount: headerSniffLength),
-              let type = servableType(ofResolvedFile: resolved, header: header),
+        guard let header = try? handle.read(upToCount: DeferredAssetLoader.svgPrologueLimit),
+              let mimeType = servableImageMIMEType(ofResolvedFile: resolved, header: header),
               let rest = try? handle.readToEnd() ?? Data()
         else { return nil }
-        return (header + rest, resolved, type)
+        return (header + rest, resolved, mimeType)
     }
 
-    /// Bytes read to identify an image whose name does not say it is one.
-    /// Every format ImageIO decodes is recognisable from its first few bytes.
-    static let headerSniffLength = 4096
-
-    /// The type of a file the page may load, or `nil` to refuse it.
+    /// The MIME type to serve a file the page may load with, or `nil` to
+    /// refuse it. Always `image/*`.
     ///
-    /// The page loads only media through `md-asset:` — images, and audio,
-    /// video and PDFs, which the content policy blocks today but upstream's
-    /// renderer may embed — so everything else is refused. Containment keeps
-    /// reads inside the document's folder; this keeps them to media within
-    /// it, so a script that got past the sanitizer cannot read a `.env`, a
-    /// key or another document there, and, because the content policy allows
-    /// `script-src md-asset:`, cannot load a `.js` file that came with the
-    /// folder either.
+    /// The page loads only images through `md-asset:`: the content policy
+    /// names the scheme for `img-src`, and for `script-src` only so vendor
+    /// bundles load, which take a separate path. So everything that is not an
+    /// image is refused. Containment keeps reads inside the document's
+    /// folder; this keeps them to images within it, so a script that got past
+    /// the sanitizer cannot read a `.env`, a key or another document there,
+    /// nor load a source file from the folder as a script.
+    ///
+    /// An `image/*` MIME type is required, not just an image `UTType`: some
+    /// types that conform to `public.image` have no MIME type (`.icns`,
+    /// `.ai`, `.exr`) and would go out as `application/octet-stream`, which
+    /// WebKit runs as a script. The scheme handler also sends `nosniff`.
     ///
     /// `resolved` is the opened file's own path, symlinks already followed,
-    /// so `pic.png -> id_ed25519` is judged as `id_ed25519`. A file without a
-    /// media extension passes only when its first bytes decode as an image.
-    static func servableType(ofResolvedFile resolved: URL, header: Data) -> UTType? {
+    /// so `pic.png -> id_ed25519` is judged as `id_ed25519`. A file whose name
+    /// does not say it is an image passes only when its first bytes do, by the
+    /// same lexical check click-to-load uses, so no image decoder parses
+    /// untrusted bytes in the app to decide.
+    static func servableImageMIMEType(ofResolvedFile resolved: URL, header: Data) -> String? {
         if let type = UTType(filenameExtension: resolved.pathExtension),
-           [.image, .audiovisualContent, .pdf].contains(where: type.conforms(to:)) {
-            return type
+           type.conforms(to: .image),
+           let mime = type.preferredMIMEType, mime.hasPrefix("image/") {
+            return mime
         }
-        guard let source = CGImageSourceCreateWithData(header as CFData, nil),
-              let identifier = CGImageSourceGetType(source),
-              let type = UTType(identifier as String),
-              type.conforms(to: .image)
-        else { return nil }
-        return type
+        return DeferredAssetLoader.imageMIMEType(of: header)
     }
 
     /// The file an `md-asset:` URL names, **with no containment check**.

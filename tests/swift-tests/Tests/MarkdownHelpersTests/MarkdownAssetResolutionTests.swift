@@ -529,46 +529,65 @@ final class MarkdownAssetResolutionTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(started), 1)
     }
 
-    // MARK: - Only media is served
+    // MARK: - Only images are served
 
     /// A 1×1 PNG.
     private let pngBytes = Data(base64Encoded:
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")!
     private let keyBytes = Data("-----BEGIN OPENSSH PRIVATE KEY-----".utf8)
 
-    func testMediaFilesInsideTheFolderAreServed() throws {
+    private func read(_ name: String, _ contents: Data, in folder: URL) throws
+        -> (data: Data, resolved: URL, mimeType: String)? {
+        let file = folder.appendingPathComponent(name)
+        try contents.write(to: file)
+        return MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder)
+    }
+
+    func testImagesInsideTheFolderAreServedWithTheirImageType() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        for name in ["pic.png", "photo.HEIC", "diagram.svg", "demo.mp4", "clip.m4a", "doc.pdf"] {
-            let file = folder.appendingPathComponent(name)
-            try Data("x".utf8).write(to: file)
-            XCTAssertNotNil(MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder), name)
+        let expected = ["pic.png": "image/png", "photo.HEIC": "image/heic",
+                        "diagram.svg": "image/svg+xml", "anim.gif": "image/gif"]
+        for (name, mime) in expected {
+            XCTAssertEqual(try read(name, Data("x".utf8), in: folder)?.mimeType, mime, name)
         }
-        let png = folder.appendingPathComponent("pic.png")
-        XCTAssertEqual(MarkdownAssetResolution.readContainedFile(for: assetURL(png), containedIn: folder)?.type, .png)
     }
 
     /// Containment alone would serve these: they are inside the folder. A
-    /// script that got past the sanitizer must still not read them, and a
-    /// `.js` must not load as a script under `script-src md-asset:`.
-    func testOtherFilesInsideTheFolderAreRefused() throws {
+    /// script that got past the sanitizer must still not read them, and none
+    /// may load as a script under `script-src md-asset:`. `.ts` and `.icns`
+    /// are the subtle ones: macOS types them as a video stream and an image,
+    /// but neither has a MIME type, so they would have gone out as
+    /// `application/octet-stream`, which WebKit runs as a script.
+    func testEverythingElseInsideTheFolderIsRefused() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        for name in ["id_ed25519", ".env", "other.md", "data.json", "page.html", "evil.js"] {
-            let file = folder.appendingPathComponent(name)
-            try keyBytes.write(to: file)
-            XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder), name)
+        for name in ["id_ed25519", ".env", "other.md", "data.json", "page.html", "evil.js",
+                     "secrets.ts", "icon.icns", "demo.mp4", "clip.m4a", "doc.pdf"] {
+            XCTAssertNil(try read(name, keyBytes, in: folder), name)
         }
     }
 
     func testImageWithoutAnImageExtensionIsServedAsAnImage() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        let logo = folder.appendingPathComponent("logo")
-        try pngBytes.write(to: logo)
-        let read = MarkdownAssetResolution.readContainedFile(for: assetURL(logo), containedIn: folder)
-        XCTAssertEqual(read?.type, .png)
-        XCTAssertEqual(read?.data, pngBytes, "the sniffed header and the rest are served whole")
+        let served = try read("logo", pngBytes, in: folder)
+        XCTAssertEqual(served?.mimeType, "image/png")
+        XCTAssertEqual(served?.data, pngBytes, "the sniffed header and the rest are served whole")
+    }
+
+    /// The same lexical check as click-to-load, so an extensionless SVG is
+    /// served too, and bytes that only an image decoder's heuristics would
+    /// call an image are not.
+    func testExtensionlessFilesAreSniffedLexically() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let svg = Data(#"<svg xmlns="http://www.w3.org/2000/svg"/>"#.utf8)
+        XCTAssertEqual(try read("badge", svg, in: folder)?.mimeType, "image/svg+xml")
+        // An 18-byte header ImageIO takes for a TGA, followed by text.
+        var tga = Data([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 24, 0])
+        tga.append(Data("API_KEY=secret\n".utf8))
+        XCTAssertNil(try read("notes", tga, in: folder))
     }
 
     /// A link named like an image is judged by the file it points at, or a
