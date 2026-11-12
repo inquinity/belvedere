@@ -107,10 +107,12 @@ add a section there for this round: the upstream commit reviewed up to, what was
 reshaped, declined or found not to apply, and why. Release notes say what changed for
 readers; that file says what was decided.
 
-**Merge, never rebase.** `main` is published and others may build from it; rebasing
-means force-pushing over history they hold. `git rerere` is enabled in this clone so
-each conflict resolution is recorded once and replayed on later merges — if you clone
-fresh, re-enable it:
+**Never rebase `main`.** It is published and others may build from it; rebasing
+means force-pushing over history they hold. A `sync/` branch of picks lands on `main`
+with a merge, like any other branch. `git rerere` is enabled in this clone so a conflict
+resolution is recorded once and replayed when the same conflict comes back, which
+happens when an upstream file is picked from repeatedly — if you clone fresh,
+re-enable it:
 
 ```bash
 git config rerere.enabled true

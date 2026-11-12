@@ -107,11 +107,18 @@ three localizations, each to be cut out again on every later sync.
 
 ### Taken with changes
 
-- **Media only through `md-asset` (GH-627).** Upstream serves only images, audio, video
+- **Images only through `md-asset` (GH-627).** Upstream serves only images, audio, video
   and PDFs, but with no folder boundary. Belvedere keeps its containment and single-open
-  read and adds the media rule inside `readContainedFile`, judged on the opened file's own
-  path, before the rest of the file is read. With `script-src md-asset:` in the content
-  policy, this also stops a `.js` file in the document's folder loading as a script.
+  read and adds a narrower rule inside `readContainedFile`, judged on the opened file's own
+  path before the rest of the file is read: a file is served only with an `image/*` MIME
+  type, from its extension or, for a file whose name does not say, from the lexical sniff
+  click-to-load uses (`DeferredAssetLoader.imageMIMEType`; upstream asks ImageIO, whose
+  TGA heuristic accepts text behind an 18-byte header). User files also go out with
+  `X-Content-Type-Options: nosniff`. Audio, video and PDF are refused: the content policy
+  cannot load them. Upstream's version would serve `.ts` (typed as a video stream) and
+  `.icns` with no MIME type, as `application/octet-stream`, which WebKit runs as a script
+  under `script-src md-asset:`. Quick Look does not use `md-asset`; its own inlining of
+  local images (`InlineLocalAssets`) does not have this rule yet, upstream's neither.
 - **PNG export (GH-510).** Upstream fixed it in `DocumentExportSession`, which Belvedere
   does not have; the same one-line move was made by hand in
   `MarkdownWebView+PDFExport.swift`. Upstream's pixel test needs that session; not ported.

@@ -13,7 +13,7 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 ### Upstream features included in release
 
 - Command-1 to Command-8 switch to that tab of the window, and Command-9 to the last tab, as in Safari.
-- A document can load only images and other media from its folder. Before, a page could be made to read any file there, such as a `.env` file or a private key, if something got past the sanitizer.
+- In the app window, a document can load only images from its folder. Before, a page could be made to read any file there, such as a `.env` file or a private key, if something got past the sanitizer.
 - Links to headings, such as `[Setup](#setup)`, now scroll to the heading in Quick Look. Repeated headings are numbered as on GitHub.
 - References written `\[18\]` or `\[3, 4\]` show as text instead of as an equation.
 - Export as PNG shows the whole document instead of an enlarged corner of it.

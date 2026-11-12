@@ -1311,7 +1311,7 @@ const activeBulletDeco = Decoration.mark({ class: "cm-md-bullet-source" })
 // in the accent color, so item text lines up across list kinds like the
 // preview's ::marker. The active marker stays editable source in that box.
 // A marker of three or more digits needs a wider hanging box, or "100." wraps
-// inside it (#522). The box grows by 1ch per digit past the second, like the
+// inside it (pluk-inc/markdown-preview GH-522). The box grows by 1ch per digit past the second, like the
 // preview's `ol[data-mdp-digits]` gutter, and the whole list shares the box
 // width of its widest marker so item text stays in one column.
 const MARKER_BOX_EM = 2.1

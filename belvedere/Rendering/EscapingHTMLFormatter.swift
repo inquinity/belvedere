@@ -1337,7 +1337,7 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
 
     /// The stylesheet widens a list's marker gutter by one digit for every
     /// digit past the second, so "100." stays on one line beside its item
-    /// (#522). Lists that stay below 100 keep the default gutter and carry no
+    /// (pluk-inc/markdown-preview GH-522). Lists that stay below 100 keep the default gutter and carry no
     /// attribute. The editor mirrors the same rule from the source markers.
     static func markerDigitsAttribute(for orderedList: OrderedList) -> String {
         markerDigitsAttribute(lastNumber: Int(orderedList.startIndex) + max(orderedList.childCount, 1) - 1)
