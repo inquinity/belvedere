@@ -1,3 +1,4 @@
+import UniformTypeIdentifiers
 import XCTest
 @testable import MarkdownHelpers
 
@@ -526,5 +527,66 @@ final class MarkdownAssetResolutionTests: XCTestCase {
         let started = Date()
         XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(fifo), containedIn: folder))
         XCTAssertLessThan(Date().timeIntervalSince(started), 1)
+    }
+
+    // MARK: - Only media is served
+
+    /// A 1×1 PNG.
+    private let pngBytes = Data(base64Encoded:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")!
+    private let keyBytes = Data("-----BEGIN OPENSSH PRIVATE KEY-----".utf8)
+
+    func testMediaFilesInsideTheFolderAreServed() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for name in ["pic.png", "photo.HEIC", "diagram.svg", "demo.mp4", "clip.m4a", "doc.pdf"] {
+            let file = folder.appendingPathComponent(name)
+            try Data("x".utf8).write(to: file)
+            XCTAssertNotNil(MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder), name)
+        }
+        let png = folder.appendingPathComponent("pic.png")
+        XCTAssertEqual(MarkdownAssetResolution.readContainedFile(for: assetURL(png), containedIn: folder)?.type, .png)
+    }
+
+    /// Containment alone would serve these: they are inside the folder. A
+    /// script that got past the sanitizer must still not read them, and a
+    /// `.js` must not load as a script under `script-src md-asset:`.
+    func testOtherFilesInsideTheFolderAreRefused() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for name in ["id_ed25519", ".env", "other.md", "data.json", "page.html", "evil.js"] {
+            let file = folder.appendingPathComponent(name)
+            try keyBytes.write(to: file)
+            XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder), name)
+        }
+    }
+
+    func testImageWithoutAnImageExtensionIsServedAsAnImage() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let logo = folder.appendingPathComponent("logo")
+        try pngBytes.write(to: logo)
+        let read = MarkdownAssetResolution.readContainedFile(for: assetURL(logo), containedIn: folder)
+        XCTAssertEqual(read?.type, .png)
+        XCTAssertEqual(read?.data, pngBytes, "the sniffed header and the rest are served whole")
+    }
+
+    /// A link named like an image is judged by the file it points at, or a
+    /// cloned repository could ship `pic.png -> id_ed25519` beside the README.
+    func testSymbolicLinkIsJudgedByItsTarget() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let key = folder.appendingPathComponent("id_ed25519")
+        let real = folder.appendingPathComponent("real.png")
+        try keyBytes.write(to: key)
+        try pngBytes.write(to: real)
+        let disguised = folder.appendingPathComponent("pic.png")
+        let alias = folder.appendingPathComponent("alias.png")
+        try FileManager.default.createSymbolicLink(at: disguised, withDestinationURL: key)
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: real)
+
+        XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(disguised), containedIn: folder))
+        let read = MarkdownAssetResolution.readContainedFile(for: assetURL(alias), containedIn: folder)
+        XCTAssertEqual(read?.resolved.lastPathComponent, "real.png")
     }
 }

@@ -5,7 +5,9 @@
 
 import Darwin
 import Foundation
+import ImageIO
 import Markdown
+import UniformTypeIdentifiers
 
 /// Pure-Foundation path logic for the `md-asset` custom scheme, shared by
 /// the scheme handler (asset serving) and the web view's navigation
@@ -108,7 +110,10 @@ nonisolated enum MarkdownAssetResolution {
     /// `O_NONBLOCK` covers the same case if a filtered path is swapped for one
     /// between the filter and the open; the check on the open descriptor
     /// below remains the one that counts.
-    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL)? {
+    ///
+    /// Only media is served — see `servableType(ofResolvedFile:header:)` —
+    /// so a file the page may not load is refused before its bytes are read.
+    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL, type: UTType)? {
         guard let candidate = fileURL(for: assetURL, containedIn: documentFolder) else { return nil }
         let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
         guard fd >= 0 else { return nil }
@@ -124,10 +129,43 @@ nonisolated enum MarkdownAssetResolution {
         })
         guard isContained(resolved, in: documentFolder) else { return nil }
 
-        guard let data = try? FileHandle(fileDescriptor: fd, closeOnDealloc: false).readToEnd() else {
-            return nil
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+        guard let header = try? handle.read(upToCount: headerSniffLength),
+              let type = servableType(ofResolvedFile: resolved, header: header),
+              let rest = try? handle.readToEnd() ?? Data()
+        else { return nil }
+        return (header + rest, resolved, type)
+    }
+
+    /// Bytes read to identify an image whose name does not say it is one.
+    /// Every format ImageIO decodes is recognisable from its first few bytes.
+    static let headerSniffLength = 4096
+
+    /// The type of a file the page may load, or `nil` to refuse it.
+    ///
+    /// The page loads only media through `md-asset:` — images, and audio,
+    /// video and PDFs, which the content policy blocks today but upstream's
+    /// renderer may embed — so everything else is refused. Containment keeps
+    /// reads inside the document's folder; this keeps them to media within
+    /// it, so a script that got past the sanitizer cannot read a `.env`, a
+    /// key or another document there, and, because the content policy allows
+    /// `script-src md-asset:`, cannot load a `.js` file that came with the
+    /// folder either.
+    ///
+    /// `resolved` is the opened file's own path, symlinks already followed,
+    /// so `pic.png -> id_ed25519` is judged as `id_ed25519`. A file without a
+    /// media extension passes only when its first bytes decode as an image.
+    static func servableType(ofResolvedFile resolved: URL, header: Data) -> UTType? {
+        if let type = UTType(filenameExtension: resolved.pathExtension),
+           [.image, .audiovisualContent, .pdf].contains(where: type.conforms(to:)) {
+            return type
         }
-        return (data, resolved)
+        guard let source = CGImageSourceCreateWithData(header as CFData, nil),
+              let identifier = CGImageSourceGetType(source),
+              let type = UTType(identifier as String),
+              type.conforms(to: .image)
+        else { return nil }
+        return type
     }
 
     /// The file an `md-asset:` URL names, **with no containment check**.
