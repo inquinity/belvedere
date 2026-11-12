@@ -37,7 +37,10 @@ final class EscapingHTMLFormatterTests: XCTestCase {
 
     func testImageAltTextIsPreservedAndEscaped() {
         let html = EscapingHTMLFormatter.format(#"![A "chart" & total](chart.png)"#)
-        XCTAssertTrue(html.contains(#"alt="A &quot;chart&quot; &amp; total""#), html)
+        // Belvedere's parser applies smart punctuation, so the straight quotes
+        // arrive as curly ones; the ampersand is still escaped and nothing
+        // closes the attribute early.
+        XCTAssertTrue(html.contains(#"alt="A “chart” &amp; total""#), html)
 
         let emptyAlt = EscapingHTMLFormatter.format("![](decorative.png)")
         XCTAssertTrue(emptyAlt.contains(#"alt="""#), emptyAlt)

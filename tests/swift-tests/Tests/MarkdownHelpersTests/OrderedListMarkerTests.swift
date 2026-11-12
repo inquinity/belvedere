@@ -110,7 +110,7 @@ final class OrderedListMarkerTests: XCTestCase {
     }
 
     func testEditorMarkerBoxGrowsAndMarkersStayOnOneLine() async throws {
-        let editorScript = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let editorScript = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         TestVendor.installHighlighterGrammar()
         let html = EditorHTML.render(markdown: Self.markdown, editorJavaScript: editorScript,
                                      mermaidJavaScript: nil,
@@ -188,7 +188,12 @@ final class OrderedListMarkerTests: XCTestCase {
             };
             return { active100: await measure('100. Item 100'), active1000: await measure('1000. Big c') };
             """, arguments: [:], in: nil, contentWorld: .page) as? [String: Any]
-        func activeMarker(_ key: String) throws -> [String: Any] { try XCTUnwrap(try XCTUnwrap(active)[key] as? [String: Any]) }
+        func activeMarker(_ key: String) throws -> [String: Any] {
+            // Two steps: the macOS 27.2 SDK's compiler cannot infer the
+            // nested XCTUnwrap's type in one expression.
+            let measured = try XCTUnwrap(active)
+            return try XCTUnwrap(measured[key] as? [String: Any])
+        }
         let active100 = try activeMarker("active100")
         XCTAssertEqual(try XCTUnwrap(active100["width"] as? Double), 2.1 * em + ch, accuracy: 0.5)
         XCTAssertEqual(try XCTUnwrap(active100["height"] as? Double), try XCTUnwrap(active100["lineHeight"] as? Double),
