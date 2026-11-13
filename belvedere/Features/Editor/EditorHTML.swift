@@ -671,8 +671,12 @@ nonisolated enum EditorHTML {
         \(includesMermaid ? """
         <script>
         if (window.mermaid) {
+            // Same layout and look as the reading view; see
+            // MarkdownHTML+Mermaid.swift.
             window.mermaid.initialize({
                 startOnLoad: false,
+                layout: "dagre",
+                look: "classic",
                 securityLevel: "strict",
                 theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default"
             });

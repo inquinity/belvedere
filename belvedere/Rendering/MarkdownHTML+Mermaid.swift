@@ -141,9 +141,17 @@ nonisolated extension MarkdownHTML {
             function ensureInit(theme) {
                 if (initializedTheme === theme) return;
                 initializedTheme = theme;
+                // Mermaid 12 changed its defaults to the ELK layout and the
+                // "neo" look. `dagre` and `classic` keep diagrams laid out
+                // and drawn as in Mermaid 11 and on GitHub. A diagram's own
+                // front matter can still choose another layout or look.
+                // `securityLevel` cannot be changed from a diagram: Mermaid
+                // keeps it in its `secure` list.
                 mermaid.initialize({
                     startOnLoad: false,
                     theme,
+                    layout: 'dagre',
+                    look: 'classic',
                     securityLevel: 'strict',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
                 });
@@ -481,6 +489,19 @@ nonisolated extension MarkdownHTML {
                     }
                 }, { rootMargin: '300px 0px' });
                 figures.forEach((f) => io.observe(f));
+            }
+
+            // Mermaid draws every `.mermaid` element by itself when the
+            // window's load event fires, with its own defaults, unless it has
+            // already been told `startOnLoad: false`. ensureInit used to run
+            // only at the first render, which waits until a diagram nears the
+            // viewport and so can come after that event. Mermaid's own pass
+            // then drew the diagrams first, with its default font and (from
+            // Mermaid 12) its new layout and look, and the sizing below
+            // measured that drawing while Mermaid replaced it. Configure
+            // Mermaid as soon as this wiring exists.
+            if (typeof mermaid !== 'undefined' && typeof mermaid.initialize === 'function') {
+                ensureInit(activeTheme());
             }
 
             window.MdPreview = window.MdPreview || {};

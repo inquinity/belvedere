@@ -41,7 +41,6 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 | **UC2** | Pitch an optional network-egress block upstream | Low priority; the maintainer floated it. | — |
 | **UF1** | Upstream render-extension registry (their PR 429) | Reviewed, not imported; revisit if it merges and is reviewed. | — |
 | **UF2** | Pele, upstream's replacement for Mermaid | Declined 2026-11-12: about four weeks old, 22 releases in that time, and it draws diagrams differently from GitHub. Revisit when the four checkpoints in the item notes are met. | — |
-| **H13** | Update Mermaid from 11.15 to 12.x | Chosen over Pele. Verify the bundle against its published npm package, as with other vendored libraries. | next |
 | **H4** | Delete six old Belvedere releases on the tap repo | Due on or after 2026-10-28. | — |
 | **H5** | Understand the Greptile comments on our upstream PRs | Not started. | — |
 | **H6** | Two click-to-load test gaps | The `too large` label and duplicate references to one blocked file are untested. | — |
@@ -51,6 +50,12 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 ## Done
 
 Newest release first.
+
+### Next release (not yet released)
+
+| ID | Item | Outcome |
+|---|---|---|
+| **H13** | Update Mermaid from 11.15 to 12.x | 12.3.0 with the classic look and dagre layout kept, Mermaid configured before its own on-load pass can draw, and notices for every component bundled in it. |
 
 ### 2.0 (released 2026-10-06)
 

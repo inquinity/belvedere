@@ -10,6 +10,8 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
+- Diagrams are drawn with Mermaid 12, which adds use case diagrams, fixes many layout and drawing problems, and brings the sanitizer inside the diagram renderer up to date. Existing diagrams keep the look they had.
+- A diagram is now the same size in the reading view and in the editor, so the text after it no longer shifts when you switch.
 - A new setting, Settings ▸ General ▸ Optimize renderer performance, keeps a reader ready so the next document opens faster. It is on, as before; turn it off to save the memory of one extra page process.
 
 ### Upstream features included in release
