@@ -67,6 +67,14 @@ final class SanitizerNegativeTests: XCTestCase {
                        "An inline event handler survived. \(survivors.raw)")
         XCTAssertEqual(survivors.scriptedHrefs, 0,
                        "A javascript: URL survived. \(survivors.raw)")
+        XCTAssertEqual(
+            survivors.commandAttributes, 0,
+            """
+            A button kept `command` or `commandfor`, so a click in a document \
+            can open a modal dialog over the page without any script. \
+            \(survivors.raw)
+            """
+        )
     }
 
     /// `style` is stripped specifically so a hidden segment cannot ride along in
@@ -255,6 +263,7 @@ final class SanitizerNegativeTests: XCTestCase {
                 links: a.querySelectorAll('link').length,
                 styleTags: a.querySelectorAll('style').length,
                 styleAttributes: a.querySelectorAll('[style]').length,
+                commandAttributes: a.querySelectorAll('[command], [commandfor]').length,
                 eventHandlerAttributes: withHandler,
                 scriptedHrefs: scripted,
                 remoteImages: remoteImages,
@@ -284,6 +293,7 @@ final class SanitizerNegativeTests: XCTestCase {
         var links = 0
         var styleTags = 0
         var styleAttributes = 0
+        var commandAttributes = 0
         var eventHandlerAttributes = 0
         var scriptedHrefs = 0
         var remoteImages = 0
@@ -295,7 +305,7 @@ final class SanitizerNegativeTests: XCTestCase {
         private enum CodingKeys: String, CodingKey {
             case headings, scripts, iframes, objects, embeds, forms, bases, metas, links
             case formControls, taskCheckboxes
-            case styleTags, styleAttributes, eventHandlerAttributes, scriptedHrefs
+            case styleTags, styleAttributes, commandAttributes, eventHandlerAttributes, scriptedHrefs
             case remoteImages, scriptExecuted, deferredRemote, deferredLoadButtons
         }
     }

@@ -47,8 +47,10 @@ OUTPUT_PATH="belvedere/Acknowledgements.md"
 # when given, is a file whose first x.y.z is the version that ships (a VERSION
 # file, or a bundle's banner); the script refuses to run unless the license
 # links name that version, so an upgrade cannot leave the link behind.
-# Markdown Preview is linked on main because this fork tracks its main, and
-# CodeMirror because the bundled editor combines several of its packages.
+# Markdown Preview is linked on main because this fork tracks its main,
+# CodeMirror because the bundled editor combines several of its packages,
+# and the Babel helper inside DOMPurify because DOMPurify does not record
+# which Babel release built it.
 # swift-markdown and swift-cmark have no version file here -- Package.resolved
 # is not committed -- so recheck their tags by hand when the package updates.
 ENTRIES=(
@@ -56,7 +58,7 @@ ENTRIES=(
     "swift-markdown|[Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.9.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.9.0/NOTICE.txt)|belvedere/Licenses/swift-markdown-LICENSE.txt,belvedere/Licenses/swift-markdown-NOTICE.txt|"
     "swift-cmark|[BSD 2-Clause License](https://github.com/swiftlang/swift-cmark/blob/0.9.0/COPYING), with some files under the MIT License|belvedere/Licenses/swift-cmark-COPYING.txt|"
     "CodeMirror|[MIT License](https://code.haverbeke.berlin/codemirror/basic-setup/src/branch/main/LICENSE)|belvedere/Vendor/CodeMirror/CodeMirror-LICENSE.txt|"
-    "DOMPurify|[Apache License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE) or [Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE-MPL)|belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt|belvedere/Vendor/DOMPurify/purify.min.js"
+    "DOMPurify|[Apache License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE) or [Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE-MPL), with a Babel helper under the [MIT License](https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE)|belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt|belvedere/Vendor/DOMPurify/purify.min.js"
     "highlight.js|[BSD 3-Clause License](https://github.com/highlightjs/highlight.js/blob/11.12.0/LICENSE), with its Terraform grammar under the [MIT License](https://github.com/taga3s/highlightjs-terraform/blob/v1.0.7/LICENSE)|belvedere/Vendor/Highlight/Highlight-LICENSE.txt|belvedere/Vendor/Highlight/Highlight-VERSION"
     "KaTeX|[MIT License](https://github.com/KaTeX/KaTeX/blob/v0.19.1/LICENSE)|belvedere/Vendor/KaTeX/KaTeX-LICENSE.txt|belvedere/Vendor/KaTeX/VERSION"
     "Mermaid|[MIT License](https://github.com/mermaid-js/mermaid/blob/mermaid@11.15.0/LICENSE)|belvedere/Vendor/Mermaid/LICENSE|belvedere/Vendor/Mermaid/Mermaid-VERSION"
