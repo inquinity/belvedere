@@ -14,6 +14,8 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 
 ### Upstream features included in release
 
+- The HTML sanitizer that every document passes through has its latest security fixes.
+- Code highlighting is updated, with many grammar fixes, including one that kept some C and C++ code from stalling highlighting. Math rendering is updated too.
 - Command-1 to Command-8 switch to that tab of the window, and Command-9 to the last tab, as in Safari.
 - In the app window, a document can load only images from its folder. Before, a page could be made to read any file there, such as a `.env` file or a private key, if something got past the sanitizer.
 - Links to headings, such as `[Setup](#setup)`, now scroll to the heading in Quick Look. Repeated headings are numbered as on GitHub.

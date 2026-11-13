@@ -171,9 +171,13 @@ three localizations, each to be cut out again on every later sync.
 
 ### Waiting for a decision
 
-- **Library updates (GH-630):** DOMPurify 3.4.2 → 3.4.17, highlight.js 11.12, KaTeX
-  0.16 → 0.19, swift-markdown 0.9. Each must be checked against its published package,
-  which needs a network fetch. Sparkle and Sentry bumps do not apply.
+- **Library updates (GH-630):** taken on 2026-11-13, not picked: DOMPurify 3.4.2 →
+  3.4.17, highlight.js 11.10 → 11.12, KaTeX 0.16.45 → 0.19.1, swift-markdown and
+  swift-cmark 0.8 → 0.9, each checked against its npm package (registry signatures,
+  and build provenance where published) and DOMPurify and KaTeX also against their
+  GitHub releases. The highlight.js script change (no theme CSS) is taken. Sparkle and
+  Sentry bumps do not apply. Not taken: the editor bundle's npm updates
+  (`codemirror-lang-hcl` 0.2, esbuild 0.28) and Pele 1.13.
 - **Features under evaluation:** every
   `[!type]` callout (GH-629); live math in the editor (GH-555); table column resizing
   (GH-564, on top of GH-476 and GH-563); EPUB export (GH-517, on top of GH-476's export

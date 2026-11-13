@@ -1162,8 +1162,10 @@ Both About surfaces link to **Acknowledgements**: `Acknowledgements.md`, a
 short Markdown page opened in the default Markdown app. It names each component
 and the license it is used under, linked to that license in the component's own
 repository, as in "Markdown Preview is used under the MIT License". Links are
-pinned to the version that ships, not a default branch: DOMPurify's LICENSE on
-`main` became Apache-only while the 3.4.2 that ships is Apache-or-MPL. Where a
+pinned to the version that ships, not a default branch: DOMPurify's single
+dual-license LICENSE was later split into `LICENSE` (Apache 2.0) and
+`LICENSE-MPL`, so a link to `LICENSE` alone now shows one of the two licenses
+it is offered under; both are linked. Where a
 version file exists, the script refuses a link that names any other version.
 
 It deliberately does not reproduce the license texts. An earlier version pasted
