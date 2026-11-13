@@ -10,6 +10,8 @@ bin/compose-release-notes.sh builds <version>.md from this file; this comment
 and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 -->
 
+- A new setting, Settings ▸ General ▸ Optimize renderer performance, keeps a reader ready so the next document opens faster. It is on, as before; turn it off to save the memory of one extra page process.
+
 ### Upstream features included in release
 
 - Command-1 to Command-8 switch to that tab of the window, and Command-9 to the last tab, as in Safari.

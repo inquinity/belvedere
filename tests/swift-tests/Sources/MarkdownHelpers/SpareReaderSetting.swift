@@ -1,0 +1,1 @@
+../../../../belvedere/Preferences/SpareReaderSetting.swift
