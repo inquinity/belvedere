@@ -22,10 +22,12 @@ final class EditorPreviewLayoutTests: XCTestCase {
         var localParityTexts: [String] = []
         var height: CGFloat = 1800
         /// Pixels of difference allowed for the Mermaid diagram and everything
-        /// at or below it. With Mermaid 11.15 the two views measured diagram
-        /// labels differently and one fixture needed 4 px; with Mermaid 12.3
-        /// they match within 1 px, so every fixture uses the default. Raise
-        /// it for one fixture only with a reason, never above the diagram.
+        /// at or below it. One fixture once needed 4 px. Since the update to
+        /// Mermaid 12.3, configuring Mermaid before its own on-load pass, and
+        /// the editor sharing the reader's settings, the views match within
+        /// 1 px, so every fixture uses the default (which of the three did it
+        /// is not established). Raise it for one fixture only with a reason,
+        /// never above the diagram.
         var diagramTolerance: Double = 1
     }
 

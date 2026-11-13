@@ -103,10 +103,6 @@ nonisolated extension MarkdownHTML {
     </script>
     """
 
-    /// Mermaid wiring IIFE. Assumes the `mermaid` global has been (or will
-    /// be) defined by the time DOMContentLoaded fires — true for both inline
-    /// vendor `<script>` and `<script defer src=...>` delivery, since `defer`
-    /// scripts run before DOMContentLoaded.
     /// Mermaid settings the reading view and the editor share, as a
     /// JavaScript object literal: one definition, so the two views cannot
     /// draw the same diagram differently. (The editor once had no
@@ -116,9 +112,14 @@ nonisolated extension MarkdownHTML {
     /// and wider minimum node widths with tighter label wrapping. `dagre`,
     /// `classic`, no minimum width and a 200 px wrap keep diagrams the size
     /// and shape they had with Mermaid 11.15 and as GitHub draws them; a
-    /// diagram's own front matter can still choose otherwise.
+    /// diagram's own front matter can still choose otherwise. Swimlane
+    /// diagrams, new in Mermaid 12, keep their own `swimlane` layout: a
+    /// top-level `layout` would otherwise beat their per-type default.
     /// `securityLevel` cannot be changed from a diagram: Mermaid keeps it in
     /// its `secure` list.
+    ///
+    /// Callers pass this before their own `startOnLoad` and `theme` in
+    /// `Object.assign`, so a key added here later cannot override them.
     static let mermaidSharedConfig = """
     {
         layout: 'dagre',
@@ -126,10 +127,15 @@ nonisolated extension MarkdownHTML {
         securityLevel: 'strict',
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
         flowchart: { minNodeWidth: 0, wrappingWidth: 200 },
-        state: { minNodeWidth: 0, wrappingWidth: 200 }
+        state: { minNodeWidth: 0, wrappingWidth: 200 },
+        swimlane: { layout: 'swimlane' }
     }
     """
 
+    /// Mermaid wiring IIFE. Assumes the `mermaid` global has been (or will
+    /// be) defined by the time DOMContentLoaded fires — true for both inline
+    /// vendor `<script>` and `<script defer src=...>` delivery, since `defer`
+    /// scripts run before DOMContentLoaded.
     /// Mermaid pan/zoom/HUD/popup wiring. Internal so SPM helper tests can
     /// drive the real bootstrap path (with a stub `mermaid` + message host).
     static let mermaidInitWiring = """
@@ -165,8 +171,9 @@ nonisolated extension MarkdownHTML {
                 if (initializedTheme === theme) return;
                 initializedTheme = theme;
                 mermaid.initialize(Object.assign(
-                    { startOnLoad: false, theme },
-                    \(mermaidSharedConfig)
+                    {},
+                    \(mermaidSharedConfig),
+                    { startOnLoad: false, theme }
                 ));
             }
 

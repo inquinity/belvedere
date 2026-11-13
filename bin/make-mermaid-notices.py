@@ -9,23 +9,30 @@ mermaid.min.js is a single-file build that inlines Mermaid's dependencies
 (d3, dagre, cytoscape, ELK, chevrotain, langium, KaTeX, DOMPurify and more).
 Their notices must ship with every copy, and the bundle keeps only a few of
 them as comments, so this script collects them from what the bundle says it
-contains:
+contains, in four layers:
 
-1. fetches mermaid@VERSION with `npm pack` and reads the `sources` of
-   dist/mermaid.min.js.map. Each package path there names the package and
-   the exact version that was built in. Code taken from Mermaid's own parser
-   package is followed into that package's chunk maps (the published copy's;
-   versions come from Mermaid's lockfile, which pinned the build), and code that a dependency had already bundled with webpack (vscode-uri,
-   with path-browserify inside it) is attributed through WEBPACK_BUNDLES.
-   Any source the script cannot attribute stops it: a missing notice is the
-   failure this script exists to prevent;
-2. fetches each package at that version with `npm pack`, checks it against
-   the SHA-512 in Mermaid's pnpm-lock.yaml at the mermaid@VERSION tag where
-   the lockfile has it (npm checks the registry's own checksum either way),
-   and copies its LICENSE / COPYING / NOTICE files into one text file.
+1. Packages in the bundle's source map. mermaid@VERSION is fetched with
+   `npm pack` and the `sources` of dist/mermaid.min.js.map are read; each
+   package path there names a package and the version built in. Code from
+   Mermaid's own parser package is followed into that package's chunk maps
+   (the published copy's: the bundle's parser was built at the Mermaid tag,
+   so its versions are taken from Mermaid's lockfile, which pinned it).
+2. Packages a dependency had already bundled before Mermaid's build. A map
+   names such a dependency once, under its own name, so INLINED lists what
+   each one carries (vscode-uri, roughjs, venn.js).
+3. Code compiled into a package from another project, which no package
+   manifest records (EMBEDDED: Guava and GWT's runtime inside ELK, JamaJS
+   code in layout-base, a Babel helper in DOMPurify).
+4. A check: every runtime dependency of every package found must itself be
+   found, or be in NOT_BUNDLED with the reason it is absent. A package that
+   ships a prebuilt file can still inline a build-time dependency this check
+   cannot see; layer 2 is where such packages are recorded when found.
 
-Nothing from a package is run. Mermaid's dependency ranges are not resolved
-today: they would describe a bundle that was never built.
+Map sources the script cannot attribute stop it, and so does a dependency
+that is neither found nor explained. Each package is fetched at its version
+with `npm pack` (npm checks the registry's checksum) and, where Mermaid's
+pnpm-lock.yaml at the mermaid@VERSION tag has it, also checked against the
+lockfile's SHA-512. Nothing from a package is run.
 
 Network: registry.npmjs.org and raw.githubusercontent.com.
 Run from the repository root:  uv run --script bin/make-mermaid-notices.py 12.3.0
@@ -50,19 +57,65 @@ REGISTRY = "https://registry.npmjs.org/"
 NOTICE_PREFIXES = ("license", "licence", "copying", "notice")
 PARSER = "@mermaid-js/parser"
 PNPM_PATH = re.compile(r"node_modules/\.pnpm/([^/]+)/node_modules/((?:@[^/]+/)?[^/]+)/")
-# Packages that ship webpack builds of their own; their sources appear in a
-# map as webpack://LIB/... rather than as package paths.
-WEBPACK_BUNDLES = {"vscode-uri": ("path-browserify",)}
 # Mermaid's own code, and webpack's generated module runtime, need no notice.
 OWN_CODE = (re.compile(r"^(\.\./)+src/"), re.compile(r"^webpack://LIB/webpack/"))
+# The one package known to ship a webpack build whose sources reach the map
+# as webpack://LIB/...; a second such package would be misattributed, so
+# webpack sources are only accepted while this names exactly one owner.
+WEBPACK_OWNER = "vscode-uri"
+# Packages that ship a prebuilt file with other packages inside it.
+INLINED = {
+    "vscode-uri": ("path-browserify",),
+    "roughjs": ("hachure-fill", "path-data-parser", "points-on-curve", "points-on-path"),
+    "@upsetjs/venn.js": ("fmin",),
+}
+# Runtime dependencies of bundled packages that are not in the bundle.
+NOT_BUNDLED = {
+    "@chevrotain/types": "type declarations only",
+    "@types/trusted-types": "type declarations only",
+    "delaunator": "only d3-delaunay's own source is in the map",
+    "rw": "used by d3-dsv's command-line tools only",
+    "commander": "command-line tools only (d3-dsv, KaTeX)",
+    "iconv-lite": "used by d3-dsv's command-line tools only",
+    "argparse": "used by js-yaml's command-line tool only",
+    "strictdom": "a fastdom development extension, not in the map",
+    "vscode-languageserver": "langium's language-server side, not in the parser chunks",
+    "mlly": "Node-only code in @iconify/utils, not in the map",
+    "debug": "Node-only code in @iconify/utils, not in the map",
+    "globals": "Node-only code in @iconify/utils, not in the map",
+    "kolorist": "Node-only code in @iconify/utils, not in the map",
+    "local-pkg": "Node-only code in @iconify/utils, not in the map",
+    "@antfu/install-pkg": "Node-only code in @iconify/utils, not in the map",
+    "@antfu/utils": "Node-only code in @iconify/utils, not in the map",
+    "@iconify/types": "type declarations only",
+    "contour_plot": "fmin's demo visualisations only, which venn.js does not take",
+}
 # Where the source is, for components whose license asks binary
 # distributors to say so.
 SOURCE_OFFERS = {"elkjs": "https://github.com/kieler/elkjs/tree/{version}"}
-# Notices for code a package carries from elsewhere without its own license
-# file. DOMPurify's dist includes a Babel regenerator-runtime helper.
+# Code compiled into a package from another project: a label, and where its
+# notice comes from ("url:..." fetched, "file:path:N" the first N lines of a
+# file in the package).
 EMBEDDED = {
-    "dompurify": ("Babel regenerator-runtime helper, built into DOMPurify's dist",
-                  "https://raw.githubusercontent.com/babel/babel/main/packages/babel-helpers/LICENSE"),
+    "dompurify": [
+        ("Babel regenerator-runtime helper, built into DOMPurify's dist; "
+         "MIT License, Copyright (c) 2014-present, Facebook, Inc.",
+         "url:https://raw.githubusercontent.com/babel/babel/v7.28.0/packages/babel-helpers/LICENSE"),
+    ],
+    "layout-base": [
+        ("Singular value decomposition code adapted from JamaJS "
+         "(https://github.com/dragonfly-ai/JamaJS), under the Apache License 2.0; "
+         "from layout-base's src/util/SVD.js",
+         "file:src/util/SVD.js:214"),
+    ],
+    "elkjs": [
+        ("Google Guava, compiled into elk.bundled.js by GWT; "
+         "Copyright (C) The Guava Authors, Apache License 2.0",
+         "url:https://raw.githubusercontent.com/google/guava/master/LICENSE"),
+        ("GWT's Java runtime emulation, compiled into elk.bundled.js; "
+         "Copyright Google Inc. and the GWT authors, Apache License 2.0",
+         "url:https://raw.githubusercontent.com/gwtproject/gwt/main/distro-source/core/src/COPYING"),
+    ],
 }
 
 
@@ -104,18 +157,38 @@ class Tarballs:
             self.unpacked[key] = target / "package"
         return self.unpacked[key]
 
+    def manifest(self, name: str, version: str) -> dict:
+        return json.loads((self.get(name, version) / "package.json").read_text())
+
 
 def map_sources(path: Path) -> list[str]:
     return json.loads(path.read_text())["sources"]
 
 
-def bundled_packages(mermaid: str, packs: Tarballs, lock: dict) -> set[tuple[str, str]]:
+def lockfile_versions(lock: dict, name: str) -> set[str]:
+    return {key.rsplit("@", 1)[1] for key in lock["packages"] if key.rsplit("@", 1)[0] == name}
+
+
+def lockfile_version(lock: dict, name: str, published: str) -> str:
+    """The version of a package inside the parser as Mermaid's tag built it:
+    the published parser's own version if the lockfile has it, else the
+    lockfile's only version."""
+    versions = lockfile_versions(lock, name)
+    if published in versions:
+        return published
+    if len(versions) == 1:
+        return versions.pop()
+    raise RuntimeError(f"{name}: the published {PARSER} has {published}, the lockfile {versions}")
+
+
+def mapped_packages(mermaid: str, packs: Tarballs, lock: dict) -> tuple[set[tuple[str, str]], bool]:
+    """Layer 1. Returns the packages and whether webpack sources were seen."""
     found: set[tuple[str, str]] = set()
     unexplained: list[str] = []
     root = packs.get("mermaid", mermaid)
     pending = [(source, "mermaid") for source in map_sources(root / "dist/mermaid.min.js.map")]
     parser_files: set[str] = set()
-    webpack_owner_needed = False
+    webpack_seen = False
 
     while pending:
         source, origin = pending.pop()
@@ -125,17 +198,17 @@ def bundled_packages(mermaid: str, packs: Tarballs, lock: dict) -> set[tuple[str
             folder, name = match.group(1), match.group(2)
             version = folder[len(name.replace("/", "+")) + 1:].split("_", 1)[0]
             if origin == PARSER:
-                version = lockfile_version(lock, match.group(2), version)
-            found.add((match.group(2), version))
+                version = lockfile_version(lock, name, version)
+            found.add((name, version))
         elif any(pattern.search(source) for pattern in OWN_CODE):
             pass
         elif "/parser/dist/" in source and origin == "mermaid":
             parser_files.add(source.split("/parser/", 1)[1])
         elif source.startswith("webpack://LIB/"):
-            webpack_owner_needed = True
             nested = re.match(r"webpack://LIB/node_modules/((?:@[^/]+/)?[^/]+)/", source)
-            if nested:
-                found.add((nested.group(1), ""))  # its version comes from the owner below
+            if nested and nested.group(1) not in INLINED.get(WEBPACK_OWNER, ()):
+                unexplained.append(f"{origin}: {source} (not in INLINED[{WEBPACK_OWNER!r}])")
+            webpack_seen = True
         else:
             unexplained.append(f"{origin}: {source}")
 
@@ -158,50 +231,64 @@ def bundled_packages(mermaid: str, packs: Tarballs, lock: dict) -> set[tuple[str
 
     if unexplained:
         raise RuntimeError("cannot attribute these bundle sources:\n  " + "\n  ".join(unexplained))
-    if webpack_owner_needed:
-        found |= webpack_owners(found, packs, lock)
-    return found
+    return found, webpack_seen
 
 
-def lockfile_version(lock: dict, name: str, published: str) -> str:
-    """The version of a package inside the parser as Mermaid's tag built it:
-    the published parser's own version if the lockfile has it, else the
-    lockfile's only version."""
-    versions = {key.rsplit("@", 1)[1] for key in lock["packages"]
-                if key.rsplit("@", 1)[0] == name}
-    if published in versions:
-        return published
-    if len(versions) == 1:
-        return versions.pop()
-    raise RuntimeError(f"{name}: the published {PARSER} has {published}, the lockfile {versions}")
-
-
-def webpack_owners(found: set[tuple[str, str]], packs: Tarballs, lock: dict) -> set[tuple[str, str]]:
-    """Resolve WEBPACK_BUNDLES: the owner at the version the lockfile gives a
-    bundled package that depends on it, and each package the owner inlined at
-    the newest version its own manifest allows."""
+def owner_version(lock: dict, owner: str, found: set[tuple[str, str]]) -> str:
+    """The lockfile version of `owner` that a found package depends on."""
     snapshots = lock.get("snapshots") or {}
-    owners: set[tuple[str, str]] = set()
-    for owner, inlined in WEBPACK_BUNDLES.items():
-        versions = {str(entry["dependencies"][owner]).split("(")[0]
-                    for key, entry in snapshots.items()
-                    if entry and owner in (entry.get("dependencies") or {})
-                    and any(key.split("(")[0] == f"{name}@{version}" for name, version in found)}
-        if len(versions) != 1:
-            raise RuntimeError(f"no single version of {owner} in the lockfile: {versions}")
-        version = versions.pop()
-        owners.add((owner, version))
-        manifest = json.loads((packs.get(owner, version) / "package.json").read_text())
-        wanted = {**manifest.get("dependencies", {}), **manifest.get("devDependencies", {})}
+    versions = {str(entry["dependencies"][owner]).split("(")[0]
+                for key, entry in snapshots.items()
+                if entry and owner in (entry.get("dependencies") or {})
+                and any(key.split("(")[0] == f"{name}@{version}" for name, version in found)}
+    if len(versions) != 1:
+        raise RuntimeError(f"no single version of {owner} in the lockfile: {versions}")
+    return versions.pop()
+
+
+def inlined_packages(found: set[tuple[str, str]], webpack_seen: bool,
+                     packs: Tarballs, lock: dict) -> set[tuple[str, str]]:
+    """Layer 2: what INLINED owners carry, at the version their own manifest
+    asked for (the newest the registry has in that range)."""
+    names = {name: version for name, version in found}
+    if webpack_seen and WEBPACK_OWNER not in names:
+        names[WEBPACK_OWNER] = owner_version(lock, WEBPACK_OWNER, found)
+    added: set[tuple[str, str]] = set()
+    if WEBPACK_OWNER in names:
+        added.add((WEBPACK_OWNER, names[WEBPACK_OWNER]))
+    for owner, inlined in INLINED.items():
+        if owner not in names:
+            continue
+        manifest = packs.manifest(owner, names[owner])
+        wanted = {**manifest.get("devDependencies", {}), **manifest.get("dependencies", {})}
         for name in inlined:
-            found.discard((name, ""))
-            exact = json.loads(run("npm", "view", f"{name}@{wanted[name]}", "version", "--json",
+            if name not in wanted:
+                raise RuntimeError(f"{owner} {names[owner]} no longer depends on {name}")
+            spec = urllib.parse.unquote(wanted[name])
+            # A Yarn patch of a published version: patch:fmin@npm:0.0.4#...
+            patched = re.match(r"patch:.+?@npm:([^#]+)#", spec)
+            if patched:
+                spec = patched.group(1)
+            exact = json.loads(run("npm", "view", f"{name}@{spec}", "version", "--json",
                                    f"--registry={REGISTRY}"))
-            owners.add((name, exact[-1] if isinstance(exact, list) else exact))
-    leftover = [name for name, version in found if not version]
-    if leftover:
-        raise RuntimeError(f"webpack-bundled packages with no owner in WEBPACK_BUNDLES: {leftover}")
-    return owners
+            added.add((name, exact[-1] if isinstance(exact, list) else exact))
+    return added
+
+
+def check_dependencies(found: set[tuple[str, str]], packs: Tarballs) -> None:
+    """Layer 4: every runtime dependency is found or explained."""
+    names = {name for name, _ in found}
+    unexplained = []
+    for name, version in sorted(found):
+        manifest = packs.manifest(name, version)
+        for dependency in {**manifest.get("dependencies", {}),
+                           **manifest.get("optionalDependencies", {})}:
+            if dependency not in names and dependency not in NOT_BUNDLED \
+                    and not dependency.startswith("@types/"):
+                unexplained.append(f"{name} {version} depends on {dependency}")
+    if unexplained:
+        raise RuntimeError("dependencies neither bundled nor in NOT_BUNDLED:\n  "
+                           + "\n  ".join(unexplained))
 
 
 def notice_files(package: Path) -> tuple[str, list[tuple[str, str]]]:
@@ -223,6 +310,17 @@ def notice_files(package: Path) -> tuple[str, list[tuple[str, str]]]:
     return license_id, files
 
 
+def embedded_notice(package: Path, source: str) -> str:
+    kind, _, rest = source.partition(":")
+    if kind == "url":
+        return fetch(rest).strip()
+    path, _, lines = rest.rpartition(":")
+    if not (package / path).exists():
+        return ""  # this version of the package does not carry that code
+    text = (package / path).read_text(encoding="utf-8").splitlines()[: int(lines)]
+    return "\n".join(text).strip()
+
+
 def main() -> int:
     if len(sys.argv) != 2 or not re.fullmatch(r"\d+\.\d+\.\d+", sys.argv[1]):
         print(__doc__.strip().splitlines()[-1], file=sys.stderr)
@@ -235,12 +333,16 @@ def main() -> int:
     sections = []
     with tempfile.TemporaryDirectory() as temp:
         packs = Tarballs(Path(temp), integrity)
-        packages = bundled_packages(mermaid, packs, lock)
-        for name, version in sorted(packages):
-            license_id, files = notice_files(packs.get(name, version))
-            if name in EMBEDDED:
-                label, url = EMBEDDED[name]
-                files.append((label, fetch(url).strip()))
+        found, webpack_seen = mapped_packages(mermaid, packs, lock)
+        found |= inlined_packages(found, webpack_seen, packs, lock)
+        check_dependencies(found, packs)
+        for name, version in sorted(found):
+            package = packs.get(name, version)
+            license_id, files = notice_files(package)
+            for label, source in EMBEDDED.get(name, []):
+                notice = embedded_notice(package, source)
+                if notice:
+                    files.append((label, notice))
             sections.append((name, version, license_id, files, f"{name}@{version}" in integrity))
 
     rule = "-" * 77
@@ -249,9 +351,11 @@ def main() -> int:
         "",
         "mermaid.min.js is Mermaid's single-file build. Besides Mermaid itself,",
         "under the MIT License in LICENSE beside this file, it contains the",
-        "packages below, at the versions its source map names. Each package's own",
-        "license files follow, unmodified. Written by bin/make-mermaid-notices.py;",
-        "do not edit by hand.",
+        "packages below, as found from its source maps and from what those",
+        "packages are known to carry inside them. Each package's license files",
+        "follow, unmodified, with notices for code compiled into a package from",
+        "another project after them. Written by bin/make-mermaid-notices.py; do",
+        "not edit by hand.",
         "",
     ]
     out += [f"  {name} {version} -- {license_id}" for name, version, license_id, _, _ in sections]
@@ -267,7 +371,7 @@ def main() -> int:
     DEST.write_text("\n".join(out) + "\n", encoding="utf-8")
     checked = sum(1 for *_, in_lock in sections if in_lock)
     print(f"Wrote {DEST}: {len(sections)} packages; {checked} also checked against "
-          f"the lockfile's SHA-512, the rest against the registry's")
+          f"the lockfile's SHA-512, the rest against the registry's only")
     return 0
 
 

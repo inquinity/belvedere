@@ -55,7 +55,7 @@ Newest release first.
 
 | ID | Item | Outcome |
 |---|---|---|
-| **H13** | Update Mermaid from 11.15 to 12.x | 12.3.0, with diagrams kept at their 11.15 size and look, Mermaid configured before its own on-load pass can draw, the editor using the reader's settings, and notices for all 74 packages bundled in it. |
+| **H13** | Update Mermaid from 11.15 to 12.x | 12.3.0, with diagrams kept at their 11.15 size and look, Mermaid configured before its own on-load pass can draw, the editor using the reader's settings, and notices for the 79 packages bundled in it and the code compiled into them that is known. |
 
 ### 2.0 (released 2026-10-06)
 

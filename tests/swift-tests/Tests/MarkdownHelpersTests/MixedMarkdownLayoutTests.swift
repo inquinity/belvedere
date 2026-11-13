@@ -210,10 +210,10 @@ extension EditorPreviewLayoutTests {
                            editorBoxes: ["diagram-box": ".cm-md-mermaid-preview", "diagram-svg": ".cm-md-mermaid-stage svg"]))
     }
 
-    /// A class diagram's size depends on how wide its labels measure, unlike
-    /// the flowchart above, so it catches the two views drawing diagram
-    /// text in different fonts. Before the editor shared the reader's
-    /// Mermaid settings, this one differed by about 12 px at 500 px wide.
+    /// A class diagram's size depends on how wide its members' text
+    /// measures, so it catches the two views drawing diagram text in
+    /// different fonts. Before the editor shared the reader's Mermaid
+    /// settings, this one differed by about 12 px at 500 px wide.
     func testMermaidClassDiagramMatchesTheEditor() async throws {
         try await check(Fixture(name: "mermaid-class", markdown: """
             Before class diagram.

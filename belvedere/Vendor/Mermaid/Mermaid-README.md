@@ -12,11 +12,15 @@ sha512-4113TdXeLAsMruJ79OpFL5O8+LTFXhQqZ260rF3tgUmiNAtRm4Uume04I+65PRN6yZ69J4f8r
 
 npm verified its registry signature and its build provenance.
 
-`mermaid.min.js` is a single-file build that includes 74 other packages,
-among them the ELK layout engine under the Eclipse Public License 2.0.
-`Mermaid-THIRD-PARTY-NOTICES.txt` holds each one's license notice, at the
-version the bundle's source map names. It is written by
-`bin/make-mermaid-notices.py`; run it again after every update.
+`mermaid.min.js` is a single-file build that includes 79 other packages,
+among them the ELK layout engine under the Eclipse Public License 2.0, and
+code compiled into some of them from other projects (Guava and GWT's runtime
+inside ELK, for example). `Mermaid-THIRD-PARTY-NOTICES.txt` holds their
+license notices. `bin/make-mermaid-notices.py` writes it from the bundle's
+source maps, a table of packages known to carry others inside them, and a
+table of such compiled-in code, and stops if a bundled package depends on
+something it neither found nor has a recorded reason to leave out. Run it
+again after every update, and extend its tables when it stops.
 
 The app and Quick Look use this same offline renderer. Mermaid 12 changed its
 defaults to the ELK layout, the "neo" look, and wider minimum node widths with

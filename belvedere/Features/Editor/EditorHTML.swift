@@ -672,10 +672,10 @@ nonisolated enum EditorHTML {
         <script>
         if (window.mermaid) {
             // The reading view's settings; see MarkdownHTML.mermaidSharedConfig.
-            window.mermaid.initialize(Object.assign({
+            window.mermaid.initialize(Object.assign({}, \(MarkdownHTML.mermaidSharedConfig), {
                 startOnLoad: false,
                 theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default"
-            }, \(MarkdownHTML.mermaidSharedConfig)));
+            }));
         }
         </script>
         """ : "")
