@@ -1,3 +1,4 @@
+import UniformTypeIdentifiers
 import XCTest
 @testable import MarkdownHelpers
 
@@ -526,5 +527,85 @@ final class MarkdownAssetResolutionTests: XCTestCase {
         let started = Date()
         XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(fifo), containedIn: folder))
         XCTAssertLessThan(Date().timeIntervalSince(started), 1)
+    }
+
+    // MARK: - Only images are served
+
+    /// A 1×1 PNG.
+    private let pngBytes = Data(base64Encoded:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")!
+    private let keyBytes = Data("-----BEGIN OPENSSH PRIVATE KEY-----".utf8)
+
+    private func read(_ name: String, _ contents: Data, in folder: URL) throws
+        -> (data: Data, resolved: URL, mimeType: String)? {
+        let file = folder.appendingPathComponent(name)
+        try contents.write(to: file)
+        return MarkdownAssetResolution.readContainedFile(for: assetURL(file), containedIn: folder)
+    }
+
+    func testImagesInsideTheFolderAreServedWithTheirImageType() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let expected = ["pic.png": "image/png", "photo.HEIC": "image/heic",
+                        "diagram.svg": "image/svg+xml", "anim.gif": "image/gif"]
+        for (name, mime) in expected {
+            XCTAssertEqual(try read(name, Data("x".utf8), in: folder)?.mimeType, mime, name)
+        }
+    }
+
+    /// Containment alone would serve these: they are inside the folder. A
+    /// script that got past the sanitizer must still not read them, and none
+    /// may load as a script under `script-src md-asset:`. `.ts` and `.icns`
+    /// are the subtle ones: macOS types them as a video stream and an image,
+    /// but neither has a MIME type, so they would have gone out as
+    /// `application/octet-stream`, which WebKit runs as a script.
+    func testEverythingElseInsideTheFolderIsRefused() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for name in ["id_ed25519", ".env", "other.md", "data.json", "page.html", "evil.js",
+                     "secrets.ts", "icon.icns", "demo.mp4", "clip.m4a", "doc.pdf"] {
+            XCTAssertNil(try read(name, keyBytes, in: folder), name)
+        }
+    }
+
+    func testImageWithoutAnImageExtensionIsServedAsAnImage() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let served = try read("logo", pngBytes, in: folder)
+        XCTAssertEqual(served?.mimeType, "image/png")
+        XCTAssertEqual(served?.data, pngBytes, "the sniffed header and the rest are served whole")
+    }
+
+    /// The same lexical check as click-to-load, so an extensionless SVG is
+    /// served too, and bytes that only an image decoder's heuristics would
+    /// call an image are not.
+    func testExtensionlessFilesAreSniffedLexically() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let svg = Data(#"<svg xmlns="http://www.w3.org/2000/svg"/>"#.utf8)
+        XCTAssertEqual(try read("badge", svg, in: folder)?.mimeType, "image/svg+xml")
+        // An 18-byte header ImageIO takes for a TGA, followed by text.
+        var tga = Data([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 24, 0])
+        tga.append(Data("API_KEY=secret\n".utf8))
+        XCTAssertNil(try read("notes", tga, in: folder))
+    }
+
+    /// A link named like an image is judged by the file it points at, or a
+    /// cloned repository could ship `pic.png -> id_ed25519` beside the README.
+    func testSymbolicLinkIsJudgedByItsTarget() throws {
+        let folder = try makeFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let key = folder.appendingPathComponent("id_ed25519")
+        let real = folder.appendingPathComponent("real.png")
+        try keyBytes.write(to: key)
+        try pngBytes.write(to: real)
+        let disguised = folder.appendingPathComponent("pic.png")
+        let alias = folder.appendingPathComponent("alias.png")
+        try FileManager.default.createSymbolicLink(at: disguised, withDestinationURL: key)
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: real)
+
+        XCTAssertNil(MarkdownAssetResolution.readContainedFile(for: assetURL(disguised), containedIn: folder))
+        let read = MarkdownAssetResolution.readContainedFile(for: assetURL(alias), containedIn: folder)
+        XCTAssertEqual(read?.resolved.lastPathComponent, "real.png")
     }
 }

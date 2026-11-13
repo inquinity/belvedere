@@ -86,21 +86,33 @@ so the PR diff is exactly what upstream is being asked to review. They were made
 ### Syncing with upstream
 
 ```bash
-./bin/check-upstream.sh              # read-only: has upstream moved?
+./bin/check-upstream.sh                          # read-only: has upstream moved?
 git fetch upstream
-git merge upstream/main              # merge, never rebase
+git log --no-merges <last reviewed>..upstream/main   # what is new
+git cherry-pick <commit>                         # on a sync/ branch, one change at a time
 ```
 
-Before merging, read `docs/Upstream-Changed.md`: it lists every upstream change
-Belvedere took with changes or declined, and what keeps each decision in place. After
-merging, add a section there for this sync — what was reshaped, declined or kept
-ours, and why. Release notes say what changed for readers; that file says what was
-decided.
+**Cherry-pick, since 2026-11-12.** Until Markdown Preview 0.0.63 this fork merged
+`upstream/main`. By 0.0.72 a merge would have brought in a document-sharing service,
+an in-app updater and several localizations, each to be cut out again on every later
+sync, and 90 conflicted paths across the `md-preview/` → `belvedere/` rename. Picking
+what Belvedere wants is cheaper and keeps out what it does not. The cost is that git no
+longer knows which upstream commits were considered, so `docs/Upstream-Changed.md`
+records the last upstream commit reviewed, and `check-upstream.sh`'s count keeps
+growing; it means "upstream has moved", not "this much is unmerged".
 
-**Merge, never rebase.** `main` is published and others may build from it; rebasing
-means force-pushing over history they hold. `git rerere` is enabled in this clone so
-each conflict resolution is recorded once and replayed on later merges — if you clone
-fresh, re-enable it:
+Before picking, read `docs/Upstream-Changed.md`: it lists every upstream change
+Belvedere took with changes or declined, and what keeps each decision in place. After,
+add a section there for this round: the upstream commit reviewed up to, what was taken,
+reshaped, declined or found not to apply, and why. Release notes say what changed for
+readers; that file says what was decided.
+
+**Never rebase `main`.** It is published and others may build from it; rebasing
+means force-pushing over history they hold. A `sync/` branch of picks lands on `main`
+with a merge, like any other branch. `git rerere` is enabled in this clone so a conflict
+resolution is recorded once and replayed when the same conflict comes back, which
+happens when an upstream file is picked from repeatedly — if you clone fresh,
+re-enable it:
 
 ```bash
 git config rerere.enabled true
@@ -260,6 +272,8 @@ ROADMAP.md. The mapping from older IDs follows the table.
 | **H8** | Rename the Xcode project and folders | ✅ **done 2026-10-05**, in 2.0: `belvedere/`, `belvedere-quick-look/`, `belvedere.xcodeproj`, the `belvedere` scheme, `belvedere://` and `belvedere.*` settings keys. Upstream references were left alone. |
 | **H9** | Keep stray Belvedere builds out of the application list | ✅ **fixed 2026-10-05.** Unregistering from Launch Services (`bin/clean-app-registrations.sh`, `just clean-apps`) was not enough: Spotlight lists files on disk, so a dev build, an Xcode DerivedData build and two `(Dev)` apps kept showing as five Belvedere apps while only `/Applications/Belvedere.app` is real. The real fixes: **`bin/build.sh` now builds into `build.noindex/`** (Spotlight and Launch Services skip folders ending `.noindex`; `bin/install.sh`, `bin/bundle.sh`, `just clean` and `.gitignore` follow), and this project's Xcode DerivedData was deleted. Spotlight now lists one Belvedere, Launch Services has no strays, and the only registered Quick Look extension is the installed one. **Still to know:** Xcode builds from the IDE go to `~/Library/Developer/Xcode/DerivedData` and will be indexed again; exclude that folder in System Settings ▸ Spotlight ▸ Search Privacy, or set Xcode's DerivedData location to `build.noindex`. Command-line builds can use `-derivedDataPath build.noindex/DerivedData`. **Side effect, handled:** with the Dev apps unregistered the default for `.md` fell to Xcode. `bin/set-default-app.swift` (`just default-app /Applications/Belvedere.app`) sets Belvedere as the default for every document type it declares, reads each back, and waits for the Launch Services daemon, which applies a change a moment late; `--check` shows the current defaults. `public.markdown` cannot be set (OSStatus -50) and stays with whatever app holds it; `.md` files are `net.daringfireball.markdown`, so that does not matter for them. |
 | **UF1** | Render extension registry (upstream PR 429) | Upstream's open render-extension-registry PR ([#429](https://github.com/pluk-inc/markdown-preview/pull/429)). Reviewed 2026-09-25: **don't import now** — unreviewed by the maintainer, functional bugs flagged. If it merges and the headings are wanted, take the two extensions without the registry. Criteria for any registry-style feature: static compiled-in assets only, no code from outside the bundle, output still through DOMPurify and the CSP, no new network or filesystem reach. |
+| **UF2** | Pele in place of Mermaid (upstream GH-539, GH-596, GH-630) | **Declined 2026-11-12, to revisit.** Upstream replaced Mermaid 11.15 with [Pele](https://github.com/obsidianmd/pele), Obsidian's MIT-licensed renderer for Mermaid syntax: 0.7 MB against 3.3 MB, synchronous, no dependencies, measured with a canvas instead of page layout (which is what makes Mermaid's reader and editor sizes differ, F22). **Why not now:** it was announced on 2026-10-17 and had 22 releases in its first four weeks; Mermaid is native in GitHub, GitLab, Azure DevOps, Notion, Obsidian (today), Joplin, Docusaurus and others, while Pele's one committed large adopter is Obsidian's next release; and it uses its own layout and look, so a diagram would not look as it does on GitHub, where most documents Belvedere opens come from (one migration also lost custom `classDef` colours). Its `SECURITY.md` escapes text, filters links and styles and caps size, but asks embedders to add their own sanitiser and does not filter icon markup; upstream inserts its SVG into the page unsanitised. **Revisit when all four hold:** (1) Obsidian ships it in a stable release; (2) about three months with no breaking release; (3) some security-advisory history or an independent audit; (4) one more major platform adopts it. **If taken:** pass its SVG through DOMPurify, set `links: false` and `images: false` unless wanted, cap diagram size, pin the version, and add before/after fixtures of the sample diagrams. **Cost of waiting:** upstream's diagram fixes in `MarkdownHTML+Mermaid.swift`, the popup, the editor widget and export no longer apply to Belvedere. |
+| **H13** | Update Mermaid from 11.15 to 12.x | Chosen over Pele (UF2) on 2026-11-12. Pele targets Mermaid 12.1 syntax, so 12.x is current. Verify the vendored bundle against the published npm package and its SHA-512, as for 11.15; recheck `securityLevel: 'strict'`, Quick Look, the popup, print and the F22 tolerance. Not started. |
 | **UC1** | Offer click-to-load upstream | Offer click-to-load for blocked images (legacy F4) to Markdown Preview as its own PR, once the containment PR ([#337](https://github.com/pluk-inc/markdown-preview/pull/337)) is resolved. It must follow the reworked boundary — the opened project folder, not the document folder. See the Upstream contribution track. |
 | **UC2** | Pitch upstream an optional setting to block a document's network egress | **not started, low priority** — the maintainer's own idea, offered when closing [PR #399](https://github.com/pluk-inc/markdown-preview/pull/399): *"we may revisit an optional privacy setting or a narrower CSP separately."* Worth a narrow proposal along those lines once someone has time, distinct from and no substitute for `PreviewContentPolicy` here, which stays unconditional regardless of whether this ever lands. If they build it as a user-facing toggle, decide then whether Belvedere adopts it (defaulted to enforced) or leaves the toggle out entirely and keeps its own unconditional enforcement — no reason to pick now. |
 

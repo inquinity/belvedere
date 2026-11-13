@@ -18,6 +18,11 @@ nonisolated extension MarkdownHTML {
     /// runtime, yet its spans still need their colors.
     static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS
 
+    /// One gutter rule per `data-mdp-digits` value the formatter can emit.
+    private static let markerGutterRules = (3...EscapingHTMLFormatter.maximumMarkerDigits).map { digits in
+        "ol[data-mdp-digits=\"\(digits)\"] { --mdp-list-indent: calc(2.1em + \(digits - 2)ch); }"
+    }.joined(separator: "\n    ")
+
     private static let baseStylesheet = """
     :root {
         color-scheme: light dark;
@@ -334,9 +339,10 @@ nonisolated extension MarkdownHTML {
     .footnotes hr {
         margin: 0 0 1em;
     }
+    /* No padding of its own: footnotes use the ordered-list gutter, which
+       fits "10." and grows from "100." on. */
     .footnotes ol {
         margin-top: 0;
-        padding-left: 1.45em;
     }
     .footnotes li {
         margin-top: 0.72em;
@@ -649,10 +655,19 @@ nonisolated extension MarkdownHTML {
     .markdown-alert-caution .markdown-alert-title { color: #d1242f; }
 
     ul, ol {
+        /* Each list owns its gutter, so a nested list does not inherit the
+           wider gutter of a long ordered list around it. */
+        --mdp-list-indent: 2.1em;
         margin: \(paragraphSpacing)px 0 0;
         padding-inline-start: var(--mdp-list-indent);
         padding-inline-end: 0;
     }
+    /* A two-digit marker fits the default gutter; from "100." on, the
+       formatter tags the list with its digit count and the gutter grows by one
+       digit per extra digit. 1ch is the width of "0", which no document font
+       renders narrower than its tabular digits, so the marker never wraps or
+       hangs past the page edge. The editor mirrors this in entry-cm.js. */
+    \(markerGutterRules)
     ol > li::marker { color: var(--link); font-variant-numeric: tabular-nums; }
     /* No text marker: it would paint as a selected box beside every item.
        The gutter comes from the list padding, a 0.4em circle is painted in

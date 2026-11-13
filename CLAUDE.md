@@ -53,7 +53,8 @@ build a person will test must be handed over with its About-box build string and
 ## How this project works
 
 - **Remotes and branches.** `origin` is `inquinity/belvedere`, `upstream` is `pluk-inc/markdown-preview`
-  (read-only; never pushed to). Sync with `git merge upstream/main`. **Never rebase `main`**; it is
+  (read-only; never pushed to). Take upstream changes by **cherry-picking** them onto a `sync/` branch,
+  not by merging `upstream/main` (since 2026-11-12; see `docs/Upstream-Changed.md`). **Never rebase `main`**; it is
   published. Work on `feat/*`, `fix/*` and `chore/*` branches and merge with a `Fork: …` message.
 - **This repository has no `contrib/*` branches and no fork remote.** Work for upstream is prepared in
   a separate clone of [`inquinity/markdown-preview`](https://github.com/inquinity/markdown-preview),
@@ -66,10 +67,14 @@ build a person will test must be handed over with its About-box build string and
   local test install of an upstream build, blank `SentryDSN` and `SUFeedURL` and set
   `SUEnableAutomaticChecks` to false in a local commit that is never pushed. See the contribution
   clone's own notes below before staging anything there.
-- **On a sync:** review all incoming changes for security with the `security-oss-app-reviewer`
-  skill; keep our `Version.xcconfig` and `README.md`; keep the files listed under *Standing
-  removals* in `docs/Upstream-Changed.md` deleted (a modify/delete conflict means keep the
-  deletion), including `AGENTS.md` and `CHANGELOG.md`.
+- **On a sync:** list what is new since the last reviewed upstream commit (recorded at the top of
+  the newest section of `docs/Upstream-Changed.md`), review what you take for security with the
+  `security-oss-app-reviewer` skill, and pick it with paths moved to `belvedere/`. Drop a pick's
+  hunks to `Version.xcconfig` and `README.md` (ours; update README by hand if the change warrants
+  it). Never bring in
+  the files listed under *Standing removals* there, including `AGENTS.md` and `CHANGELOG.md`.
+  Reword each pick's message to this repository's style, keep the upstream author, and point at
+  the upstream PR as `pluk-inc/markdown-preview GH-<n>`.
   Also check the vendored `swift-concurrency` skill against its own source (see
   *Other upstreams* in `docs/Upstream-Changed.md`) and read the diff before importing it.
 - **Deliberately dead code**: the orphaned CLI installer and the stubbed telemetry reporters stay.

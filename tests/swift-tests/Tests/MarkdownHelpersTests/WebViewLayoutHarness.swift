@@ -33,11 +33,18 @@ final class WebViewLayoutHarness {
     private let html: String
     private let isEditor: Bool
 
-    init(html: String, width: CGFloat, isEditor: Bool, zoom: CGFloat = 1, height: CGFloat = 1800) {
+    init(html: String, width: CGFloat, isEditor: Bool, zoom: CGFloat = 1, height: CGFloat = 1800,
+         messageHandler: WKScriptMessageHandler? = nil) {
         self.html = html
         self.isEditor = isEditor
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
+        // A page that posts to the host bridges (the editor does on load)
+        // needs them registered, or the post throws before layout settles.
+        if let messageHandler {
+            configuration.userContentController.add(messageHandler, name: "mdPreviewHost")
+            configuration.userContentController.add(messageHandler, name: "mdEditorHost")
+        }
         configuration.preferences.inactiveSchedulingPolicy = .none
         // A command-line test has no visible window. WebKit pauses native
         // animation frames there, even while async JavaScript is running.

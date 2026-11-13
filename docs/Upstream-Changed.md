@@ -1,8 +1,11 @@
 # Upstream changes, and what Belvedere did with them
 
-Every sync with Markdown Preview (`git merge upstream/main`) brings its changes into
-Belvedere. Most arrive exactly as upstream wrote them. This file records the ones that
-did not — taken with changes, or declined — and why, one section per sync, newest first.
+Belvedere takes Markdown Preview's changes selectively. Until 0.0.63 every sync was a
+`git merge upstream/main`; since 2026-11-12 changes are cherry-picked one at a time (see
+`docs/FORK-NOTES.md`, "Syncing with upstream"). This file records what was taken with
+changes, declined or found not to apply, and why, one section per round, newest first.
+Each cherry-pick round names the last upstream commit it reviewed: start the next round
+from there.
 It is the place to look before a sync, so a decision made once is not quietly undone by
 the next merge, and after one, to record what was decided.
 
@@ -18,8 +21,9 @@ changes are applied".
   keeps it that way (a posture test, a baseline entry, a note in a file header).
 - **Declined** — what was left out, why, and how it is kept out on the next sync.
 - **Kept ours** — files where Belvedere's version wins every time.
-- Everything else is **taken unchanged**; name the upstream releases it spans and let
-  git hold the detail (`git log --no-merges <last sync>..upstream/main`).
+- **Taken unchanged** — for a cherry-pick round, list each pick; for an old merge, the
+  releases it spans.
+- **Not applicable** — upstream fixes for code Belvedere does not have.
 
 Upstream PR numbers below refer to `pluk-inc/markdown-preview`.
 
@@ -76,6 +80,113 @@ it is now a real folder, not a symlink. Updated from the 2026-09-01 copy to 2.3.
 index entries. The diff was read first and held only documentation. `skills-lock.json` still
 records the old install hash; it is provenance only, because nothing here runs the skills
 installer.
+
+---
+
+## Markdown Preview 0.0.64–0.0.72 — cherry-picked 2026-11-12, first round
+
+**Reviewed through upstream `36debd1`** (2026-11-11, after 0.0.72). The next round
+starts with `git log --no-merges 36debd1..upstream/main`. Open upstream pull requests
+were read at the same time; see the end of this section.
+
+This is the first round by cherry-pick. A trial merge of `upstream/main` had 90
+conflicted paths, and would have brought in Share as Link, the update capsule and
+three localizations, each to be cut out again on every later sync.
+
+### Taken unchanged (paths moved to `belvedere/`)
+
+- Image alt text kept (GH-497).
+- Ordered-list markers from 100 on one line (GH-523), with the editor bundle rebuilt
+  from `entry-cm.js` using the locked dependencies.
+- Column held still while zooming in normal width (GH-545).
+- macOS 27: sidebar row text plain when selected (GH-552).
+- Search keeps its match when focus moves (GH-604).
+- Escaped citations such as `\[18\]` left as text, and a bounds check on math
+  placeholder tokens a document could spell (GH-633).
+- Command-1 to Command-9 select tabs (GH-603).
+
+### Taken with changes
+
+- **Images only through `md-asset` (GH-627).** Upstream serves only images, audio, video
+  and PDFs, but with no folder boundary. Belvedere keeps its containment and single-open
+  read and adds a narrower rule inside `readContainedFile`, judged on the opened file's own
+  path before the rest of the file is read: a file is served only with an `image/*` MIME
+  type, from its extension or, for a file whose name does not say, from the lexical sniff
+  click-to-load uses (`DeferredAssetLoader.imageMIMEType`; upstream asks ImageIO, whose
+  TGA heuristic accepts text behind an 18-byte header). User files also go out with
+  `X-Content-Type-Options: nosniff`. Audio, video and PDF are refused: the content policy
+  cannot load them. Upstream's version would serve `.ts` (typed as a video stream) and
+  `.icns` with no MIME type, as `application/octet-stream`, which WebKit runs as a script
+  under `script-src md-asset:`. Quick Look does not use `md-asset`; its own inlining of
+  local images (`InlineLocalAssets`) does not have this rule yet, upstream's neither.
+- **PNG export (GH-510).** Upstream fixed it in `DocumentExportSession`, which Belvedere
+  does not have; the same one-line move was made by hand in
+  `MarkdownWebView+PDFExport.swift`. Upstream's pixel test needs that session; not ported.
+- **File watcher descriptor (GH-623).** Belvedere already retried a deleted-then-rewritten
+  file (`cf13211`). Only the descriptor fix was taken: each source's cancel handler now
+  closes its own descriptor.
+- **Formatting bar and tab bar on macOS 27 (GH-547).** Upstream's macOS 26 guard is
+  dropped (Belvedere's minimum), and a test hunk that belongs to the native task
+  checkboxes (GH-546, not taken) was left out.
+- **Zoomed page first frame (GH-557).** Merged into Belvedere's render path, which also
+  passes the line-break setting and the spare reader's preload flag.
+- **Footnote numbers from 10 (GH-622).** The share viewer's stylesheet change dropped.
+- **Quick Look heading links (GH-504).** Upstream's test drives the Quick Look controller,
+  which `tests/swift-tests` does not build; not ported.
+- Tests that came with these assumed upstream's tree: `md-preview/` paths, a
+  `messageHandler` parameter on `WebViewLayoutHarness` (added), a nested `XCTUnwrap` the
+  macOS 27.2 SDK's compiler rejects, and straight quotes where Belvedere's parser makes
+  curly ones.
+
+### Not applicable — fixes for code Belvedere does not have
+
+- GPU-process DOM rendering on macOS 27 (GH-531): Belvedere never had the opt-out.
+- Outline crash on `- #` (GH-628): the crash is in upstream's heading source lines,
+  which Belvedere's outline does not read.
+- File chooser at login-item launch (GH-624): Belvedere shows no chooser at launch.
+- Editor list indent at a non-default zoom (GH-638): the registered length it fixes came
+  with a later upstream change Belvedere does not have.
+
+### Declined
+
+- **Share as Link** (GH-567 to GH-619, `server/share-worker`, Universal Links): it
+  uploads documents to upstream's service.
+- **Update capsule and release notes after an update** (GH-613, GH-618, GH-642):
+  Belvedere has no updater.
+- **Custom app links with an Always Allow button** (GH-478): a document could open any
+  app's URL scheme. Belvedere's sanitizer removes such links.
+- **Task toggles in the reading view** (GH-470): reopens the page-to-file write path the
+  read-only reading view (GH-456) closed.
+- Japanese, Persian and Polish localizations and language switching (GH-474, GH-516,
+  GH-543, GH-532, GH-472, GH-530); the coffee and Discord links (GH-601); upstream's dark
+  icon (GH-607); upstream agent tooling (CodeRabbit, the `pull-requests`, `resolve` and
+  `headless-ui-test` skills, whose `vdisplay.m` uses a private API).
+- **Pele in place of Mermaid** (GH-539, GH-596, and the Pele bump in GH-630): declined
+  for now. Pele was about four weeks old, Mermaid is what GitHub and most other tools
+  render with, and Pele draws diagrams in its own style. Belvedere updates Mermaid
+  instead. The checkpoints for revisiting are under UF2 in `docs/FORK-NOTES.md`.
+  *On later rounds:* upstream changes to `MarkdownHTML+Mermaid.swift`, the diagram
+  popup and the editor's diagram widget assume Pele; read them for fixes that also
+  apply to Mermaid, and do not pick them as they are.
+
+### Waiting for a decision
+
+- **Library updates (GH-630):** DOMPurify 3.4.2 → 3.4.17, highlight.js 11.12, KaTeX
+  0.16 → 0.19, swift-markdown 0.9. Each must be checked against its published package,
+  which needs a network fetch. Sparkle and Sentry bumps do not apply.
+- **Features under evaluation:** every
+  `[!type]` callout (GH-629); live math in the editor (GH-555); table column resizing
+  (GH-564, on top of GH-476 and GH-563); EPUB export (GH-517, on top of GH-476's export
+  rewrite); selection word counts (GH-534); text alignment (GH-480); the navigator's
+  + menu and filter (GH-566, which adds `com.apple.security.files.bookmarks.app-scope`);
+  removing the spare reader (GH-471).
+
+### Open upstream pull requests, read 2026-11-12
+
+Worth watching: a loading panel for slow cloud files (GH-641), image paste fixes
+(GH-614), relative Markdown links from Quick Look (GH-505). Declined if merged: Quick
+Look links that launch the app through a private host API (GH-514), German localization
+(GH-361).
 
 ---
 

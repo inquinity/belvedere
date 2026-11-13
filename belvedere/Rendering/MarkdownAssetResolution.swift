@@ -6,6 +6,7 @@
 import Darwin
 import Foundation
 import Markdown
+import UniformTypeIdentifiers
 
 /// Pure-Foundation path logic for the `md-asset` custom scheme, shared by
 /// the scheme handler (asset serving) and the web view's navigation
@@ -108,7 +109,10 @@ nonisolated enum MarkdownAssetResolution {
     /// `O_NONBLOCK` covers the same case if a filtered path is swapped for one
     /// between the filter and the open; the check on the open descriptor
     /// below remains the one that counts.
-    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL)? {
+    ///
+    /// Only images are served — see `servableImageMIMEType(ofResolvedFile:header:)`
+    /// — so a file the page may not load is refused before the rest of it is read.
+    static func readContainedFile(for assetURL: URL, containedIn documentFolder: URL) -> (data: Data, resolved: URL, mimeType: String)? {
         guard let candidate = fileURL(for: assetURL, containedIn: documentFolder) else { return nil }
         let fd = candidate.path.withCString { open($0, O_RDONLY | O_NONBLOCK | O_CLOEXEC) }
         guard fd >= 0 else { return nil }
@@ -124,10 +128,42 @@ nonisolated enum MarkdownAssetResolution {
         })
         guard isContained(resolved, in: documentFolder) else { return nil }
 
-        guard let data = try? FileHandle(fileDescriptor: fd, closeOnDealloc: false).readToEnd() else {
-            return nil
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+        guard let header = try? handle.read(upToCount: DeferredAssetLoader.svgPrologueLimit),
+              let mimeType = servableImageMIMEType(ofResolvedFile: resolved, header: header),
+              let rest = try? handle.readToEnd() ?? Data()
+        else { return nil }
+        return (header + rest, resolved, mimeType)
+    }
+
+    /// The MIME type to serve a file the page may load with, or `nil` to
+    /// refuse it. Always `image/*`.
+    ///
+    /// The page loads only images through `md-asset:`: the content policy
+    /// names the scheme for `img-src`, and for `script-src` only so vendor
+    /// bundles load, which take a separate path. So everything that is not an
+    /// image is refused. Containment keeps reads inside the document's
+    /// folder; this keeps them to images within it, so a script that got past
+    /// the sanitizer cannot read a `.env`, a key or another document there,
+    /// nor load a source file from the folder as a script.
+    ///
+    /// An `image/*` MIME type is required, not just an image `UTType`: some
+    /// types that conform to `public.image` have no MIME type (`.icns`,
+    /// `.ai`, `.exr`) and would go out as `application/octet-stream`, which
+    /// WebKit runs as a script. The scheme handler also sends `nosniff`.
+    ///
+    /// `resolved` is the opened file's own path, symlinks already followed,
+    /// so `pic.png -> id_ed25519` is judged as `id_ed25519`. A file whose name
+    /// does not say it is an image passes only when its first bytes do, by the
+    /// same lexical check click-to-load uses, so no image decoder parses
+    /// untrusted bytes in the app to decide.
+    static func servableImageMIMEType(ofResolvedFile resolved: URL, header: Data) -> String? {
+        if let type = UTType(filenameExtension: resolved.pathExtension),
+           type.conforms(to: .image),
+           let mime = type.preferredMIMEType, mime.hasPrefix("image/") {
+            return mime
         }
-        return (data, resolved)
+        return DeferredAssetLoader.imageMIMEType(of: header)
     }
 
     /// The file an `md-asset:` URL names, **with no containment check**.
