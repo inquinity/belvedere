@@ -107,6 +107,29 @@ nonisolated extension MarkdownHTML {
     /// be) defined by the time DOMContentLoaded fires — true for both inline
     /// vendor `<script>` and `<script defer src=...>` delivery, since `defer`
     /// scripts run before DOMContentLoaded.
+    /// Mermaid settings the reading view and the editor share, as a
+    /// JavaScript object literal: one definition, so the two views cannot
+    /// draw the same diagram differently. (The editor once had no
+    /// `fontFamily` and measured labels in Mermaid's default font.)
+    ///
+    /// Mermaid 12 changed its defaults to the ELK layout, the "neo" look,
+    /// and wider minimum node widths with tighter label wrapping. `dagre`,
+    /// `classic`, no minimum width and a 200 px wrap keep diagrams the size
+    /// and shape they had with Mermaid 11.15 and as GitHub draws them; a
+    /// diagram's own front matter can still choose otherwise.
+    /// `securityLevel` cannot be changed from a diagram: Mermaid keeps it in
+    /// its `secure` list.
+    static let mermaidSharedConfig = """
+    {
+        layout: 'dagre',
+        look: 'classic',
+        securityLevel: 'strict',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+        flowchart: { minNodeWidth: 0, wrappingWidth: 200 },
+        state: { minNodeWidth: 0, wrappingWidth: 200 }
+    }
+    """
+
     /// Mermaid pan/zoom/HUD/popup wiring. Internal so SPM helper tests can
     /// drive the real bootstrap path (with a stub `mermaid` + message host).
     static let mermaidInitWiring = """
@@ -141,20 +164,10 @@ nonisolated extension MarkdownHTML {
             function ensureInit(theme) {
                 if (initializedTheme === theme) return;
                 initializedTheme = theme;
-                // Mermaid 12 changed its defaults to the ELK layout and the
-                // "neo" look. `dagre` and `classic` keep diagrams laid out
-                // and drawn as in Mermaid 11 and on GitHub. A diagram's own
-                // front matter can still choose another layout or look.
-                // `securityLevel` cannot be changed from a diagram: Mermaid
-                // keeps it in its `secure` list.
-                mermaid.initialize({
-                    startOnLoad: false,
-                    theme,
-                    layout: 'dagre',
-                    look: 'classic',
-                    securityLevel: 'strict',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
-                });
+                mermaid.initialize(Object.assign(
+                    { startOnLoad: false, theme },
+                    \(mermaidSharedConfig)
+                ));
             }
 
             function drain() {
