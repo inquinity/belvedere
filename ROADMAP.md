@@ -15,9 +15,9 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **Leaving the GitHub fork link (H12): done on 2026-10-08, one thing left.** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`, cleaned down to a contribution fork. Left: delete the two private test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview` (the CLI token cannot delete repositories). The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
-**Next (2.0.1):** two fixes already on `main`, to be released together: F25 (wide tables squeezed to a letter per column in the editor) and F26 (changes to the open file made by another app were missed, and are now offered a choice). F26's sheet has unit tests but has not been run in the app yet.
+**Next (2.1.0):** callouts with a Markdown flavour setting (F27), then release. Already on `main` for it: the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
 
-**Next (2.1):** F19, F7 and S7 are the candidates. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
+**Next (2.2):** F19, F7 and S7 are the candidates, moved from 2.1. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
 **Unscheduled:** the ideas, upstream work and housekeeping under Open.
 
@@ -25,13 +25,10 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 | ID | Item | Where it stands | Release |
 |---|---|---|---|
-| **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.1 candidate |
-| **F25** | Wide tables squeezed to a letter per column in the editor | Fixed on `main`; ships in 2.0.1. The editor's cells had the same wrapping as the reading view's before 1.3.2. | 2.0.1 |
-| **F26** | Changes to the open file made by another app | Fixed on `main`; ships in 2.0.1. Reloads by itself unless there are unsaved edits, then asks. Needs a hand test. | 2.0.1 |
-| **S9** | A file or link dropped on a web view became the page | Fixed on `fix/reader-drop-navigation`: a dropped SVG's script could run with the host bridge. Needs a hand test. | next release |
-| **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.1 candidate |
-| **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.1 candidate |
-| **F22** | Mermaid size differs 1–4 px between reader and editor | Cause unproved. Ships as a known limitation in 2.0; the layout test allows 4 px after a diagram. | 2.0, known |
+| **F27** | Callouts (`> [!NOTE]` and other types) and a Markdown flavour setting | Upstream supports every `[!type]` callout (pluk-inc/markdown-preview GH-629). Plan: a setting choosing GitHub (its five alert types) or Extended (Obsidian-style types too, the default). Not started. | 2.1.0 |
+| **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.2 candidate |
+| **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.2 candidate |
+| **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.2 candidate |
 | **F12** | Reword the “Continue” button on leaving edit mode | Idea: the word does not say the changes stay unsaved. | — |
 | **F13** | Edit as plain text | Idea: a plain-text edit mode for exact copy and paste. | — |
 | **F14** | Drop a folder on a window or sidebar to open it | Works on the Dock icon only. | — |
@@ -51,11 +48,34 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 Newest release first.
 
-### Next release (not yet released)
+### 2.1.0 (not yet released)
 
 | ID | Item | Outcome |
 |---|---|---|
+| **H15** | First upstream round taken by cherry-picking | Markdown Preview 0.0.64–0.0.72 fixes, ⌘1–⌘9 tab switching, and media only through `md-asset`, served to the reader as images only. |
+| **H14** | Library updates | DOMPurify 3.4.17 (with `command` and `commandfor` forbidden), KaTeX 0.19.1, highlight.js 11.12.0, swift-markdown 0.9.0, each checked against its published package. |
+| **F28** | Setting to turn off the prepared spare reader | Settings ▸ General ▸ Optimize renderer performance, on by default. |
+| **F22** | Mermaid size differed 1–4 px between reader and editor | Now within 1 px, with Mermaid 12.3.0, early configuration and shared settings; the layout tests are back to 1 px. |
 | **H13** | Update Mermaid from 11.15 to 12.x | 12.3.0, with diagrams kept at their 11.15 size and look, Mermaid configured before its own on-load pass can draw, the editor using the reader's settings, and notices for the 79 packages bundled in it and the code compiled into them that is known. |
+
+### 2.0.3 (released 2026-11-04)
+
+| ID | Item | Outcome |
+|---|---|---|
+| **S9** | A file or link dropped on a web view became the page | A drop no longer replaces the document; a dropped SVG's script could run with the host bridge. |
+
+### 2.0.2 (released 2026-11-03)
+
+| ID | Item | Outcome |
+|---|---|---|
+| — | Click-to-load and SVG images | **Load** works for SVG images such as README badges, as images only. |
+
+### 2.0.1 (released 2026-10-08)
+
+| ID | Item | Outcome |
+|---|---|---|
+| **F25** | Wide tables squeezed to a letter per column in the editor | Fixed. |
+| **F26** | Changes to the open file made by another app | Reloads by itself unless there are unsaved edits, then asks. |
 
 ### 2.0 (released 2026-10-06)
 
