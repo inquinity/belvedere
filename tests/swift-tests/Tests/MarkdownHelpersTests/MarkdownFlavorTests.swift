@@ -115,3 +115,35 @@ final class MarkdownFlavorTests: XCTestCase {
         return defaults
     }
 }
+
+/// GitHub's own renderer (its Markdown API, 2026-11-14) decided these.
+final class MarkdownFlavorGitHubRulesTests: XCTestCase {
+    private func isCallout(_ markdown: String, _ flavor: MarkdownFlavor) -> Bool {
+        EscapingHTMLFormatter.format(markdown, markdownFlavor: flavor).contains("class=\"markdown-alert")
+    }
+
+    func testGitHubNeedsSomethingAfterTheTag() {
+        XCTAssertFalse(isCallout("> [!NOTE]", .github))
+        XCTAssertTrue(isCallout("> [!NOTE]", .extended))
+        XCTAssertTrue(isCallout("> [!NOTE]\n>\n> A later paragraph counts.", .github))
+    }
+
+    func testGitHubTakesAlertsAtTheTopLevelOnly() {
+        for markdown in ["- > [!NOTE]\n  > In a list.", "> > [!NOTE]\n> > Nested."] {
+            XCTAssertFalse(isCallout(markdown, .github), markdown)
+            XCTAssertTrue(isCallout(markdown, .extended), markdown)
+        }
+    }
+
+    func testGitHubAcceptsTheseLikeGitHub() {
+        for markdown in ["> [!NOTE]\\\n> After a hard break.", ">  [!NOTE]\n>  Two spaces.",
+                         "> [!NOTE]  \n> Trailing spaces."] {
+            XCTAssertTrue(isCallout(markdown, .github), markdown)
+        }
+    }
+
+    /// Paper cannot be clicked open.
+    func testFoldedCalloutsPrintOpen() {
+        XCTAssertTrue(MarkdownHTML.stylesheet.contains("details.markdown-alert:not([open])::details-content"))
+    }
+}

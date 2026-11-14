@@ -382,8 +382,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     /// Applies the Markdown flavor chosen in Settings. It changes what open
     /// documents show (a callout becomes a quotation, or the reverse), so they
     /// re-render, as for a font change; Quick Look reads the value on its next
-    /// preview. An editor that is open keeps its decorations until the
-    /// document is next edited in a new editor.
+    /// preview. An editor that is open keeps its spacing until Edit Mode is
+    /// next entered, when it reads the flavor again.
     func applyMarkdownFlavorSetting(_ flavor: MarkdownFlavor) {
         guard flavor != MarkdownFlavorSetting.current else { return }
         MarkdownFlavorSetting.current = flavor

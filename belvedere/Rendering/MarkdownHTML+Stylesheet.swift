@@ -907,6 +907,15 @@ nonisolated extension MarkdownHTML {
        excludes these paper-only changes and preserves the read-only page.
        --------------------------------------------------------------------- */
     @media print {
+        /* Paper cannot be clicked open, so a folded callout prints, and
+           exports to PDF, with its body showing; the page stays folded. */
+        details.markdown-alert:not([open])::details-content {
+            content-visibility: visible;
+            display: block;
+        }
+        details.markdown-alert:not([open]) > summary.markdown-alert-title::after {
+            transform: rotate(90deg);
+        }
         :root:not(.\(previewPrintClass)) {
             color-scheme: light;
             --text: #1d1d1f;

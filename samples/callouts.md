@@ -34,8 +34,9 @@ titled Note, Tip, Important, Warning and Caution.
 
 ## Obsidian's kinds and aliases
 
-*Extended:* each is a callout with its own icon: Abstract, Info, Todo, Success,
-Question (written `faq`), Failure, Danger, Bug, Example and Quote.
+*Extended:* each is a callout with its own icon, titled with its type: Abstract,
+Info, Todo, Success, Faq (an alias, with the Question icon and colour), Failure,
+Danger, Bug, Example and Quote.
 *GitHub:* every one is a plain quotation.
 
 > [!abstract]
@@ -68,6 +69,17 @@ Question (written `faq`), Failure, Danger, Bug, Example and Quote.
 > [!quote]
 > Words someone else said.
 
+## GitHub's other rules
+
+*Extended:* both are callouts.
+*GitHub:* both are plain quotations: GitHub needs something after the tag,
+and takes an alert only at the top level, not inside a list.
+
+> [!NOTE]
+
+- > [!TIP]
+  > Inside a list item.
+
 ## A type nobody defined
 
 *Extended:* a callout that looks like a note, titled "Recipe".
@@ -81,7 +93,8 @@ Question (written `faq`), Failure, Danger, Bug, Example and Quote.
 *Extended:* the first is closed, with a chevron after its title; click the
 title to open it. The second starts open. Opening or closing one survives an
 edit to another part of the file in another app (the document reloads in
-place); changing `-` to `+` in the file opens it.
+place); changing `-` to `+` in the file opens it. Printed, or exported to PDF, both
+show their body.
 *GitHub:* both are plain quotations that start with the tag.
 
 > [!faq]- Closed until you open it

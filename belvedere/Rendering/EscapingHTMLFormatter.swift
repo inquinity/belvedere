@@ -1177,10 +1177,15 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
 
         let hasCustomTitle = !firstTextRest.trimmingCharacters(in: .whitespaces).isEmpty
             || !titleInlinesAfter.isEmpty
-        // GitHub shows an alert only when its tag is alone on the first line;
-        // `> [!NOTE] Title` stays a quotation there, so it does here too.
-        if markdownFlavor == .github && hasCustomTitle {
-            return false
+        // GitHub shows an alert only when its tag is alone on the first line,
+        // something follows it, and the quotation is not inside a list or
+        // another quotation; otherwise it stays a quotation there, so it does
+        // here too. Checked against GitHub's own renderer (its Markdown API).
+        if markdownFlavor == .github {
+            let hasBody = !firstParaBody.isEmpty || blocks.count > 1
+            if hasCustomTitle || !hasBody || !(blockQuote.parent is Document) {
+                return false
+            }
         }
 
         // A foldable callout is a <details> whose <summary> is the title.
