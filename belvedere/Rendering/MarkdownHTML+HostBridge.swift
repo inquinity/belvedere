@@ -778,7 +778,12 @@ nonisolated extension MarkdownHTML {
                           'embed', 'meta', 'link', 'base',
                           'select', 'textarea', 'option', 'optgroup',
                           'fieldset', 'legend', 'label', 'datalist', 'output'],
-            FORBID_ATTR: ['style'],
+            // `command` and `commandfor` let a button open a dialog as a
+            // modal, which covers the page and makes the rest of it inert,
+            // with no script. DOMPurify 3.4.2 dropped them; later 3.4.x
+            // releases allow them by default, so they are forbidden here to
+            // keep the surface the reader had.
+            FORBID_ATTR: ['style', 'command', 'commandfor'],
             ADD_ATTR: ['target'],
             ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|md-asset):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))/i
         };

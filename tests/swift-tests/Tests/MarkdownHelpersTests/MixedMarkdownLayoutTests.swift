@@ -30,7 +30,7 @@ extension EditorPreviewLayoutTests {
            editorSelectors: [".cm-md-table-grid": 1, ".cm-md-mermaid-stage svg": 1],
            readBoxes: ["table-head": "thead tr", "table-last-row": "tbody tr:last-child", "diagram-box": ".mermaid-figure", "diagram-svg": ".mermaid svg", "rule-box": "hr"],
            editorBoxes: ["table-head": ".cm-md-table-grid tr:first-child", "table-last-row": ".cm-md-table-grid tr:last-child", "diagram-box": ".cm-md-mermaid-preview", "diagram-svg": ".cm-md-mermaid-stage svg", "rule-box": ".cm-md-hr"],
-           height: 14000, diagramTolerance: 4))
+           height: 14000))
     }
 
     func testCompleteDocumentWithAllSupportedStyles() async throws {
@@ -204,6 +204,31 @@ extension EditorPreviewLayoutTests {
 
             After Mermaid diagram.
             """, texts: ["Before Mermaid diagram.", "After Mermaid diagram."],
+                           readSelectors: [".mermaid svg": 1, ".mermaid-error": 0],
+                           editorSelectors: [".cm-md-mermaid-stage svg": 1, ".cm-md-mermaid-error": 0],
+                           readBoxes: ["diagram-box": ".mermaid-figure", "diagram-svg": ".mermaid svg"],
+                           editorBoxes: ["diagram-box": ".cm-md-mermaid-preview", "diagram-svg": ".cm-md-mermaid-stage svg"]))
+    }
+
+    /// A class diagram's size depends on how wide its members' text
+    /// measures, so it catches the two views drawing diagram text in
+    /// different fonts. Before the editor shared the reader's Mermaid
+    /// settings, this one differed by about 12 px at 500 px wide.
+    func testMermaidClassDiagramMatchesTheEditor() async throws {
+        try await check(Fixture(name: "mermaid-class", markdown: """
+            Before class diagram.
+
+            ```mermaid
+            classDiagram
+                class Animal {
+                  +String name
+                  +eat() void
+                }
+                Animal <|-- Duck
+            ```
+
+            After class diagram.
+            """, texts: ["Before class diagram.", "After class diagram."],
                            readSelectors: [".mermaid svg": 1, ".mermaid-error": 0],
                            editorSelectors: [".cm-md-mermaid-stage svg": 1, ".cm-md-mermaid-error": 0],
                            readBoxes: ["diagram-box": ".mermaid-figure", "diagram-svg": ".mermaid svg"],

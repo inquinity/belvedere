@@ -40,24 +40,28 @@ OUTPUT_PATH="belvedere/Acknowledgements.md"
 # The page reads "**<component>** is used under the <license>."
 #
 # Link the license at the version that ships, not on a default branch: a
-# default branch drifts. DOMPurify's did -- its LICENSE on main became
-# Apache-only, while the 3.4.2 that ships is Apache-or-MPL. <version source>,
+# default branch drifts. DOMPurify's did -- its one dual-license LICENSE was
+# split into LICENSE (Apache 2.0) and LICENSE-MPL, so a single link to
+# LICENSE now shows only one of the two licenses it is offered under; both
+# are linked, and both texts ship. <version source>,
 # when given, is a file whose first x.y.z is the version that ships (a VERSION
 # file, or a bundle's banner); the script refuses to run unless the license
 # links name that version, so an upgrade cannot leave the link behind.
-# Markdown Preview is linked on main because this fork tracks its main, and
-# CodeMirror because the bundled editor combines several of its packages.
+# Markdown Preview is linked on main because this fork tracks its main,
+# CodeMirror because the bundled editor combines several of its packages,
+# and the Babel helper inside DOMPurify because DOMPurify does not record
+# which Babel release built it.
 # swift-markdown and swift-cmark have no version file here -- Package.resolved
 # is not committed -- so recheck their tags by hand when the package updates.
 ENTRIES=(
     "Markdown Preview|[MIT License](https://github.com/pluk-inc/markdown-preview/blob/main/LICENSE)|belvedere/Licenses/Markdown-Preview-LICENSE.txt|"
-    "swift-markdown|[Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.8.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.8.0/NOTICE.txt)|belvedere/Licenses/swift-markdown-LICENSE.txt,belvedere/Licenses/swift-markdown-NOTICE.txt|"
-    "swift-cmark|[BSD 2-Clause License](https://github.com/swiftlang/swift-cmark/blob/0.8.0/COPYING), with some files under the MIT License|belvedere/Licenses/swift-cmark-COPYING.txt|"
+    "swift-markdown|[Apache License 2.0](https://github.com/swiftlang/swift-markdown/blob/0.9.0/LICENSE.txt), with its [NOTICE](https://github.com/swiftlang/swift-markdown/blob/0.9.0/NOTICE.txt)|belvedere/Licenses/swift-markdown-LICENSE.txt,belvedere/Licenses/swift-markdown-NOTICE.txt|"
+    "swift-cmark|[BSD 2-Clause License](https://github.com/swiftlang/swift-cmark/blob/0.9.0/COPYING), with some files under the MIT License|belvedere/Licenses/swift-cmark-COPYING.txt|"
     "CodeMirror|[MIT License](https://code.haverbeke.berlin/codemirror/basic-setup/src/branch/main/LICENSE)|belvedere/Vendor/CodeMirror/CodeMirror-LICENSE.txt|"
-    "DOMPurify|[Apache License 2.0 or Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.2/LICENSE)|belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt|belvedere/Vendor/DOMPurify/purify.min.js"
-    "highlight.js|[BSD 3-Clause License](https://github.com/highlightjs/highlight.js/blob/11.10.0/LICENSE), with its Terraform grammar under the [MIT License](https://github.com/taga3s/highlightjs-terraform/blob/v1.0.7/LICENSE)|belvedere/Vendor/Highlight/Highlight-LICENSE.txt|belvedere/Vendor/Highlight/Highlight-VERSION"
-    "KaTeX|[MIT License](https://github.com/KaTeX/KaTeX/blob/v0.16.45/LICENSE)|belvedere/Vendor/KaTeX/KaTeX-LICENSE.txt|belvedere/Vendor/KaTeX/VERSION"
-    "Mermaid|[MIT License](https://github.com/mermaid-js/mermaid/blob/mermaid@11.15.0/LICENSE)|belvedere/Vendor/Mermaid/LICENSE|belvedere/Vendor/Mermaid/Mermaid-VERSION"
+    "DOMPurify|[Apache License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE) or [Mozilla Public License 2.0](https://github.com/cure53/DOMPurify/blob/3.4.17/LICENSE-MPL), with a Babel helper under the [MIT License](https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE)|belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt|belvedere/Vendor/DOMPurify/purify.min.js"
+    "highlight.js|[BSD 3-Clause License](https://github.com/highlightjs/highlight.js/blob/11.12.0/LICENSE), with its Terraform grammar under the [MIT License](https://github.com/taga3s/highlightjs-terraform/blob/v1.0.7/LICENSE)|belvedere/Vendor/Highlight/Highlight-LICENSE.txt|belvedere/Vendor/Highlight/Highlight-VERSION"
+    "KaTeX|[MIT License](https://github.com/KaTeX/KaTeX/blob/v0.19.1/LICENSE)|belvedere/Vendor/KaTeX/KaTeX-LICENSE.txt|belvedere/Vendor/KaTeX/VERSION"
+    "Mermaid|[MIT License](https://github.com/mermaid-js/mermaid/blob/mermaid@12.3.0/LICENSE). The components built into it are used under their own licenses: MIT, ISC, BSD 3-Clause, Apache 2.0, DOMPurify's Apache 2.0 or MPL 2.0, and, for the ELK layout engine, the [Eclipse Public License 2.0](https://github.com/kieler/elkjs/blob/0.12.0/LICENSE.md); its source is at [kieler/elkjs](https://github.com/kieler/elkjs/tree/0.12.0). Each one's notice is in \`Mermaid-THIRD-PARTY-NOTICES.txt\`|belvedere/Vendor/Mermaid/LICENSE,belvedere/Vendor/Mermaid/Mermaid-THIRD-PARTY-NOTICES.txt|belvedere/Vendor/Mermaid/Mermaid-VERSION"
     "morphdom|[MIT License](https://github.com/patrick-steele-idem/morphdom/blob/v2.7.8/LICENSE)|belvedere/Vendor/Morphdom/Morphdom-LICENSE.txt|belvedere/Vendor/Morphdom/Morphdom-VERSION"
 )
 

@@ -103,6 +103,35 @@ nonisolated extension MarkdownHTML {
     </script>
     """
 
+    /// Mermaid settings the reading view and the editor share, as a
+    /// JavaScript object literal: one definition, so the two views cannot
+    /// draw the same diagram differently. (The editor once had no
+    /// `fontFamily` and measured labels in Mermaid's default font.)
+    ///
+    /// Mermaid 12 changed its defaults to the ELK layout, the "neo" look,
+    /// and wider minimum node widths with tighter label wrapping. `dagre`,
+    /// `classic`, no minimum width and a 200 px wrap keep diagrams the size
+    /// and shape they had with Mermaid 11.15 and as GitHub draws them; a
+    /// diagram's own front matter can still choose otherwise. Swimlane
+    /// diagrams, new in Mermaid 12, keep their own `swimlane` layout: a
+    /// top-level `layout` would otherwise beat their per-type default.
+    /// `securityLevel` cannot be changed from a diagram: Mermaid keeps it in
+    /// its `secure` list.
+    ///
+    /// Callers pass this before their own `startOnLoad` and `theme` in
+    /// `Object.assign`, so a key added here later cannot override them.
+    static let mermaidSharedConfig = """
+    {
+        layout: 'dagre',
+        look: 'classic',
+        securityLevel: 'strict',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
+        flowchart: { minNodeWidth: 0, wrappingWidth: 200 },
+        state: { minNodeWidth: 0, wrappingWidth: 200 },
+        swimlane: { layout: 'swimlane' }
+    }
+    """
+
     /// Mermaid wiring IIFE. Assumes the `mermaid` global has been (or will
     /// be) defined by the time DOMContentLoaded fires — true for both inline
     /// vendor `<script>` and `<script defer src=...>` delivery, since `defer`
@@ -141,12 +170,11 @@ nonisolated extension MarkdownHTML {
             function ensureInit(theme) {
                 if (initializedTheme === theme) return;
                 initializedTheme = theme;
-                mermaid.initialize({
-                    startOnLoad: false,
-                    theme,
-                    securityLevel: 'strict',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
-                });
+                mermaid.initialize(Object.assign(
+                    {},
+                    \(mermaidSharedConfig),
+                    { startOnLoad: false, theme }
+                ));
             }
 
             function drain() {
@@ -481,6 +509,19 @@ nonisolated extension MarkdownHTML {
                     }
                 }, { rootMargin: '300px 0px' });
                 figures.forEach((f) => io.observe(f));
+            }
+
+            // Mermaid draws every `.mermaid` element by itself when the
+            // window's load event fires, with its own defaults, unless it has
+            // already been told `startOnLoad: false`. ensureInit used to run
+            // only at the first render, which waits until a diagram nears the
+            // viewport and so can come after that event. Mermaid's own pass
+            // then drew the diagrams first, with its default font and (from
+            // Mermaid 12) its new layout and look, and the sizing below
+            // measured that drawing while Mermaid replaced it. Configure
+            // Mermaid as soon as this wiring exists.
+            if (typeof mermaid !== 'undefined' && typeof mermaid.initialize === 'function') {
+                ensureInit(activeTheme());
             }
 
             window.MdPreview = window.MdPreview || {};

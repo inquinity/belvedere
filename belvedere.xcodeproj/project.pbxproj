@@ -23,6 +23,7 @@
 		9AF00000000000000000000B /* Highlight-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AF000000000000000000109 /* Highlight-LICENSE.txt */; };
 		9AF00000000000000000000C /* purify.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 9AF00000000000000000010A /* purify.min.js */; };
 		9AF00000000000000000000D /* DOMPurify-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AF00000000000000000010B /* DOMPurify-LICENSE.txt */; };
+		9AF00000000000000000000E /* Mermaid-THIRD-PARTY-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AF00000000000000000010C /* Mermaid-THIRD-PARTY-NOTICES.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +78,7 @@
 		9AF000000000000000000109 /* Highlight-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Highlight-LICENSE.txt"; path = "belvedere/Vendor/Highlight/Highlight-LICENSE.txt"; sourceTree = "<group>"; };
 		9AF00000000000000000010A /* purify.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = purify.min.js; path = "belvedere/Vendor/DOMPurify/purify.min.js"; sourceTree = "<group>"; };
 		9AF00000000000000000010B /* DOMPurify-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "DOMPurify-LICENSE.txt"; path = "belvedere/Vendor/DOMPurify/DOMPurify-LICENSE.txt"; sourceTree = "<group>"; };
+		9AF00000000000000000010C /* Mermaid-THIRD-PARTY-NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Mermaid-THIRD-PARTY-NOTICES.txt"; path = "belvedere/Vendor/Mermaid/Mermaid-THIRD-PARTY-NOTICES.txt"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -181,6 +183,7 @@
 				9AF000000000000000000109 /* Highlight-LICENSE.txt */,
 				9AF00000000000000000010A /* purify.min.js */,
 				9AF00000000000000000010B /* DOMPurify-LICENSE.txt */,
+				9AF00000000000000000010C /* Mermaid-THIRD-PARTY-NOTICES.txt */,
 				9A0207C32FA0ED7C00092060 /* belvedere */,
 				9A0209312FA10D4C00092060 /* belvedere-quick-look */,
 				9A02092E2FA10D4C00092060 /* Frameworks */,
@@ -329,6 +332,7 @@
 				9AF00000000000000000000B /* Highlight-LICENSE.txt in Resources */,
 				9AF00000000000000000000C /* purify.min.js in Resources */,
 				9AF00000000000000000000D /* DOMPurify-LICENSE.txt in Resources */,
+				9AF00000000000000000000E /* Mermaid-THIRD-PARTY-NOTICES.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -676,7 +680,7 @@
 			repositoryURL = "https://github.com/swiftlang/swift-markdown.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.7.3;
+				minimumVersion = 0.9.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

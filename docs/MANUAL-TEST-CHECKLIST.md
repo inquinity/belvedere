@@ -333,11 +333,6 @@ check missed.
   `brew upgrade --cask belvedere`.
 - **The command line tools are gone.** The installer is orphaned and its
   Settings button was removed in 1.0.3.
-- **A Mermaid diagram can be a pixel or two different in size between reading and
-  editing.** Shipped as known in 2.0. The reading view and the editor measure the
-  diagram's labels slightly differently, so the diagram, and the text after it, can
-  differ by 1 to 4 px when you switch. `testCompleteMixedFormattingDocument` allows 4 px
-  for the diagram and what follows it, and 1 px everywhere above it.
 - **A window opened with ⌘N is not merged into a tab group later.** It declines tabbing for its
   lifetime, so Window ▸ Merge All Windows skips it. That is what "always a window" means; ⌘T makes a tab.
 - **Quick Look uses default settings until the app has started once after an upgrade.** The

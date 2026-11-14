@@ -121,6 +121,18 @@ list cannot pass unnoticed:
 <datalist id="suggestions"><option value="admin"></option></datalist>
 <input type="text" name="username" list="suggestions">
 
+## Buttons that open dialogs
+
+> **EXPECT:** a *Continue* button that does nothing when clicked. The text
+> *Session expired* may show as ordinary text or not at all.
+> **FAIL IF:** clicking *Continue* dims the page and puts a box in front of
+> it that you have to dismiss. A button's `command` and `commandfor`
+> attributes can open a dialog as a modal with no script at all; the
+> sanitiser removes them.
+
+<dialog id="session-expired"><p>Session expired. Sign in again.</p></dialog>
+<button commandfor="session-expired" command="show-modal">Continue</button>
+
 ## Document-level hijacking
 
 > **EXPECT:** nothing between this note and the next heading, and the page

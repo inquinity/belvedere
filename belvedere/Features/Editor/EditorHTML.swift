@@ -671,11 +671,11 @@ nonisolated enum EditorHTML {
         \(includesMermaid ? """
         <script>
         if (window.mermaid) {
-            window.mermaid.initialize({
+            // The reading view's settings; see MarkdownHTML.mermaidSharedConfig.
+            window.mermaid.initialize(Object.assign({}, \(MarkdownHTML.mermaidSharedConfig), {
                 startOnLoad: false,
-                securityLevel: "strict",
                 theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default"
-            });
+            }));
         }
         </script>
         """ : "")
