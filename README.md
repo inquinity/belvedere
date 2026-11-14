@@ -18,6 +18,20 @@
 > scrollable preview with a real document outline — and nothing the document does reaches
 > the network.
 
+## Contents
+
+- [Installation](#installation)
+- [Screenshots](#screenshots)
+- [Security by Intention](#security-by-intention)
+- [Features](#features)
+- [Supported file types](#supported-file-types)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
+  - [Building from source](#building-from-source)
+  - [Project layout](#project-layout)
+- [Origin and credits](#origin-and-credits)
+- [License](#license)
+
 ## Installation
 
 ```sh
@@ -68,10 +82,10 @@ installs.
   <img src="docs/screenshot-toolbar-customize.png" width="820" alt="Native macOS toolbar customization sheet showing draggable items" />
 </p>
 
-## Belvedere
+## Security by Intention
 
-Reading, editing, printing, PDF export and Quick Look are the core experience, and work the
-way you'd expect from a native Mac app. Everything below is what's added on top:
+Reading, editing, printing, PDF export and Quick Look work the way you'd expect from a
+native Mac app. On top of that, Belvedere treats every document as untrusted:
 
 **It never connects on its own** — no crash reporting, no usage analytics, no auto-updater.
 The code that would have sent any of that is gone, not just disabled; new versions arrive
@@ -93,14 +107,11 @@ are ticked in Edit Mode; the reading view is read-only.
 or disk image is shown in Finder instead of started, wherever it points. Links to ordinary
 documents open as usual.
 
-**A Save button** — in the toolbar, lit whenever the document has unsaved changes. Leaving
-edit mode asks Save / Revert… / Continue instead of discarding silently; ⌘S and Save As…
-work after leaving edit mode too.
-
 ## Features
 
 - **Native rendering** — `WKWebView` pipeline backed by [swift-markdown](https://github.com/swiftlang/swift-markdown), with heading anchors and link handling. Bare `http://` and `https://` URLs are clickable in the app and Quick Look previews.
 - **Edit Mode** — edit Markdown in place with a formatting toolbar for headings, emphasis, lists, quotes, code, and links. Toggle it from the toolbar or with <kbd>⌘E</kbd>.
+- **Save button** — in the toolbar, lit whenever the document has unsaved changes. Leaving Edit Mode asks Save / Revert… / Continue instead of discarding silently; <kbd>⌘S</kbd> and Save As… work after leaving Edit Mode too.
 - **Mermaid diagrams** — fenced `mermaid` code blocks render as diagrams in both the app and Quick Look previews, using a bundled renderer so previews work offline without a CDN request.
 - **Single new lines** — lines run together until a blank line, as standard Markdown does and as a README is shown on GitHub, so a hard-wrapped file reflows to the window (*Reflow (like a README)*, the default). Choose *Break (like a comment)* in *Settings → General → Reading → Single new lines* to show every new line in the source as a line break, as GitHub shows comments and issues. Settings holds the default for new windows and tabs; *View → Single New Lines* changes the front window only and is not saved. Applies in the app and in Quick Look (which follows the default).
 - **Math equations** — LaTeX inline (`$x_1 + x_2$`), display (`$$\int_0^1 x^2\,dx$$`), and fenced `math` blocks render with a bundled KaTeX. Selecting a rendered formula and copying yields the original LaTeX source.
@@ -117,9 +128,6 @@ work after leaving edit mode too.
 - **URL scheme** — open a file or folder from a browser link or another app with `belvedere://file/<absolute path>` (e.g. `belvedere://file/Users/me/project/README.md`). Percent-encode special characters in the path.
 - **Default handler** — offers to register itself as the default `.md` opener on first launch.
 
-Not in Belvedere: the command-line tools installer (`mdp`, `md-preview`) is removed, along
-with the permission to control Terminal it needed.
-
 ## Supported file types
 
 `.md`, `.markdown`, `.mdown`, `.mdx`, `.txt`
@@ -130,41 +138,7 @@ UTI: `net.daringfireball.markdown`
 - macOS 26 or later
 - Apple silicon or Intel (the released builds are universal)
 
-## Building from source
-
-```sh
-git clone git@github.com:inquinity/belvedere.git
-cd belvedere
-just build
-```
-
-Requires [`just`](https://github.com/casey/just) (`brew install just`). `just --list` shows
-the rest of the build and release tasks, which wrap the scripts in `bin/`. Swift Package
-Manager resolves [swift-markdown](https://github.com/swiftlang/swift-markdown) on first
-build — Sparkle and Sentry are not dependencies here; both were removed entirely.
-
-## Project layout
-
-```
-belvedere/         Main app target (AppKit, WKWebView)
-belvedere-quick-look/         Quick Look extension (.appex)
-bin/                Build & release scripts (build.sh, publish-release.sh, …)
-scripts/            Tooling inherited from Markdown Preview
-Version.xcconfig    Marketing & build version (single source of truth)
-```
-
-## Releasing
-
-Releases are cut locally, published as GitHub Releases on this repository, and picked up
-by the Homebrew tap's cask — see
-[docs/RELEASE-AUTOMATION.md](docs/RELEASE-AUTOMATION.md) for the full flow. In short:
-
-```sh
-just release revision   # or minor / major — builds, signs, notarizes, commits, tags
-just publish --go       # pushes the release and bumps the tap's cask
-```
-
-### Contributing
+## Contributing
 
 Pull requests are welcome. For larger changes, please open an issue first to discuss what
 you'd like to change.
@@ -178,30 +152,36 @@ A fix that belongs in Markdown Preview itself — rather than being specific to 
 hardening — is usually better sent there directly; see the upstream contribution track in
 [docs/FORK-NOTES.md](docs/FORK-NOTES.md) for how that split is handled.
 
-## Credits
+### Building from source
+
+```sh
+git clone git@github.com:inquinity/belvedere.git
+cd belvedere
+just build
+```
+
+Requires [`just`](https://github.com/casey/just) (`brew install just`). `just --list` shows the other tasks, which wrap the scripts in `bin/`. Swift Package Manager resolves [swift-markdown](https://github.com/swiftlang/swift-markdown) on first build.
+
+### Project layout
+
+```
+belvedere/              Main app target (AppKit, WKWebView)
+belvedere-quick-look/   Quick Look extension (.appex)
+bin/                    Build & release scripts (build.sh, publish-release.sh, …)
+scripts/                Tooling inherited from Markdown Preview
+Version.xcconfig        Marketing & build version (single source of truth)
+```
+
+## Origin and credits
+
+Belvedere began from [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by [pluk-inc](https://github.com/pluk-inc), and owes it the original reader, editor and Quick Look extension. It has since gone its own way: no outbound network connections, a stricter handling of untrusted documents, and its own releases. (Several of the security fixes were sent back to Markdown Preview, but they were not all adopted.) See [docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and why. For Markdown Preview's own branding, screenshots, and ways to support that project, see its repository directly.
+
+Belvedere is also built on:
 
 - [swift-markdown](https://github.com/swiftlang/swift-markdown) — Markdown parser (Apple, cmark-gfm-backed)
 - [Mermaid](https://mermaid.js.org/) — Bundled diagram renderer for `mermaid` fenced code blocks
 - [KaTeX](https://katex.org/) — Bundled math typesetter for inline `$…$`, display `$$…$$`, and ` ```math ` blocks
 
-## Origins and credit
-
-Belvedere began from [Markdown Preview](https://github.com/pluk-inc/markdown-preview) by
-[pluk-inc](https://github.com/pluk-inc), and owes it the original reader, editor and Quick
-Look extension. It has since gone its own way: no outbound network connections, a stricter
-handling of untrusted documents, and its own releases. Several of its fixes were sent back to
-Markdown Preview. See [docs/FORK-NOTES.md](docs/FORK-NOTES.md) for exactly what differs and
-why. For Markdown Preview's own branding, screenshots, and ways to support that project, see
-its repository directly.
-
-Belvedere and Markdown Preview install side by side — different bundle ID, different
-icon — so having one doesn't remove or conflict with the other. Markdown Preview itself is
-`brew install --cask markdown-preview` from the
-[official cask repository](https://formulae.brew.sh/cask/markdown-preview).
-
 ## License
 
-[MIT](LICENSE). The app carries upstream's notice and those of the third-party code it
-includes, in `Belvedere.app/Contents/Resources`. **Acknowledgements**, in the About box
-and Settings › About, lists each component and the license it is used under, linked to
-that license in the component's repository.
+[MIT](LICENSE). The app carries upstream's notice and those of the third-party code it includes, in `Belvedere.app/Contents/Resources`. **Acknowledgements**, in the About box and Settings › About, lists each component and the license it is used under, linked to that license in the component's repository.
