@@ -151,6 +151,7 @@ in the app window. Expected, and each line is a separate claim:
 | `samples/navigation.md` | In-document links work | |
 | `samples/rtl-test.md` | Right-to-left text lays out correctly | |
 | `samples/toml-frontmatter.md` | Frontmatter handled, not dumped as body text | |
+| `samples/callouts.md` | Each section matches what it says for **Extended** and, after switching Settings ▸ General ▸ Reading ▸ *Markdown flavor*, for **GitHub**; open documents re-render when you switch | Check it in Quick Look and in an exported PDF too, in light and dark. In the editor, a callout and a plain quotation are spaced like the reading view's for the flavor the editor opened with |
 
 ## 3. Surfaces
 

@@ -15,7 +15,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **Leaving the GitHub fork link (H12): done on 2026-10-08, one thing left.** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`, cleaned down to a contribution fork. Left: delete the two private test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview` (the CLI token cannot delete repositories). The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
-**Next (2.1.0):** callouts with a Markdown flavour setting (F27), then release. Already on `main` for it: the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
+**Next (2.1.0):** callouts with a Markdown flavor setting (F27, on `feat/callouts`, needs a hand test), then release. Already on `main` for it: the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
 
 **Next (2.2):** F19, F7 and S7 are the candidates, moved from 2.1. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
@@ -25,7 +25,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 | ID | Item | Where it stands | Release |
 |---|---|---|---|
-| **F27** | Callouts (`> [!NOTE]` and other types) and a Markdown flavour setting | Upstream supports every `[!type]` callout (pluk-inc/markdown-preview GH-629). Plan: a setting choosing GitHub (its five alert types) or Extended (Obsidian-style types too, the default). Not started. | 2.1.0 |
+| **F27** | Callouts (`> [!NOTE]` and other types) and a Markdown flavor setting | Done on `feat/callouts`: every `[!type]` callout from upstream (pluk-inc/markdown-preview GH-629), and Settings ▸ General ▸ Reading ▸ Markdown flavor, Extended (the default) or GitHub. Needs a hand test with `samples/callouts.md`. | 2.1.0 |
 | **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.2 candidate |
 | **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.2 candidate |
 | **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.2 candidate |
