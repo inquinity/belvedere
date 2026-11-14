@@ -1948,10 +1948,14 @@ function buildDecorations(view, detectedCodeCache) {
     switch (node.name) {
       case "Blockquote": {
         // Alert blockquotes render as .markdown-alert; recognize the same
-        // `[!type]` tags as EscapingHTMLFormatter (any type is an alert).
+        // `[!type]` tags as EscapingHTMLFormatter for the page's Markdown
+        // flavor (MarkdownFlavor in Swift): any type when extended, and in
+        // the GitHub flavor only its five kinds, the tag alone on its line.
         const firstLine = state.doc.lineAt(node.from)
-        return /^ {0,3}> ?\[![A-Za-z][A-Za-z0-9_-]*\]/.test(firstLine.text)
-          ? METRICS.alert : METRICS.quote
+        const alertTag = document.documentElement.dataset.markdownFlavor === "github"
+          ? /^ {0,3}> ?\[!(note|tip|important|warning|caution)\][ \t]*$/i
+          : /^ {0,3}> ?\[![A-Za-z][A-Za-z0-9_-]*\]/
+        return alertTag.test(firstLine.text) ? METRICS.alert : METRICS.quote
       }
       case "Table": return METRICS.table
       case "HorizontalRule": return METRICS.hr

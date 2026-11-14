@@ -575,7 +575,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
                 darkPageBackground: darkPageBackground,
                 themeOverrideCSS: colors.editorOverrideCSS,
                 usesPageScrolling: usesPageScrolling,
-                bridgeName: EditorBridge.name
+                bridgeName: EditorBridge.name,
+                markdownFlavor: MarkdownFlavorSetting.current
             )
         )
     }

@@ -1009,14 +1009,20 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
     }
 
     private let strictLineBreaks: Bool
+    /// Which callouts count; see `MarkdownFlavor`. No default: a caller that
+    /// forgot it would render the reader's GitHub preview with Obsidian's
+    /// callouts, or the other way round, and nothing would fail.
+    private let markdownFlavor: MarkdownFlavor
 
     init(options: HTMLFormatterOptions = [],
          sourceLineOffset: Int = 0,
          sourceMarkdown: String = "",
          parsedMarkdown: String = "",
          highlightsCode: Bool = true,
-         strictLineBreaks: Bool = false) {
+         strictLineBreaks: Bool = false,
+         markdownFlavor: MarkdownFlavor) {
         self.strictLineBreaks = strictLineBreaks
+        self.markdownFlavor = markdownFlavor
         self.options = options
         self.sourceLineOffset = sourceLineOffset
         self.highlightsCode = highlightsCode
@@ -1031,7 +1037,8 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
                        sourceLineOffset: Int = 0,
                        sourceMarkdown: String? = nil,
                        highlightsCode: Bool = true,
-                       strictLineBreaks: Bool = false) -> String {
+                       strictLineBreaks: Bool = false,
+                       markdownFlavor: MarkdownFlavor) -> String {
         let preparedMarkdown = MarkdownHighlightSource.preparing(markdown)
         let document = Document(parsing: preparedMarkdown)
         var walker = EscapingHTMLFormatter(
@@ -1040,7 +1047,8 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
             sourceMarkdown: sourceMarkdown ?? markdown,
             parsedMarkdown: preparedMarkdown,
             highlightsCode: highlightsCode,
-            strictLineBreaks: strictLineBreaks
+            strictLineBreaks: strictLineBreaks,
+            markdownFlavor: markdownFlavor
         )
         walker.visit(document)
         return walker.result
@@ -1143,7 +1151,7 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
         guard let firstPara = blocks.first as? Paragraph else { return false }
         let inlines = Array(firstPara.children)
         guard let firstText = inlines.first as? Text,
-              let tag = AlertTag(firstText.string) else {
+              let tag = AlertTag(firstText.string, flavor: markdownFlavor) else {
             return false
         }
 
@@ -1169,6 +1177,11 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
 
         let hasCustomTitle = !firstTextRest.trimmingCharacters(in: .whitespaces).isEmpty
             || !titleInlinesAfter.isEmpty
+        // GitHub shows an alert only when its tag is alone on the first line;
+        // `> [!NOTE] Title` stays a quotation there, so it does here too.
+        if markdownFlavor == .github && hasCustomTitle {
+            return false
+        }
 
         // A foldable callout is a <details> whose <summary> is the title.
         let (wrapper, titleTag) = tag.fold == nil ? ("div", "p") : ("details", "summary")
@@ -1220,7 +1233,7 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
         /// Characters the tag takes up at the start of the text.
         let length: Int
 
-        init?(_ text: String) {
+        init?(_ text: String, flavor: MarkdownFlavor) {
             guard text.hasPrefix("[!") else { return nil }
             let afterBang = text.dropFirst(2)
             // Smart punctuation has already turned `--` and `---` into
@@ -1237,12 +1250,21 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
             type = name.lowercased()
                 .replacingOccurrences(of: "\u{2013}", with: "--")
                 .replacingOccurrences(of: "\u{2014}", with: "---")
-            kind = AlertKind(type: type)
+            switch flavor {
+            case .extended:
+                kind = AlertKind(type: type)
+            case .github:
+                // GitHub's five kinds only, without Obsidian's aliases.
+                guard let gitHubKind = AlertKind(gitHubType: type) else { return nil }
+                kind = gitHubKind
+            }
             switch afterBang.dropFirst(name.count + 1).first {
             case "-": fold = .closed
             case "+": fold = .open
             default: fold = nil
             }
+            // Folding is Obsidian's; GitHub shows `[!NOTE]-` as a quotation.
+            if flavor == .github && fold != nil { return nil }
             length = 2 + name.count + 1 + (fold == nil ? 0 : 1)
         }
 
@@ -1276,6 +1298,18 @@ nonisolated struct EscapingHTMLFormatter: MarkupWalker {
         /// kind nor an alias looks like a note, as in Obsidian.
         init(type: String) {
             self = AlertKind(rawValue: type) ?? Self.aliases[type] ?? .note
+        }
+
+        /// One of GitHub's five alert kinds, or nil for any other type.
+        init?(gitHubType type: String) {
+            switch type {
+            case "note": self = .note
+            case "tip": self = .tip
+            case "important": self = .important
+            case "warning": self = .warning
+            case "caution": self = .caution
+            default: return nil
+            }
         }
 
         // GitHub Octicons, stripped to the path data only — the wrapper is

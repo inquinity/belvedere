@@ -102,6 +102,7 @@
 				Rendering/MarkdownAccessPolicy.swift,
 				Rendering/MarkdownAssetResolution.swift,
 				Rendering/MarkdownAssetSchemeHandler.swift,
+				Rendering/MarkdownFlavorSetting.swift,
 				Rendering/MarkdownFrontmatter.swift,
 				Rendering/MarkdownHTML.swift,
 				"Rendering/MarkdownHTML+Footnotes.swift",

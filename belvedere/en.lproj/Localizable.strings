@@ -370,3 +370,13 @@
 "Lines run together until a blank line, the way a README is shown on GitHub." = "Lines run together until a blank line, the way a README is shown on GitHub.";
 "Every new line is a line break, the way GitHub shows comments and issues." = "Every new line is a line break, the way GitHub shows comments and issues.";
 "New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved." = "New windows and tabs open with this. An open window keeps its own; change one from View ▸ Single New Lines, which is not saved.";
+
+/* Markdown flavor */
+"Markdown flavor" = "Markdown flavor";
+"About Markdown flavors" = "About Markdown flavors";
+"Which callouts are shown as callouts." = "Which callouts are shown as callouts.";
+"A callout is a quotation that starts with a tag such as > [!NOTE]. Choose GitHub to see a file as GitHub will show it. Applies to open documents, the editor's next session and Quick Look." = "A callout is a quotation that starts with a tag such as > [!NOTE]. Choose GitHub to see a file as GitHub will show it. Applies to open documents, the editor's next session and Quick Look.";
+"Extended (GitHub and Obsidian)" = "Extended (GitHub and Obsidian)";
+"GitHub" = "GitHub";
+"Every callout type, such as [!tip] or [!faq], with a title after the tag and folding with - or +." = "Every callout type, such as [!tip] or [!faq], with a title after the tag and folding with - or +.";
+"Only GitHub's five alerts, NOTE, TIP, IMPORTANT, WARNING and CAUTION, with the tag alone on its line. Anything else stays a quotation, as on GitHub." = "Only GitHub's five alerts, NOTE, TIP, IMPORTANT, WARNING and CAUTION, with the tag alone on its line. Anything else stays a quotation, as on GitHub.";

@@ -59,6 +59,33 @@ struct GeneralSettingsView: View {
 
                 LabeledContent {
                     HStack(spacing: 6) {
+                        Picker(L("Markdown flavor"), selection: $model.markdownFlavor) {
+                            ForEach(MarkdownFlavor.allCases, id: \.self) { flavor in
+                                Text(flavor.title).tag(flavor)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .fixedSize()
+
+                        InfoPopoverButton(accessibilityLabel: L("About Markdown flavors")) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(MarkdownFlavor.allCases, id: \.self) { flavor in
+                                    Text(flavor.title).bold()
+                                        + Text(": ")
+                                        + Text(flavor.explanation)
+                                }
+                                Text(L("A callout is a quotation that starts with a tag such as > [!NOTE]. Choose GitHub to see a file as GitHub will show it. Applies to open documents, the editor's next session and Quick Look."))
+                            }
+                        }
+                    }
+                } label: {
+                    Text(L("Markdown flavor"))
+                    Text(L("Which callouts are shown as callouts."))
+                }
+
+                LabeledContent {
+                    HStack(spacing: 6) {
                         Toggle(L("Highlight outline section under the pointer"), isOn: $outlineFollowsPointer)
                             .labelsHidden()
 
