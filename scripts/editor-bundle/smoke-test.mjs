@@ -540,9 +540,14 @@ image?.dispatchEvent(new dom.window.MouseEvent("click", {
 }))
 check("clicking a local image requests its native rename flow",
   requestedImageRename === "md-asset:///test-pictures/1.png")
+// A real single click: browsers set detail to 1. With detail 0 the editor
+// treats the press as something other than a click and holds the preview
+// until the button is released.
 imageSource?.dispatchEvent(new dom.window.MouseEvent("mousedown", {
   bubbles: true,
   cancelable: true,
+  button: 0,
+  detail: 1,
 }))
 check("clicking image source restores editable Markdown without changing it",
   imageHost.querySelector(".cm-md-image-preview") == null
