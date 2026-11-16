@@ -15,7 +15,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **Leaving the GitHub fork link (H12): done on 2026-10-08, one thing left.** The new `inquinity/belvedere` is populated and the names are swapped; the old repository is now `inquinity/markdown-preview`, cleaned down to a contribution fork. Left: delete the two private test repositories `zz-tt-belvedere` and `zz-tt-markdown-preview` (the CLI token cannot delete repositories). The backup and the transition scripts are in `~/dev/backups/belvedere-repo-2026-10-07/`.
 
-**Next (2.1.0):** the release. On `main` for it: callouts with a Markdown flavor setting (F27), the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
+**2.1.0 shipped 2026-11-15** (tag `v2.1.0`, build 21): callouts with a Markdown flavor setting (F27), the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
 
 **Next (2.2):** F19, F7 and S7 are the candidates, moved from 2.1. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
 
@@ -47,7 +47,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 Newest release first.
 
-### 2.1.0 (not yet released)
+### 2.1.0 (released 2026-11-15)
 
 | ID | Item | Outcome |
 |---|---|---|
