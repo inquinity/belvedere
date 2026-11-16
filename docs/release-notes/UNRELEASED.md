@@ -12,10 +12,12 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 
 - Diagrams are drawn with Mermaid 12, which adds use case diagrams, fixes many layout and drawing problems, and brings the sanitizer inside the diagram renderer up to date. Existing diagrams keep the size and look they had.
 - A diagram is now the same size in the reading view and in the editor, so the text after it no longer shifts when you switch.
+- A new setting, Settings ▸ General ▸ Reading ▸ Markdown flavor, chooses which callouts you see. Extended, the default, shows every kind; GitHub shows only GitHub's five alerts, so a README looks as it will on GitHub.
 - A new setting, Settings ▸ General ▸ Optimize renderer performance, keeps a reader ready so the next document opens faster. It is on, as before; turn it off to save the memory of one extra page process.
 
 ### Upstream features included in release
 
+- Any quotation that starts with a tag such as `> [!tip]`, `> [!faq]` or `> [!bug]` is a callout, with its own icon and colour, and `> [!faq]-` makes one you can fold. Callouts now sit on the same card as code blocks, with colours made for dark mode.
 - The HTML sanitizer that every document passes through has its latest security fixes.
 - Code highlighting is updated, with many grammar fixes, including one that kept some C and C++ code from stalling highlighting. Math rendering is updated too.
 - Command-1 to Command-8 switch to that tab of the window, and Command-9 to the last tab, as in Safari.

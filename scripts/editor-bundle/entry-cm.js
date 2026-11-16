@@ -1948,9 +1948,18 @@ function buildDecorations(view, detectedCodeCache) {
     switch (node.name) {
       case "Blockquote": {
         // Alert blockquotes render as .markdown-alert; recognize the same
-        // five kinds as EscapingHTMLFormatter.
+        // `[!type]` tags as EscapingHTMLFormatter for the page's Markdown
+        // flavor (MarkdownFlavor in Swift): any type when extended; in the
+        // GitHub flavor only its five kinds, the tag alone on its line (a
+        // trailing backslash is a line break) with something after it.
+        // Only top-level blocks reach here, as GitHub requires.
         const firstLine = state.doc.lineAt(node.from)
-        return /^ {0,3}> ?\[!(note|tip|important|warning|caution)\]/i.test(firstLine.text)
+        if (document.documentElement.dataset.markdownFlavor === "github") {
+          const tagAlone = /^ {0,3}>[ \t]*\[!(note|tip|important|warning|caution)\][ \t]*\\?[ \t]*$/i
+          return tagAlone.test(firstLine.text) && node.to > firstLine.to
+            ? METRICS.alert : METRICS.quote
+        }
+        return /^ {0,3}>[ \t]*\[![A-Za-z][A-Za-z0-9_-]*\]/.test(firstLine.text)
           ? METRICS.alert : METRICS.quote
       }
       case "Table": return METRICS.table

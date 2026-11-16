@@ -139,6 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             || model.documentFont != DocumentFontSetting.current
             || model.readerLayout != ReaderLayoutSetting.current
             || model.strictLineBreaks != StrictLineBreaksSetting.current
+            || model.markdownFlavor != MarkdownFlavorSetting.current
         guard changed else { return }
         model.refreshFromExternalSources()
         // Repaint only when another instance changed the shared reading look.
@@ -376,6 +377,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         guard enabled != StrictLineBreaksSetting.current else { return }
         StrictLineBreaksSetting.current = enabled
         syncSingleNewLineMenuState()
+    }
+
+    /// Applies the Markdown flavor chosen in Settings. It changes what open
+    /// documents show (a callout becomes a quotation, or the reverse), so they
+    /// re-render, as for a font change; Quick Look reads the value on its next
+    /// preview. An editor that is open keeps its spacing until Edit Mode is
+    /// next entered, when it reads the flavor again.
+    func applyMarkdownFlavorSetting(_ flavor: MarkdownFlavor) {
+        guard flavor != MarkdownFlavorSetting.current else { return }
+        MarkdownFlavorSetting.current = flavor
+        reloadDocumentPreviewsForSettingChange()
     }
 
     /// Saves the default width. It reaches new windows and tabs only: a window

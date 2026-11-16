@@ -233,7 +233,8 @@ nonisolated extension MarkdownHTML {
     static func renderFootnoteDefinitions(
         _ footnotes: FootnoteExtraction,
         sourceLineOffset: Int,
-        strictLineBreaks: Bool
+        strictLineBreaks: Bool,
+        markdownFlavor: MarkdownFlavor
     ) -> FootnoteDefinitionRenderResult {
         guard !footnotes.definitions.isEmpty else {
             return FootnoteDefinitionRenderResult(
@@ -250,7 +251,8 @@ nonisolated extension MarkdownHTML {
             let renderedContent = renderFootnoteDefinitionContent(
                 definition.content,
                 sourceLineOffset: sourceLineOffset + definition.sourceLine - 1,
-                strictLineBreaks: strictLineBreaks
+                strictLineBreaks: strictLineBreaks,
+                markdownFlavor: markdownFlavor
             )
             containsMath = containsMath || renderedContent.containsMath
             containsMermaid = containsMermaid || renderedContent.containsMermaid
@@ -304,13 +306,15 @@ nonisolated extension MarkdownHTML {
     private static func renderFootnoteDefinitionContent(
         _ markdown: String,
         sourceLineOffset: Int,
-        strictLineBreaks: Bool
+        strictLineBreaks: Bool,
+        markdownFlavor: MarkdownFlavor
     ) -> FootnoteDefinitionRenderResult {
         let math = extractMath(from: markdown.trimmingCharacters(in: .whitespacesAndNewlines))
         let formatted = EscapingHTMLFormatter.format(
             math.processedMarkdown,
             sourceLineOffset: sourceLineOffset,
-            strictLineBreaks: strictLineBreaks
+            strictLineBreaks: strictLineBreaks,
+            markdownFlavor: markdownFlavor
         )
         let mermaidResult = renderMermaidBlocks(in: formatted)
         let mathResult = renderMathBlocks(in: mermaidResult.html, with: math)

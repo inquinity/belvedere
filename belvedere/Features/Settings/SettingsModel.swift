@@ -47,6 +47,13 @@ final class SettingsModel {
         }
     }
 
+    var markdownFlavor: MarkdownFlavor {
+        didSet {
+            guard !isRestoringExternalValues, markdownFlavor != oldValue else { return }
+            appDelegate?.applyMarkdownFlavorSetting(markdownFlavor)
+        }
+    }
+
     var readerLayout: ReaderLayoutSetting {
         didSet {
             guard !isRestoringExternalValues, readerLayout != oldValue else { return }
@@ -237,6 +244,7 @@ final class SettingsModel {
         documentFont = DocumentFontSetting.current
         readerLayout = ReaderLayoutSetting.current
         strictLineBreaks = StrictLineBreaksSetting.current
+        markdownFlavor = MarkdownFlavorSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
         exitsEditModeSilently = EditExitPolicy.exitsSilently
@@ -262,6 +270,7 @@ final class SettingsModel {
         documentFont = DocumentFontSetting.current
         readerLayout = ReaderLayoutSetting.current
         strictLineBreaks = StrictLineBreaksSetting.current
+        markdownFlavor = MarkdownFlavorSetting.current
         isAlwaysOnTop = AlwaysOnTopPolicy.isEnabled
         opensDocumentsInTabs = TabOpeningPolicy.isEnabled
         exitsEditModeSilently = EditExitPolicy.exitsSilently

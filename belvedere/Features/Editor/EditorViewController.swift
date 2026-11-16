@@ -92,7 +92,12 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
         let needsMermaid = Self.containsMermaidFence(in: markdown)
         if hasLoadedEditorPage, pageSupportsMermaid || !needsMermaid {
             let baseHref = currentAssetBaseURL.map(MarkdownAssetResolution.baseHref(forFolder:)) ?? ""
-            let script = "window.__mdLoadEditor && window.__mdLoadEditor(\(EditorHTML.jsStringLiteral(markdown)), \(EditorHTML.jsStringLiteral(baseHref)))"
+            // A reused page was built with the flavor of its first session;
+            // the editor reads it from the page each time it lays out blocks,
+            // so a flavor changed in Settings since then takes effect here.
+            let flavor = EditorHTML.jsStringLiteral(MarkdownFlavorSetting.current.rawValue)
+            let script = "document.documentElement.dataset.markdownFlavor = \(flavor); "
+                + "window.__mdLoadEditor && window.__mdLoadEditor(\(EditorHTML.jsStringLiteral(markdown)), \(EditorHTML.jsStringLiteral(baseHref)))"
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 guard let self, error != nil else { return }
                 self.loadEditorPage(markdown: markdown,
@@ -575,7 +580,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
                 darkPageBackground: darkPageBackground,
                 themeOverrideCSS: colors.editorOverrideCSS,
                 usesPageScrolling: usesPageScrolling,
-                bridgeName: EditorBridge.name
+                bridgeName: EditorBridge.name,
+                markdownFlavor: MarkdownFlavorSetting.current
             )
         )
     }

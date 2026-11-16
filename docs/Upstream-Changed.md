@@ -147,6 +147,13 @@ three localizations, each to be cut out again on every later sync.
   button open a modal dialog without script. Second, it adds a license notice for the
   Babel helper now built into `purify.min.js`. Sparkle and Sentry bumps do not apply;
   the Pele bump is declined below.
+- **Every `[!type]` callout (GH-629), taken 2026-11-14.** Picked as it was, except the
+  fold chevron's mask is defined in the stylesheet (upstream builds it from a helper for
+  diagram controls Belvedere does not have) and the share-server stylesheet is not taken.
+  Belvedere adds a *Markdown flavor* setting: *Extended*, upstream's behaviour and the
+  default, or *GitHub*, which keeps only GitHub's five alerts with the tag alone on its
+  line and leaves everything else a quotation. The formatter, the page renderer, footnotes
+  and the editor's spacing all follow it.
 
 ### Not applicable — fixes for code Belvedere does not have
 
@@ -184,8 +191,7 @@ three localizations, each to be cut out again on every later sync.
 - **Editor bundle npm updates (GH-630):** `codemirror-lang-hcl` 0.2 and esbuild 0.28,
   with upstream's override that keeps HCL block types and labels coloured as before.
   Not taken with the other library updates.
-- **Features under evaluation:** every
-  `[!type]` callout (GH-629); live math in the editor (GH-555); table column resizing
+- **Features under evaluation:** live math in the editor (GH-555); table column resizing
   (GH-564, on top of GH-476 and GH-563); EPUB export (GH-517, on top of GH-476's export
   rewrite); selection word counts (GH-534); text alignment (GH-480); the navigator's
   + menu and filter (GH-566, which adds `com.apple.security.files.bookmarks.app-scope`);

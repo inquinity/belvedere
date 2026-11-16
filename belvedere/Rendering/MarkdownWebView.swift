@@ -326,6 +326,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         let markdown = Self.warmupMarkdown
         let contentWidth = ContentWidthSetting.current.renderWidth
         let themeOverrides = Self.currentThemeOverrides()
+        let markdownFlavor = MarkdownFlavorSetting.current
         let preloadsMathAndCode = isSpare
         let chromeZoom = chromeZoom
         Task { @concurrent [weak self] in
@@ -333,6 +334,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                             markdown: markdown,
                                             assetBaseHref: baseHref,
                                             contentWidth: contentWidth,
+                                            markdownFlavor: markdownFlavor,
                                             themeOverrides: themeOverrides,
                                             chromeZoom: chromeZoom,
                                             warmup: true,
@@ -432,6 +434,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         let generation = renderGeneration
         let contentWidth = contentWidthSetting.renderWidth
         let strictLineBreaks = strictLineBreaks
+        let markdownFlavor = MarkdownFlavorSetting.current
         let themeOverrides = Self.currentThemeOverrides()
         let chromeZoom = chromeZoom
         Task { @concurrent [weak self] in
@@ -440,6 +443,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                             assetBaseHref: baseHref,
                                             contentWidth: contentWidth,
                                             strictLineBreaks: strictLineBreaks,
+                                            markdownFlavor: markdownFlavor,
                                             themeOverrides: themeOverrides,
                                             chromeZoom: chromeZoom)
             #if DEBUG
@@ -463,6 +467,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                                 assetBaseHref: String,
                                                 contentWidth: MarkdownHTML.ContentWidth,
                                                 strictLineBreaks: Bool = StrictLineBreaksSetting.current,
+                                                markdownFlavor: MarkdownFlavor,
                                                 themeOverrides: MarkdownHTML.ThemeOverrides? = nil,
                                                 chromeZoom: CGFloat,
                                                 warmup: Bool = false,
@@ -475,6 +480,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                                            contentWidth: contentWidth,
                                            themeOverrides: themeOverrides,
                                            strictLineBreaks: strictLineBreaks,
+                                           markdownFlavor: markdownFlavor,
                                            warmup: warmup,
                                            preloadsMathAndCode: preloadsMathAndCode,
                                            pageTopClearance: MarkdownHTML.appPageTopClearance,

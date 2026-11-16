@@ -12,6 +12,9 @@ nonisolated enum EditorHTML {
         var themeOverrideCSS = ""
         var usesPageScrolling = false
         var bridgeName = "mdEditorHost"
+        /// Which `[!type]` blockquotes the reading view shows as callouts, so
+        /// the editor spaces those blocks to match (see entry-cm.js).
+        var markdownFlavor = MarkdownFlavorSetting.current
     }
 
     static func render(markdown: String,
@@ -27,7 +30,7 @@ nonisolated enum EditorHTML {
         let mermaidJavaScript = mermaidJavaScript ?? ""
         return """
         <!DOCTYPE html>
-        <html data-page-scrolling="\(usesPageScrolling)">
+        <html data-page-scrolling="\(usesPageScrolling)" data-markdown-flavor="\(configuration.markdownFlavor.rawValue)">
         <head>
         <meta charset="UTF-8">
         \(assetBaseURL.map { "<base href=\"\(htmlAttributeLiteral(MarkdownAssetResolution.baseHref(forFolder: $0)))\">" } ?? "")

@@ -271,7 +271,8 @@ nonisolated enum MarkdownHTML {
                          colorScheme: ColorScheme? = nil,
                          documentFont: DocumentFontSetting = .current,
                          readerLayout: ReaderLayoutSetting = .current,
-                         strictLineBreaks: Bool = StrictLineBreaksSetting.current) -> String {
+                         strictLineBreaks: Bool = StrictLineBreaksSetting.current,
+                         markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current) -> String {
         render(markdown: markdown,
                allowsScroll: allowsScroll,
                assetBaseHref: assetBaseHref,
@@ -279,7 +280,8 @@ nonisolated enum MarkdownHTML {
                colorScheme: colorScheme,
                documentFont: documentFont,
                readerLayout: readerLayout,
-               strictLineBreaks: strictLineBreaks).html
+               strictLineBreaks: strictLineBreaks,
+               markdownFlavor: markdownFlavor).html
     }
 
     static func render(markdown: String,
@@ -292,6 +294,7 @@ nonisolated enum MarkdownHTML {
                        documentFont: DocumentFontSetting = .current,
                        readerLayout: ReaderLayoutSetting = .current,
                        strictLineBreaks: Bool = StrictLineBreaksSetting.current,
+                       markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current,
                        warmup: Bool = false,
                        preloadsMathAndCode: Bool = false,
                        pageTopClearance: CGFloat = 0,
@@ -313,7 +316,8 @@ nonisolated enum MarkdownHTML {
             sourceLineOffset: sourceLineOffset,
             sourceMarkdown: body,
             highlightsCode: highlightsCode,
-            strictLineBreaks: strictLineBreaks
+            strictLineBreaks: strictLineBreaks,
+            markdownFlavor: markdownFlavor
         )
         let mermaidResult = renderMermaidBlocks(in: formatted)
         let mathResult = renderMathBlocks(in: mermaidResult.html, with: math)
@@ -321,7 +325,8 @@ nonisolated enum MarkdownHTML {
         let footnoteDefinitions = renderFootnoteDefinitions(
             footnotes,
             sourceLineOffset: sourceLineOffset,
-            strictLineBreaks: strictLineBreaks
+            strictLineBreaks: strictLineBreaks,
+            markdownFlavor: markdownFlavor
         )
         let headingsHTML = injectHeadingIDs(in: footnoteReferenceHTML + footnoteDefinitions.html)
         // Direction inference scans every rendered block. Most documents
