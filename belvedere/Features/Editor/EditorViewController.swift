@@ -97,7 +97,7 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             // so a flavor changed in Settings since then takes effect here.
             let flavor = EditorHTML.jsStringLiteral(MarkdownFlavorSetting.current.rawValue)
             let script = "document.documentElement.dataset.markdownFlavor = \(flavor); "
-                + "window.__mdLoadEditor && window.__mdLoadEditor(\(EditorHTML.jsStringLiteral(markdown)), \(EditorHTML.jsStringLiteral(baseHref)))"
+                + "window.__mdLoadEditor && window.__mdLoadEditor(\(EditorHTML.jsStringLiteral(markdown)), \(EditorHTML.jsStringLiteral(baseHref)), \(EditorSourceModeSetting.current))"
             webView.evaluateJavaScript(script) { [weak self] _, error in
                 guard let self, error != nil else { return }
                 self.loadEditorPage(markdown: markdown,
@@ -138,6 +138,15 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
         )
         decisionHandler(allowed ? .allow : .cancel)
+    }
+
+    /// Switch between the formatted live preview and the plain Markdown
+    /// source. The buffer, selection, and undo history carry over. A page
+    /// that is still loading reads the stored setting when it renders.
+    func applySourceMode() {
+        let on = EditorSourceModeSetting.current
+        webView.evaluateJavaScript("window.__mdSetSourceMode && window.__mdSetSourceMode(\(on))",
+                                   completionHandler: nil)
     }
 
     /// Mirror the preview's page zoom so the type size and measure don't
@@ -289,7 +298,15 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             webView.obscuredContentInsets = NSEdgeInsets(
                 top: inset, left: 0, bottom: 0, right: 0
             )
+            updatePageTopInset()
         }
+    }
+
+    /// Tells the page how much of its top the toolbar covers, so the source
+    /// mode's room past the end is measured from the visible part of the pane.
+    private func updatePageTopInset() {
+        guard #available(macOS 26.0, *) else { return }
+        webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-top-inset', '\(webView.obscuredContentInsets.top)px')", completionHandler: nil)
     }
 
     /// See ContentViewController.updateUnderPageBackgroundColor — set on
@@ -455,12 +472,15 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
             case "ready":
                 hasLoadedEditorPage = true
                 updateChromeZoom()
+                updatePageTopInset()
                 // Fresh page — the bar padding lives in the DOM and must be
                 // re-applied even when the tracked value hasn't changed,
                 // and WebKit re-derives the under-page color from the new
                 // page, clobbering the themed value.
                 updateUnderPageBackgroundColor()
                 updateObscuredContentInsets()
+                // The setting can change while the page loads.
+                applySourceMode()
                 editorDidBecomeReady?()
             case "cancel":
                 cancelRequested?()
@@ -587,7 +607,8 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
                 themeOverrideCSS: colors.editorOverrideCSS,
                 usesPageScrolling: usesPageScrolling,
                 bridgeName: EditorBridge.name,
-                markdownFlavor: MarkdownFlavorSetting.current
+                markdownFlavor: MarkdownFlavorSetting.current,
+                sourceMode: EditorSourceModeSetting.current
             )
         )
     }
@@ -617,5 +638,24 @@ private final class EditorWKWebView: WKWebView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         if declinesChromeStripClick(at: point) { return nil }
         return super.hitTest(point)
+    }
+
+    /// The switch between the formatted style and the Markdown source leads
+    /// the context menu, named for the style it goes to.
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        let title = EditorSourceModeSetting.current
+            ? NSLocalizedString("Show Markdown", comment: "Editor context menu: leave the Markdown source for the formatted style")
+            : NSLocalizedString("Show Source", comment: "Editor context menu: show the Markdown source of the file")
+        let item = NSMenuItem(title: title,
+                              action: #selector(toggleSourceModeFromContextMenu(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        menu.insertItem(item, at: 0)
+        menu.insertItem(.separator(), at: 1)
+        super.willOpenMenu(menu, with: event)
+    }
+
+    @objc private func toggleSourceModeFromContextMenu(_ sender: Any?) {
+        (NSApp.delegate as? AppDelegate)?.toggleEditorSourceMode()
     }
 }

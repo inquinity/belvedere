@@ -416,3 +416,8 @@
 
 /* Reader overlay while a slow file loads */
 "Loading…" = "Loading…";
+
+/* Editor source mode */
+"Show Markdown Source" = "Show Markdown Source";
+"Show Source" = "Show Source";
+"Show Markdown" = "Show Markdown";
