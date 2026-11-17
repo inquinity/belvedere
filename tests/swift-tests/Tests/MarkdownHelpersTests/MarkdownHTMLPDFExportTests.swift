@@ -546,7 +546,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             _ = try await session.preparePaper(using: info, pointSize: 12)
             XCTFail("Paper narrower than the margins was accepted")
         } catch {
-            XCTAssertEqual((error as NSError).domain, "doc.md-preview.export")
+            XCTAssertEqual((error as NSError).domain, "com.altmansoftwaredesign.belvedere.export")
         }
         info.paperSize = NSSize(width: 612, height: 792)
         let first = Task { try await session.preparePaper(using: info, pointSize: 18) }
