@@ -25,6 +25,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 | ID | Item | Where it stands | Release |
 |---|---|---|---|
+| **F29** | Export from a hidden copy of the page, fitted tables, Expand Table | On `sync/export-rewrite`: upstream's export rewrite (pluk-inc/markdown-preview GH-476) with the folder boundary and navigation hardened, plus the PNG and print-from-Finder fixes. Needs a hand test with `tests/fixtures/export/docs/export-and-tables.md`. Unblocks EPUB export and table column resizing. | next release |
 | **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.2 candidate |
 | **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.2 candidate |
 | **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.2 candidate |

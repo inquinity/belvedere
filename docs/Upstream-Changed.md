@@ -83,6 +83,49 @@ installer.
 
 ---
 
+## Export rewrite — cherry-picked 2026-11-17, second round
+
+Three picks, taken for the export rewrite that EPUB export (GH-517) and table column
+resizing (GH-563, GH-564) build on. **The reviewed-through mark stays at `36debd1`**:
+GH-653 is newer, but it is the only later commit read in this round.
+
+### Taken with changes
+
+- **Readable tables, an expanded table window and fitted exports (GH-476).** Export and
+  printing are prepared from a hidden copy of the page (`DocumentExportSession`), with
+  wide tables measured and fitted in WebKit (`ExportTableLayout`), and a table can open
+  in a full-screen window (`TablePreviewWindow`). Changed for Belvedere:
+  - The hidden copy's image handler takes the base folder **and the folder boundary**
+    from the live page (`captureExportSession` reads `currentAssetBase` and
+    `currentContainmentRoot`). Upstream set the base folder only, so a reader who had
+    opened a wider folder would export under a different boundary from the one on
+    screen. Printing no longer takes a separate asset folder.
+  - The hidden page applies `PreviewContentPolicy` itself, loads with no base URL, asks
+    `WebViewNavigationPolicy`, and allows only its own first load: no link, refresh,
+    frame or new window after it. Upstream's page accepted any navigation.
+  - `TablePreviewWindow.present` takes the boundary as a required parameter.
+  - Table cells keep Belvedere's `overflow-wrap: break-word` (the fix for columns
+    squeezed to one letter); upstream's `normal` would let one long string widen a
+    column without limit.
+  - The export file keeps the window's line-break setting, the app-bundle write guard
+    and Belvedere's error domain. Upstream's README and Chinese strings were not taken.
+  - Guarded by `ExportPageSecurityTests` and
+    `ForkPostureTests.testExportCopyLoadsImagesUnderTheLivePageBoundary`.
+- **Print from Finder (GH-653).** A print request from Finder, `open -p` or a script
+  crashed the app; it now opens the print panel, always, without the sender's settings.
+  Upstream waits on a first-paint flag from its launch work (GH-520, not taken), so
+  Belvedere sets its own flag when the requested document reaches the page, and the
+  hook that keeps a file chooser off the printing document only cancels a scheduled one.
+
+### Taken unchanged
+
+- **PNG export (GH-510).** Upstream's fix, in the export session that replaced the code
+  Belvedere had fixed by hand in the first round.
+
+### Not taken
+
+- Upstream's later export changes for Pele (GH-539) and Share as Link (GH-571).
+
 ## Markdown Preview 0.0.64–0.0.72 — cherry-picked 2026-11-12, first round
 
 **Reviewed through upstream `36debd1`** (2026-11-11, after 0.0.72). The next round
@@ -192,8 +235,8 @@ three localizations, each to be cut out again on every later sync.
   with upstream's override that keeps HCL block types and labels coloured as before.
   Not taken with the other library updates.
 - **Features under evaluation:** live math in the editor (GH-555); table column resizing
-  (GH-564, on top of GH-476 and GH-563); EPUB export (GH-517, on top of GH-476's export
-  rewrite); selection word counts (GH-534); text alignment (GH-480); the navigator's
+  (GH-564, on top of GH-563; GH-476 was taken in the second round); EPUB export (GH-517,
+  on top of GH-476); selection word counts (GH-534); text alignment (GH-480); the navigator's
   + menu and filter (GH-566, which adds `com.apple.security.files.bookmarks.app-scope`);
   removing the spare reader (GH-471).
 
