@@ -195,6 +195,9 @@ nonisolated enum MarkdownHTML {
     /// PDF export keeps the preview's column width and colors, with margins
     /// on every page. Oversized tables are fitted before printing.
     static let previewPrintOverrideCSS = """
+    /* The body is the column here and has no padding to lend, so the article
+       keeps the full width for the table fit that runs before printing. */
+    html.\(previewPrintClass) { --mdp-inline-slack: 0px; }
     html.\(previewPrintClass) body {
         box-sizing: border-box;
         width: \(contentColumnWidth)px;
@@ -285,6 +288,22 @@ nonisolated enum MarkdownHTML {
                textAlignment: textAlignment).html
     }
 
+    /// WebKit does not reserve room for the cloned end padding of an inline
+    /// box that wraps (inline code, highlights), so the first fragment can
+    /// end a few pixels past its line. The article is the sideways scroller,
+    /// so that overshoot made the whole page scroll left and right. With this
+    /// slack the article takes a strip of the page padding as its own
+    /// padding (see the stylesheet), and the overshoot lands inside the
+    /// article instead of in its scrollable overflow. The largest overshoot
+    /// is inline code in an h1: 0.3em of padding at a 2em font size, plus the
+    /// border. Never more than the page padding, so the text column does not
+    /// move. Screen only: print sets its own page box.
+    static let inlineOverflowSlackCSS = """
+    @media screen {
+        :root { --mdp-inline-slack: min(0.7em, var(--mdp-page-padding, \(pagePaddingHorizontal)px)); }
+    }
+    """
+
     static func render(markdown: String,
                        allowsScroll: Bool = false,
                        assetBaseHref: String? = nil,
@@ -363,6 +382,7 @@ nonisolated enum MarkdownHTML {
            overflow-y:auto, and even 1px of article overflow can swallow a wheel gesture. */
         article.markdown-body { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; overflow-wrap: anywhere; }
         article.markdown-body table { overflow-wrap: normal; }
+        \(inlineOverflowSlackCSS)
         </style>
         """ : ""
         let contentWidthOverride: String
