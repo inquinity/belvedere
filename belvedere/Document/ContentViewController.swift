@@ -338,8 +338,8 @@ final class ContentViewController: NSViewController {
     }
 
     func printDocument() {
-        guard let window = view.window, let source = exportSource else { return }
-        webView.printDocument(assetBaseURL: source.assetBaseURL, from: window)
+        guard let window = view.window, exportSource != nil else { return }
+        webView.printDocument(from: window)
     }
 
     var hasExportableDocument: Bool {

@@ -164,10 +164,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     var localMarkdownLinkActivated: ((URL) -> Void)?
     var scrollDidChange: (() -> Void)?
     private let assetScheme = MarkdownAssetScheme()
-    private var currentAssetBase: URL?
+    /// Readable so export can load its hidden copy of the page under the same
+    /// folder and boundary as the page on screen.
+    private(set) var currentAssetBase: URL?
     /// Wider than the document's folder only when the reader opened a folder
     /// containing it — see `MarkdownAccessPolicy`.
-    private var currentContainmentRoot: URL?
+    private(set) var currentContainmentRoot: URL?
     private let messageBridge = HostBridge()
 
     private struct RendererFingerprint: Equatable {

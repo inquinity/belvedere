@@ -234,10 +234,17 @@ final class DocumentExportSession {
 }
 
 @MainActor
+/// A hidden page that holds a copy of the document for export.
+///
+/// It loads its copy once and never navigates after that. The copy is the
+/// reader's sanitized page, so nothing in it should navigate, but a page that
+/// stays hidden must not be the one place a link, a refresh or a frame could
+/// load something the reader would have refused.
 private final class ExportPage: NSObject, WKNavigationDelegate {
     let webView: WKWebView
     private let window: NSWindow
     private var navigation: CheckedContinuation<Void, Error>?
+    private var hasAllowedInitialLoad = false
 
     init(size: NSSize, configuration: WKWebViewConfiguration) {
         let frame = NSRect(origin: .zero, size: size)
@@ -261,6 +268,19 @@ private final class ExportPage: NSObject, WKNavigationDelegate {
         webView.stopLoading()
         webView.navigationDelegate = nil
         window.close()
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+        decisionHandler(Self.policy(isMainFrame: navigationAction.targetFrame?.isMainFrame == true,
+                                    hasAllowedInitialLoad: &hasAllowedInitialLoad))
+    }
+
+    /// Only the page's own first load, in its main frame, is allowed.
+    static func policy(isMainFrame: Bool, hasAllowedInitialLoad: inout Bool) -> WKNavigationActionPolicy {
+        guard isMainFrame, !hasAllowedInitialLoad else { return .cancel }
+        hasAllowedInitialLoad = true
+        return .allow
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

@@ -898,10 +898,14 @@ extension MarkdownWebView {
         return operation
     }
 
-    private func captureExportSession(assetBaseURL: URL?) async throws -> DocumentExportSession {
+    /// The hidden copy loads its images under the live page's own folder and
+    /// boundary. They are read from the page, not passed in, so an export can
+    /// never apply a different boundary from the one the reader is showing.
+    private func captureExportSession() async throws -> DocumentExportSession {
         let configuration = WKWebViewConfiguration()
         let assets = MarkdownAssetScheme()
-        assets.setBaseURL(assetBaseURL)
+        assets.setBaseURL(currentAssetBase)
+        assets.setContainmentRoot(currentContainmentRoot)
         configuration.setURLSchemeHandler(assets, forURLScheme: MarkdownAssetScheme.scheme)
         return try await DocumentExportSession.capture(from: webView, configuration: configuration)
     }
@@ -950,7 +954,7 @@ extension MarkdownWebView {
         Task {
             var session: DocumentExportSession?
             do {
-                let export = try await captureExportSession(assetBaseURL: assetBaseURL)
+                let export = try await captureExportSession()
                 session = export
                 let exportView = try await export.webView(for: .pdf)
                 let source = FileExportSource(
@@ -990,11 +994,11 @@ extension MarkdownWebView {
     /// File ▸ Print… — the system print panel, with the font size in a
     /// "Markdown Preview" accessory pane so the panel's own live page
     /// thumbnails preview the choice.
-    func printDocument(assetBaseURL: URL?, from window: NSWindow) {
+    func printDocument(from window: NSWindow) {
         Task {
             var session: DocumentExportSession?
             do {
-                let export = try await captureExportSession(assetBaseURL: assetBaseURL)
+                let export = try await captureExportSession()
                 session = export
                 let info = NSPrintInfo.shared.copy() as? NSPrintInfo ?? NSPrintInfo()
                 info.scalingFactor = 1
