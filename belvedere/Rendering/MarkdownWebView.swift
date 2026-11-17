@@ -164,12 +164,10 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     var localMarkdownLinkActivated: ((URL) -> Void)?
     var scrollDidChange: (() -> Void)?
     private let assetScheme = MarkdownAssetScheme()
-    /// Readable so export can load its hidden copy of the page under the same
-    /// folder and boundary as the page on screen.
-    private(set) var currentAssetBase: URL?
+    private var currentAssetBase: URL?
     /// Wider than the document's folder only when the reader opened a folder
     /// containing it — see `MarkdownAccessPolicy`.
-    private(set) var currentContainmentRoot: URL?
+    private var currentContainmentRoot: URL?
     private let messageBridge = HostBridge()
 
     private struct RendererFingerprint: Equatable {
@@ -198,6 +196,19 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     // Bumped on every display() call so a slower render finishing after a
     // newer one is dropped instead of clobbering the latest article.
     private var renderGeneration: UInt64 = 0
+    /// A document as it reached the page: its render generation, folder and
+    /// boundary. `display` sets `currentAssetBase` and `currentContainmentRoot`
+    /// at once, before the render lands, so those can be ahead of what the
+    /// page shows; anything that copies the page uses this instead.
+    struct AppliedDocument: Equatable {
+        let generation: UInt64
+        let assetBase: URL?
+        let containmentRoot: URL?
+    }
+    /// The last document that reached the page, or nil before the first.
+    private(set) var appliedDocument: AppliedDocument?
+    /// A full page load in flight, applied when that load finishes.
+    private var pendingAppliedDocument: AppliedDocument?
     // Last unzoomed document height reported by the page (CSS pixels). Cached
     // so a pageZoom change can re-fire heightDidChange with the right scale
     // without waiting for JS to post a fresh value (it won't — scrollHeight
@@ -398,6 +409,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     /// Empties the visible article without unloading the page, so the next
     /// `display()` still hits the fast-path.
     func clearContent() {
+        appliedDocument = nil
+        pendingAppliedDocument = nil
         guard isPageReady else { return }
         webView.evaluateJavaScript("window.MdPreview && MdPreview.update('');") { _, _ in }
     }
@@ -518,6 +531,8 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         // A newer display() bumped the generation while this render was
         // off-main — drop the stale result so the latest article wins.
         guard generation == renderGeneration else { return }
+        let applied = AppliedDocument(generation: generation, assetBase: currentAssetBase,
+                                      containmentRoot: currentContainmentRoot)
         let fingerprint = RendererFingerprint(
             math: rendered.containsMath,
             mermaid: rendered.containsMermaid,
@@ -549,6 +564,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
                 #if !QUICK_LOOK_EXTENSION
                 self?.applyThemeColors()
                 #endif
+                self?.appliedDocument = applied
                 self?.contentDidReplace?()
             }
             return
@@ -565,6 +581,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         webView.loadHTMLString(PreviewContentPolicy.applying(to: rendered.html), baseURL: nil)
         #endif
         loadedFingerprint = fingerprint
+        pendingAppliedDocument = applied
         isPageReady = false
     }
 
@@ -1828,6 +1845,12 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         configureWebKitScrollView()
         isPageReady = true
+        // Only a load started by applyDisplay carries a document; the warmup
+        // page finishing late leaves the last applied document as it was.
+        if let pendingAppliedDocument {
+            appliedDocument = pendingAppliedDocument
+            self.pendingAppliedDocument = nil
+        }
         updateChromeZoom()
         #if !QUICK_LOOK_EXTENSION
         // A render snapshots the theme before its concurrent pass; if the

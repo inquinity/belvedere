@@ -42,7 +42,7 @@ final class ExportPageSecurityTests: XCTestCase {
         defer { harness.close() }
         try await waitForLoad(harness.webView)
 
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let page = try await session.webView(for: .pdf)
         let state = try await page.callAsyncJavaScript("""
@@ -80,7 +80,7 @@ final class ExportPageSecurityTests: XCTestCase {
         defer { harness.close() }
         try await waitForLoad(harness.webView)
 
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let page = try await session.webView(for: .pdf)
         _ = try await page.evaluateJavaScript("location.href = 'about:blank'; 0")

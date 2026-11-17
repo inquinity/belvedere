@@ -484,20 +484,28 @@ nonisolated extension MarkdownHTML {
             });
         }
 
+        // The table wrapper, its actions row and the expand button are marked
+        // `data-md-app`, which the sanitizer strips from document content. A
+        // document can write its own `class="md-table-expand"` or
+        // `md-table-wrap`, since classes are the author's, so the click
+        // handler, copy and export go by the marker, never by class.
         function decorateTables(root = document) {
             if (!hasHostBridge || !\(tablePopupEnabled)) return;
             root.querySelectorAll('table').forEach(table => {
                 if (table.closest('.md-frontmatter') || table.parentElement.closest('table')
-                    || table.parentElement.classList.contains('md-table-wrap')) return;
+                    || table.parentElement.dataset.mdApp === 'table-wrap') return;
                 const wrap = document.createElement('div');
                 wrap.className = 'md-table-wrap';
+                wrap.dataset.mdApp = 'table-wrap';
                 table.before(wrap);
                 wrap.append(table);
                 const actions = document.createElement('div');
                 actions.className = 'md-table-actions';
+                actions.dataset.mdApp = 'table-actions';
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'md-table-expand';
+                button.dataset.mdApp = 'table-expand';
                 button.textContent = '⛶';
                 button.title = localized.expandTable;
                 button.setAttribute('aria-label', localized.expandTable);
@@ -506,13 +514,13 @@ nonisolated extension MarkdownHTML {
             });
         }
         document.addEventListener('click', event => {
-            const button = event.target.closest('.md-table-expand');
-            if (!button) return;
-            const table = button.closest('.md-table-wrap')?.querySelector('table');
+            const button = event.target.closest('[data-md-app="table-expand"]');
+            if (!button || !event.isTrusted) return;
+            const table = button.closest('[data-md-app="table-wrap"]')?.querySelector('table');
             if (!table) return;
             event.preventDefault();
             const clone = table.cloneNode(true);
-            clone.querySelectorAll('.md-table-actions, .md-code-header').forEach(node => node.remove());
+            clone.querySelectorAll('[data-md-app="table-actions"], .md-code-header').forEach(node => node.remove());
             let title = '';
             for (const heading of document.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
                 if (heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -527,7 +535,7 @@ nonisolated extension MarkdownHTML {
             for (let i = 0; i < selection.rangeCount; i += 1) {
                 fragment.appendChild(selection.getRangeAt(i).cloneContents());
             }
-            const buttons = fragment.querySelectorAll('.md-code-header, .md-table-actions');
+            const buttons = fragment.querySelectorAll('.md-code-header, [data-md-app="table-actions"]');
             buttons.forEach((button) => button.remove());
             return { fragment, removedButtons: buttons.length > 0 };
         }
@@ -773,6 +781,8 @@ nonisolated extension MarkdownHTML {
             //   calls `run`
             lazyRenderer({ src, extras, run }) {
                 let loaded = false;
+                let firstRunDone;
+                this.firstRuns.push(new Promise(resolve => { firstRunDone = resolve; }));
                 if (window.MdPreview && window.MdPreview.registerReapplier) {
                     window.MdPreview.registerReapplier(() => { if (loaded) run(); });
                 }
@@ -780,12 +790,23 @@ nonisolated extension MarkdownHTML {
                     try {
                         await this.loadScript(src);
                         loaded = true;
-                        run();
+                        await run();
                         if (extras) {
                             for (const e of extras) this.loadScript(e).catch(() => {});
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                    } finally {
+                        firstRunDone();
+                    }
                 });
+            },
+            // One promise per lazy renderer, settled once it has loaded and
+            // run, or failed. Printing and export copy the page and strip its
+            // scripts, so math or highlighting that had not run by then would
+            // stay raw source in the copy for good. They wait for this first.
+            firstRuns: [],
+            settled() {
+                return Promise.allSettled(this.firstRuns);
             }
         };
 
@@ -827,8 +848,10 @@ nonisolated extension MarkdownHTML {
             // modal, which covers the page and makes the rest of it inert,
             // with no script. DOMPurify 3.4.2 dropped them; later 3.4.x
             // releases allow them by default, so they are forbidden here to
-            // keep the surface the reader had.
-            FORBID_ATTR: ['style', 'command', 'commandfor'],
+            // keep the surface the reader had. `data-md-app` marks the app's
+            // own table controls (see decorateTables); a document may not
+            // claim it.
+            FORBID_ATTR: ['style', 'command', 'commandfor', 'data-md-app'],
             ADD_ATTR: ['target'],
             ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|md-asset):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))/i
         };

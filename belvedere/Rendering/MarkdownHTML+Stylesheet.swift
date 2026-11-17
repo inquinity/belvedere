@@ -31,10 +31,10 @@ nonisolated extension MarkdownHTML {
     .md-table-expand:hover { background: var(--code-bg); color: var(--text); }
     .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }
-    html.\(previewPrintClass) .md-table-actions { display: none; }
+    html.\(previewPrintClass) [data-md-app="table-actions"] { display: none; }
     html.\(previewPrintClass) .md-table-wrap { padding-top: 0; }
     @media print {
-        .md-table-actions { display: none !important; }
+        [data-md-app="table-actions"] { display: none !important; }
         .md-table-wrap { padding-top: 0; }
     }
     """
@@ -1028,6 +1028,11 @@ nonisolated extension MarkdownHTML {
         :root:not(.\(previewPrintClass)) td { overflow-wrap: anywhere; }
         :root:not(.\(previewPrintClass)) pre,
         :root:not(.\(previewPrintClass)) code { overflow-wrap: anywhere; }
+        /* Inside a cell, code follows the cell. Export fits tables by setting
+           each cell's wrapping; a code span that broke anywhere would measure
+           one character wide, so a column of code could be squeezed to a
+           letter per line. */
+        :root:not(.\(previewPrintClass)) :is(th, td) code { overflow-wrap: inherit; }
     }
 
     """

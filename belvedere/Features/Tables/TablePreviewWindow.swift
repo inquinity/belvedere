@@ -38,7 +38,7 @@ final class TablePreviewWindow: NSObject, NSWindowDelegate {
                 tableWindowStyle.textContent = `
                     body { padding: 24px !important; }
                     article.markdown-body { max-width: none !important; margin: 0 !important; }
-                    .md-table-actions { display: none !important; }
+                    [data-md-app="table-actions"] { display: none !important; }
                     .md-table-wrap { padding-top: 0 !important; margin-top: 0 !important; }
                 `;
                 document.head.append(tableWindowStyle);

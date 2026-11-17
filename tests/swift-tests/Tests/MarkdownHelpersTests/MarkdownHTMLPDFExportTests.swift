@@ -48,7 +48,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
                 let expectedWidth = CGFloat(try XCTUnwrap(viewportWidth))
                 let name = "tables-\(Int(width))-margins-\(Int(margins))"
 
-                let session = try await DocumentExportSession.capture(from: harness.webView)
+                let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
                 defer { session.close() }
                 let imageView = try await session.webView(for: .png)
                 let imagePDFData = try await imageView.pdf(configuration: WKPDFConfiguration())
@@ -93,7 +93,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             let controls = try await harness.webView.evaluateJavaScript("document.querySelectorAll('.md-table-expand').length") as? Int
             XCTAssertEqual(controls, 1)
             let source = try await documentState(harness.webView)
-            let session = try await DocumentExportSession.capture(from: harness.webView)
+            let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
             defer { session.close() }
             let info = printInfo()
             info.scalingFactor = format == .paper ? 1.25 : 1
@@ -129,13 +129,13 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let referenceURL = directory.appendingPathComponent("reference.png")
-        let reference = try await DocumentExportSession.capture(from: harness.webView)
+        let reference = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { reference.close() }
         try await reference.writePNG(to: referenceURL)
         let expected = try Data(contentsOf: referenceURL)
         XCTAssertNotNil(NSBitmapImageRep(data: expected))
 
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let firstURL = directory.appendingPathComponent("first.png")
         let secondURL = directory.appendingPathComponent("second.png")
@@ -153,7 +153,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         do {
             try await session.writePNG(to: directory.appendingPathComponent("missing/output.png"))
@@ -178,7 +178,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = makeHarness(markdown: tables)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let output = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
         defer { try? FileManager.default.removeItem(at: output) }
         let write = Task { try await session.writePNG(to: output) }
@@ -199,7 +199,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let before = try await documentState(harness.webView)
 
         for attempt in 1...2 {
-            let session = try await DocumentExportSession.capture(from: harness.webView)
+            let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
             let view = try await session.webView(for: .pdf)
             let window = makeWindow()
             defer { window.close() }
@@ -223,10 +223,10 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             XCTAssertEqual(after, before)
         }
 
-        let exported = try await DocumentExportSession.capture(from: harness.webView)
+        let exported = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let view = try await exported.webView(for: .pdf)
         _ = try await printPDF(view, session: exported, name: "repeated-export")
-        let paperSession = try await DocumentExportSession.capture(from: harness.webView)
+        let paperSession = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let info = printInfo()
         let paperView = try await paperSession.preparePaper(using: info, pointSize: 12)
         let paper = try await printPDF(paperView, session: paperSession, info: info, name: "regular-print")
@@ -243,7 +243,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = makeHarness(markdown: "| Label | Description |\n| --- | --- |\n\(rows)")
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let view = try await session.webView(for: .pdf)
         let pdf = try await printPDF(view, session: session, name: "multiple-pages")
         XCTAssertGreaterThan(pdf.pageCount, 1)
@@ -265,7 +265,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = makeHarness(markdown: markdown)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let view = try await session.webView(for: .pdf)
         let pdf = try await printPDF(view, session: session, name: "ordinary-table")
         XCTAssertEqual(try textBounds("Static", in: pdf).height,
@@ -280,7 +280,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let reference = makeHarness(markdown: surroundingText)
         defer { reference.close() }
         _ = try await reference.layout(texts: [], imageCount: 0)
-        let referenceSession = try await DocumentExportSession.capture(from: reference.webView)
+        let referenceSession = try await DocumentExportSession.capture(from: reference.webView, configuration: WKWebViewConfiguration())
         let referenceView = try await referenceSession.webView(for: .pdf)
         let referencePDF = try await printPDF(referenceView, session: referenceSession, name: "ordinary-text")
         let referenceHeight = try textBounds(surroundingText, in: referencePDF).height
@@ -294,7 +294,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             let harness = makeHarness(markdown: "\(surroundingText)\n\n\(heading)\n\(rows)\n\nFollowing text.")
             defer { harness.close() }
             _ = try await harness.layout(texts: [], imageCount: 0)
-            let session = try await DocumentExportSession.capture(from: harness.webView)
+            let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
             let view = try await session.webView(for: .pdf)
             let pdf = try await printPDF(view, session: session, name: "dense-\(columns)-\(rowCount)")
             assertWholeWords(Array(repeating: "Category", count: columns)
@@ -318,7 +318,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
                                   width: 600, zoom: 1.25, font: .georgia)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let view = try await session.webView(for: .png)
         XCTAssertEqual(view.pageZoom, harness.webView.pageZoom)
@@ -361,7 +361,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = WebViewLayoutHarness(html: html, width: 900, isEditor: false, height: 600)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 1, selectors: [".katex": 1])
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let mediaScript = """
             JSON.stringify({
@@ -404,7 +404,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         assertCompleteText([longValue], in: pdf)
         assertTextInsidePages(pdf)
 
-        let paperSession = try await DocumentExportSession.capture(from: harness.webView)
+        let paperSession = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let info = printInfo()
         let paperView = try await paperSession.preparePaper(using: info, pointSize: 12)
         let theme = try await paperView.evaluateJavaScript("document.querySelector('.mermaid').dataset.mmTheme") as? String
@@ -451,7 +451,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             defer { harness.close() }
             _ = try await harness.layout(texts: [], imageCount: 0)
             let source = try await documentState(harness.webView)
-            let session = try await DocumentExportSession.capture(from: harness.webView)
+            let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
             defer { session.close() }
             let info = printInfo()
             info.paperSize = paperSize
@@ -485,7 +485,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = makeHarness(markdown: tables)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let info = printInfo()
         for scale: CGFloat in [1, 1.25, 0.75, 1] {
@@ -507,7 +507,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
         let source = try await documentState(harness.webView)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         let info = printInfo()
         let view = try await session.preparePaper(using: info, pointSize: 12)
         let initial = try await documentState(view)
@@ -538,7 +538,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let harness = makeHarness(markdown: tables)
         defer { harness.close() }
         _ = try await harness.layout(texts: [], imageCount: 0)
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let info = printInfo()
         info.paperSize = NSSize(width: 72, height: 72)
@@ -582,7 +582,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         let frontmatter = try await harness.webView.evaluateJavaScript(frontmatterScript) as? String
         XCTAssertNotNil(frontmatter)
         for format: DocumentExportSession.Format in [.pdf, .png, .paper] {
-            let session = try await DocumentExportSession.capture(from: harness.webView)
+            let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
             defer { session.close() }
             let info = printInfo()
             let view: WKWebView
@@ -664,7 +664,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
         operation.printInfo.dictionary()[NSPrintInfo.AttributeKey.jobSavingURL] = output
         let owner: DocumentExportSession
         if let session { owner = session }
-        else { owner = try await DocumentExportSession.capture(from: view) }
+        else { owner = try await DocumentExportSession.capture(from: view, configuration: WKWebViewConfiguration()) }
         let success = await owner.runPrintOperation(operation, from: window)
         XCTAssertTrue(success, "Printing did not complete")
         let data = try Data(contentsOf: output)

@@ -101,7 +101,10 @@ final class MarkdownDocument: NSDocument {
         contextInfo: UnsafeMutableRawPointer?
     ) {
         let finish: (Bool) -> Void = { didPrint in
+            // `method(for:)` returns a forwarding stub for a selector the
+            // delegate lacks, which would raise; ask first.
             guard let delegate = delegate as? NSObject, let didPrintSelector,
+                  delegate.responds(to: didPrintSelector),
                   let implementation = delegate.method(for: didPrintSelector) else { return }
             typealias DidPrint = @convention(c) (NSObject, Selector, NSDocument, Bool, UnsafeMutableRawPointer?) -> Void
             unsafeBitCast(implementation, to: DidPrint.self)(delegate, didPrintSelector, self, didPrint, contextInfo)

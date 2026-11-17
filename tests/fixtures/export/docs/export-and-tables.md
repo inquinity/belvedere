@@ -44,6 +44,11 @@ export is using a different boundary from the page.
 | 1 | Northern region | Southern region | Eastern region | Western region | Central region | Coastal region | Mountain region |
 | 2 | quarterly figures | quarterly figures | quarterly figures | quarterly figures | quarterly figures | quarterly figures | quarterly figures |
 
+| Setting | Key | Description |
+| --- | --- | --- |
+| Line breaks | `belvedere.strictLineBreaks` | Whether a single new line in the source is a line break, or runs on into the next line as standard Markdown does |
+| Flavor | `belvedere.markdownFlavor` | Which quotations that start with a tag become callouts |
+
 **In the reader.**
 EXPECT: no column is squeezed so that a short label breaks letter by letter;
 a table wider than the window scrolls sideways in its own box.
@@ -52,8 +57,8 @@ a table wider than the window scrolls sideways in its own box.
 EXPECT: every column of every table is on the page. Ordinary words stay whole;
 the long `WideValue…End` string wraps; the seven-column table is scaled down if
 it cannot otherwise fit. The text after this section is at its normal size.
-FAIL IF: a column is cut off at the page edge, or a word like "region" is
-split.
+FAIL IF: a column is cut off at the page edge, a word like "region" is
+split, or the Key column's code breaks letter by letter.
 
 **Scale.** In File ▸ Print…, in the Belvedere pane, set Scale to 200%, then
 50%.

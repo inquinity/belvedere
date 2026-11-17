@@ -898,14 +898,16 @@ extension MarkdownWebView {
         return operation
     }
 
-    /// The hidden copy loads its images under the live page's own folder and
-    /// boundary. They are read from the page, not passed in, so an export can
-    /// never apply a different boundary from the one the reader is showing.
+    /// The hidden copy loads its images under the folder and boundary of the
+    /// document the page is showing: `appliedDocument`, recorded when a render
+    /// reaches the page. Not `currentAssetBase`, which `display` changes before
+    /// its render lands, and not a value passed in, which could differ.
     private func captureExportSession() async throws -> DocumentExportSession {
+        guard let applied = appliedDocument else { throw CancellationError() }
         let configuration = WKWebViewConfiguration()
         let assets = MarkdownAssetScheme()
-        assets.setBaseURL(currentAssetBase)
-        assets.setContainmentRoot(currentContainmentRoot)
+        assets.setBaseURL(applied.assetBase)
+        assets.setContainmentRoot(applied.containmentRoot)
         configuration.setURLSchemeHandler(assets, forURLScheme: MarkdownAssetScheme.scheme)
         return try await DocumentExportSession.capture(from: webView, configuration: configuration)
     }
@@ -986,7 +988,8 @@ extension MarkdownWebView {
                 _ = await export.runPrintOperation(operation, from: window)
             } catch {
                 session?.close()
-                window.presentError(error)
+                // Cancelled, or no document on the page yet: nothing to report.
+                if !(error is CancellationError) { window.presentError(error) }
             }
         }
     }
@@ -1024,7 +1027,8 @@ extension MarkdownWebView {
                 completion?(didPrint)
             } catch {
                 session?.close()
-                window.presentError(error)
+                // Cancelled, or no document on the page yet: nothing to report.
+                if !(error is CancellationError) { window.presentError(error) }
                 completion?(false)
             }
         }

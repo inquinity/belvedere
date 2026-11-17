@@ -116,7 +116,6 @@ final class ContentViewController: NSViewController {
             self?.updatePointerTracking()
             self?.linkStatusBar.show(nil)
             guard let self, self.webView.hasRequestedDocument else { return }
-            self.hasPaintedFirstDocument = true
             SpareReaderPool.shared.documentDidPaint()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(updatePointerTracking),
@@ -338,9 +337,10 @@ final class ContentViewController: NSViewController {
         return top >= visibleTop && bottom <= visibleBottom
     }
 
-    /// True once a requested document's article is in the page. A print
-    /// request from Finder waits for it, since printing copies the page.
-    private(set) var hasPaintedFirstDocument = false
+    /// True once a document has reached the page, not merely been requested.
+    /// A print request from Finder waits for it, since printing copies the
+    /// page; a warmup page that finishes loading late does not count.
+    var hasPaintedFirstDocument: Bool { webView.appliedDocument != nil }
 
     func printDocument(completion: ((Bool) -> Void)? = nil) {
         guard let window = view.window, exportSource != nil else {

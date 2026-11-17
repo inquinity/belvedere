@@ -340,6 +340,10 @@ check missed.
 
 ## Known limitations — not regressions
 
+- **Math or a Mermaid diagram inside a table looks wrong in Expand Table opened from the reading
+  view.** The window renders the table's displayed HTML again, and the sanitizer strips the
+  inline styles KaTeX positions its symbols with. The table opened from the editor, and the
+  document itself, are not affected.
 - **Remote images do not load on their own.** Deliberate: it closes the
   tracking-pixel hole. Each shows as a placeholder naming its host, so README
   badges look like placeholders. In the app window, **Load** fetches that one

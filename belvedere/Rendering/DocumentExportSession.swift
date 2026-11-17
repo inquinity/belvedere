@@ -44,14 +44,25 @@ final class DocumentExportSession {
 
     static func capture(
         from source: WKWebView,
-        configuration: WKWebViewConfiguration = WKWebViewConfiguration()
+        // No default: this configuration carries the `md-asset` handler and
+        // with it the folder boundary the copy loads images under.
+        configuration: WKWebViewConfiguration
     ) async throws -> DocumentExportSession {
         let result = try await source.callAsyncJavaScript("""
+            // Math, highlighting and diagrams load after first paint; the copy
+            // has no scripts, so whatever has not rendered yet never will.
+            // Bounded, so a renderer that never settles cannot stall a print.
+            await Promise.race([
+                window.MdPreviewLazy?.settled?.(),
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
             await window.MdPreview?.mermaidRenderAll?.();
             await document.fonts.ready;
             const copy = document.documentElement.cloneNode(true);
-            copy.querySelectorAll('script, .md-table-actions').forEach(node => node.remove());
-            copy.querySelectorAll('.md-table-wrap').forEach(wrap => wrap.replaceWith(...wrap.childNodes));
+            // By the app's own marker, never by class: a document's own
+            // `md-table-actions` or `md-table-wrap` must reach the output.
+            copy.querySelectorAll('script, [data-md-app="table-actions"]').forEach(node => node.remove());
+            copy.querySelectorAll('[data-md-app="table-wrap"]').forEach(wrap => wrap.replaceWith(...wrap.childNodes));
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             copy.querySelectorAll('input[type="checkbox"]').forEach((box, index) => {
                 box.toggleAttribute('checked', checkboxes[index].checked);
@@ -224,7 +235,7 @@ final class DocumentExportSession {
         pages.removeAll()
     }
 
-    private static func exportError(_ message: String) -> NSError {
+    fileprivate static func exportError(_ message: String) -> NSError {
         NSError(domain: "com.altmansoftwaredesign.belvedere.export", code: 1, userInfo: [
             NSLocalizedDescriptionKey: NSLocalizedString(message, comment: "Document export failure"),
         ])
@@ -285,6 +296,13 @@ private final class ExportPage: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         finish(.success(()))
+    }
+
+    /// The hidden page's process ended before it loaded: fail the export
+    /// instead of waiting for a load that will never finish.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        finish(.failure(DocumentExportSession.exportError(
+            "The document could not be prepared for export.")))
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

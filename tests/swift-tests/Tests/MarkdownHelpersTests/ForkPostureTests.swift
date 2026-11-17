@@ -328,11 +328,12 @@ final class ForkPostureTests: XCTestCase {
     /// image handler. Upstream's version gave that handler the document's
     /// folder only, so a reader who had opened a wider folder would export
     /// under a different boundary from the one on screen. The handler takes
-    /// both from the live page; `ExportPageSecurityTests` covers the rest.
+    /// both from the document the page is showing (`appliedDocument`);
+    /// `ExportPageSecurityTests` covers the rest.
     func testExportCopyLoadsImagesUnderTheLivePageBoundary() throws {
         let export = try text(at: "belvedere/Rendering/MarkdownWebView+PDFExport.swift")
-        XCTAssertTrue(export.contains("assets.setBaseURL(currentAssetBase)"))
-        XCTAssertTrue(export.contains("assets.setContainmentRoot(currentContainmentRoot)"))
+        XCTAssertTrue(export.contains("assets.setBaseURL(applied.assetBase)"))
+        XCTAssertTrue(export.contains("assets.setContainmentRoot(applied.containmentRoot)"))
         XCTAssertFalse(export.contains("captureExportSession(assetBaseURL"),
                        "export takes its asset folder from a caller again")
 
