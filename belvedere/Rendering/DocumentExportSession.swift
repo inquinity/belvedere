@@ -21,7 +21,6 @@ final class DocumentExportSession {
 
     private let html: String
     private let mermaidSources: [String]
-    private let baseURL: URL?
     private let previewSize: NSSize
     private let previewZoom: CGFloat
     private let appearance: NSAppearance
@@ -37,7 +36,6 @@ final class DocumentExportSession {
                  configuration: WKWebViewConfiguration) {
         self.html = html
         self.mermaidSources = mermaidSources
-        baseURL = source.url
         previewSize = source.bounds.size
         previewZoom = source.pageZoom
         appearance = source.effectiveAppearance
@@ -142,7 +140,7 @@ final class DocumentExportSession {
         page.webView.mediaType = format == .paper ? "print" : nil
         pages[format] = page
         do {
-            try await page.load(html, baseURL: baseURL)
+            try await page.load(html)
             let css = format == .pdf ? MarkdownHTML.previewPrintOverrideCSS : ""
             _ = try await page.webView.callAsyncJavaScript("""
                 if (matchesPreview) document.documentElement.classList.add(printClass);
@@ -256,10 +254,14 @@ private final class ExportPage: NSObject, WKNavigationDelegate {
         webView.navigationDelegate = self
     }
 
-    func load(_ html: String, baseURL: URL?) async throws {
+    /// The copy already carries the reader's content policy; applying it
+    /// again costs nothing and holds even if the copy ever lost its own.
+    /// No base URL, as for every page the app loads, so the page is
+    /// `about:blank` and `WebViewNavigationPolicy` applies to it as written.
+    func load(_ html: String) async throws {
         try await withCheckedThrowingContinuation { continuation in
             navigation = continuation
-            webView.loadHTMLString(html, baseURL: baseURL)
+            webView.loadHTMLString(PreviewContentPolicy.applying(to: html), baseURL: nil)
         }
     }
 
@@ -272,15 +274,13 @@ private final class ExportPage: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
-        decisionHandler(Self.policy(isMainFrame: navigationAction.targetFrame?.isMainFrame == true,
-                                    hasAllowedInitialLoad: &hasAllowedInitialLoad))
-    }
-
-    /// Only the page's own first load, in its main frame, is allowed.
-    static func policy(isMainFrame: Bool, hasAllowedInitialLoad: inout Bool) -> WKNavigationActionPolicy {
-        guard isMainFrame, !hasAllowedInitialLoad else { return .cancel }
-        hasAllowedInitialLoad = true
-        return .allow
+        // No target frame means a new window, which counts as the main frame.
+        let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+        let allowed = WebViewNavigationPolicy.allows(url: navigationAction.request.url,
+                                                     isMainFrame: isMainFrame)
+            && DocumentExportSession.allowsExportPageNavigation(
+                isMainFrame: isMainFrame, hasAllowedInitialLoad: &hasAllowedInitialLoad)
+        decisionHandler(allowed ? .allow : .cancel)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -326,6 +326,15 @@ private final class ExportPrintCompletion: NSObject {
 }
 
 extension DocumentExportSession {
+    /// The hidden export page allows its own first load, in its main frame,
+    /// and nothing after it: not a link, a refresh, a frame or a new window.
+    nonisolated static func allowsExportPageNavigation(isMainFrame: Bool,
+                                                      hasAllowedInitialLoad: inout Bool) -> Bool {
+        guard isMainFrame, !hasAllowedInitialLoad else { return false }
+        hasAllowedInitialLoad = true
+        return true
+    }
+
     private static func pngData(fromPDF data: Data) throws -> Data {
         guard let document = PDFDocument(data: data), document.pageCount > 0 else {
             throw exportError("The document could not be rendered as an image.")

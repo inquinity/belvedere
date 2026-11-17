@@ -324,6 +324,23 @@ final class ForkPostureTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(delegates, 4, "Found too few web views; has the scan stopped matching?")
     }
 
+    /// Export and printing work from a hidden copy of the page with its own
+    /// image handler. Upstream's version gave that handler the document's
+    /// folder only, so a reader who had opened a wider folder would export
+    /// under a different boundary from the one on screen. The handler takes
+    /// both from the live page; `ExportPageSecurityTests` covers the rest.
+    func testExportCopyLoadsImagesUnderTheLivePageBoundary() throws {
+        let export = try text(at: "belvedere/Rendering/MarkdownWebView+PDFExport.swift")
+        XCTAssertTrue(export.contains("assets.setBaseURL(currentAssetBase)"))
+        XCTAssertTrue(export.contains("assets.setContainmentRoot(currentContainmentRoot)"))
+        XCTAssertFalse(export.contains("captureExportSession(assetBaseURL"),
+                       "export takes its asset folder from a caller again")
+
+        let table = try text(at: "belvedere/Features/Tables/TablePreviewWindow.swift")
+        XCTAssertTrue(table.contains("containmentRoot: URL?,"), "the table window lost its boundary")
+        XCTAssertFalse(table.contains("containmentRoot: URL? ="), "the table window's boundary has a default")
+    }
+
     // MARK: - Features declined from upstream
 
     /// Upstream's reopen snapshots wrote a PNG of each opened document's

@@ -465,7 +465,7 @@ final class EditorScrollAnchorTests: XCTestCase {
     }
 
     func testTableColumnsKeepWordsWhole() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let prose = Array(repeating: "ordinary words of prose", count: 20).joined(separator: " ")
         let markdown = """
         Before the table.
@@ -504,7 +504,7 @@ final class EditorScrollAnchorTests: XCTestCase {
     }
 
     func testExpandTableCapturesReadOnlySnapshotWithoutChangingSource() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let markdown = "# Components\n\n| Module | Notes |\n| --- | --- |\n| `AuthenticationService` | **Important** |"
         for isEditor in [false, true] {
             let rendered = MarkdownHTML.render(markdown: markdown, allowsScroll: true)
