@@ -343,7 +343,7 @@ final class ContentViewController: NSViewController {
     var hasPaintedFirstDocument: Bool { webView.appliedDocument != nil }
 
     func printDocument(completion: ((Bool) -> Void)? = nil) {
-        guard let window = view.window, exportSource != nil else {
+        guard let window = view.window, hasExportableDocument else {
             completion?(false)
             return
         }

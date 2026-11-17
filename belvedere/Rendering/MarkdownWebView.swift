@@ -196,12 +196,11 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
     // Bumped on every display() call so a slower render finishing after a
     // newer one is dropped instead of clobbering the latest article.
     private var renderGeneration: UInt64 = 0
-    /// A document as it reached the page: its render generation, folder and
-    /// boundary. `display` sets `currentAssetBase` and `currentContainmentRoot`
-    /// at once, before the render lands, so those can be ahead of what the
-    /// page shows; anything that copies the page uses this instead.
+    /// A document as it reached the page: its folder and boundary. `display`
+    /// sets `currentAssetBase` and `currentContainmentRoot` at once, before
+    /// the render lands, so those can be ahead of what the page shows;
+    /// anything that copies the page uses this instead.
     struct AppliedDocument: Equatable {
-        let generation: UInt64
         let assetBase: URL?
         let containmentRoot: URL?
     }
@@ -531,7 +530,7 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
         // A newer display() bumped the generation while this render was
         // off-main — drop the stale result so the latest article wins.
         guard generation == renderGeneration else { return }
-        let applied = AppliedDocument(generation: generation, assetBase: currentAssetBase,
+        let applied = AppliedDocument(assetBase: currentAssetBase,
                                       containmentRoot: currentContainmentRoot)
         let fingerprint = RendererFingerprint(
             math: rendered.containsMath,
