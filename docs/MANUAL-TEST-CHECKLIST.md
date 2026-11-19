@@ -161,7 +161,8 @@ Check each sample in the surface it matters for:
 - **Quick Look** — select the file in Finder, press space. The copy button
   must not overlap the document text (it had no clearance at all before 1.0.3)
 - **Print / PDF export** — Mermaid and maths must appear in the output, not
-  just on screen
+  just on screen. Output comes from a hidden copy of the page, so check the
+  output itself, not the window behind the dialog
 - **Editor** — open, type, save
 
 ## 4. The About box
@@ -299,6 +300,19 @@ Use a scratch copy of any note, opened in the app window. Change it from Termina
 | **Save As…**: a save panel opens; after saving the window follows the new file, and the original still has the other app's version | Neither version is lost |
 | Leave edit mode with **Continue** so the edits stay as a draft, then append from Terminal: the same sheet appears | A kept draft is also unsaved work |
 
+## 5h. Printing, export and tables
+
+Follow `tests/fixtures/export/docs/export-and-tables.md`; each section carries its own
+**EXPECT** and **FAIL IF**.
+
+| Check | Why |
+|---|---|
+| Section 1: an image outside the boundary stays out of every output until loaded; a loaded one, and one inside an opened folder, are in every output | Printing and export work from a hidden copy of the page with its own image handler. It must apply the boundary the reader is showing, which only a real window with an opened folder proves |
+| Section 2: every column on paper, words whole, Scale refits | Tables are measured and fitted in WebKit; the automated tests check text positions in PDFs, not what a person sees |
+| Section 2: the reading view does not change while a dialog is open | The old export switched the live page into print mode |
+| Section 3: Expand Table from the reader and from the editor | A separate window with its own page |
+| Section 4: printing from Finder shows the dialog | It used to quit the app |
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
@@ -326,6 +340,10 @@ check missed.
 
 ## Known limitations — not regressions
 
+- **Math or a Mermaid diagram inside a table looks wrong in Expand Table opened from the reading
+  view.** The window renders the table's displayed HTML again, and the sanitizer strips the
+  inline styles KaTeX positions its symbols with. The table opened from the editor, and the
+  document itself, are not affected.
 - **Remote images do not load on their own.** Deliberate: it closes the
   tracking-pixel hole. Each shows as a placeholder naming its host, so README
   badges look like placeholders. In the app window, **Load** fetches that one

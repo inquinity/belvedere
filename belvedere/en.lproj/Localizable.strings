@@ -98,6 +98,8 @@
 "Format:" = "Format:";
 "PDF Document" = "PDF Document";
 "HTML Document" = "HTML Document";
+"The document could not be prepared for export." = "The document could not be prepared for export.";
+"The selected paper has no printable area." = "The selected paper has no printable area.";
 
 /* Go menu */
 "Go" = "Go";
@@ -380,3 +382,10 @@
 "GitHub" = "GitHub";
 "Every callout type, such as [!tip] or [!faq], with a title after the tag and folding with - or +." = "Every callout type, such as [!tip] or [!faq], with a title after the tag and folding with - or +.";
 "Only GitHub's five alerts, NOTE, TIP, IMPORTANT, WARNING and CAUTION, with the tag alone on its line. Anything else stays a quotation, as on GitHub." = "Only GitHub's five alerts, NOTE, TIP, IMPORTANT, WARNING and CAUTION, with the tag alone on its line. Anything else stays a quotation, as on GitHub.";
+
+/* Paper print scale, applied before pagination. */
+"Scale:" = "Scale:";
+"Scale" = "Scale";
+
+/* Table fullscreen control. */
+"Expand Table" = "Expand Table";

@@ -16,7 +16,40 @@ nonisolated extension MarkdownHTML {
     /// The class rules live here, not with the in-page highlighter, because a
     /// page whose code arrived highlighted from the renderer never loads that
     /// runtime, yet its spans still need their colors.
-    static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS
+    static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS + "\n" + tableControlsCSS
+
+    /// The Expand Table control's icon: a box with arrows from its centre to
+    /// two corners, as macOS draws full screen, since the table opens in a
+    /// full-screen window. Drawn in the text colour; the reader and the
+    /// editor share it.
+    static let tableExpandIconSVG = #"<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><path d="M9 7l3.25-3.25M9.25 3.75h3v3M7 9l-3.25 3.25M3.75 9.25v3h3"/></svg>"#
+
+    static let tableControlsCSS = """
+    .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
+    .md-table-wrap > table { margin-top: 0; }
+    /* Just above the table's leading edge, 4px clear of it, so the control
+       reads as belonging to the table. At the far end of the column it was
+       nowhere near a narrow table. */
+    .md-table-actions { display: flex; justify-content: flex-start; align-items: flex-end;
+        height: 24px; margin-bottom: 4px; }
+    .md-table-wrap > .md-table-actions { position: absolute; top: 0; inset-inline-start: 0; margin: 0; }
+    .md-table-expand {
+        appearance: none; border: 0; border-radius: 5px; padding: 3px 7px;
+        background: transparent; color: var(--secondary, var(--text));
+        font: inherit; font-size: 13px; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .md-table-expand svg { display: block; }
+    .md-table-expand:hover { background: var(--code-bg); color: var(--text); }
+    .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }
+    html.\(previewPrintClass) [data-md-app="table-actions"] { display: none; }
+    html.\(previewPrintClass) .md-table-wrap { padding-top: 0; }
+    @media print {
+        [data-md-app="table-actions"] { display: none !important; }
+        .md-table-wrap { padding-top: 0; }
+    }
+    """
 
     /// The fold chevron of a foldable callout: the Octicon chevron-right, the
     /// icon set of the callout kinds, as a CSS mask so it takes the title's
@@ -898,8 +931,8 @@ nonisolated extension MarkdownHTML {
        WebKit lays print out at a viewport of the printable width in CSS px
        (96px per inch), and 1 CSS px maps to exactly 0.75pt on paper. Sizing
        the body in `pt` here therefore lands at that literal point size, with
-       no scaling factor to compensate for. `md-print-size` (injected by the
-       app at print time) overrides the default below.
+       no scaling factor to compensate for. The app applies the selected
+       point size to a temporary copy before printing.
 
        The on-screen palette is dark-mode aware; paper is not, so regular
        printing restores the light values unconditionally. PDF export adds
@@ -935,7 +968,7 @@ nonisolated extension MarkdownHTML {
             background: #fff;
         }
         @page {
-            margin: \(printPageMarginTop) \(printPageMarginSide) \(printPageMarginBottom);
+            margin: \(printPageMarginTopPoints)pt \(printPageMarginSidePoints)pt \(printPageMarginBottomPoints)pt;
         }
         body {
             -webkit-print-color-adjust: exact;
@@ -945,8 +978,7 @@ nonisolated extension MarkdownHTML {
             font-size: \(defaultPrintPointSize)pt;
             padding: 0;
         }
-        /* NSPrintInfo owns the page margins, and the print viewport is
-           narrower than the on-screen measure, so the column just fills it. */
+        /* The article fills the area inside the CSS page margins. */
         :root:not(.\(previewPrintClass)) article.markdown-body {
             max-width: none;
             margin: 0;
@@ -1008,6 +1040,11 @@ nonisolated extension MarkdownHTML {
         :root:not(.\(previewPrintClass)) td { overflow-wrap: anywhere; }
         :root:not(.\(previewPrintClass)) pre,
         :root:not(.\(previewPrintClass)) code { overflow-wrap: anywhere; }
+        /* Inside a cell, code follows the cell. Export fits tables by setting
+           each cell's wrapping; a code span that broke anywhere would measure
+           one character wide, so a column of code could be squeezed to a
+           letter per line. */
+        :root:not(.\(previewPrintClass)) :is(th, td) code { overflow-wrap: inherit; }
     }
 
     """

@@ -62,10 +62,17 @@ nonisolated extension MarkdownHTML {
     // Internal so the WebKit regression tests can exercise the exact
     // `MdPreview.update` pipeline shipped by the app with the bundled
     // DOMPurify and morphdom runtimes.
+    #if QUICK_LOOK_EXTENSION
+    private static let tablePopupEnabled = false
+    #else
+    private static let tablePopupEnabled = true
+    #endif
+
     static let hostBridgeScript: String = """
     <script>
     (() => {
         const localized = {
+            expandTable: \(javaScriptStringLiteral(NSLocalizedString("Expand Table", comment: "Open a table in full screen"))),
             wrapCode: \(javaScriptStringLiteral(NSLocalizedString("Wrap code", comment: "Code block wrap button"))),
             unwrapCode: \(javaScriptStringLiteral(NSLocalizedString("Unwrap code", comment: "Code block unwrap button"))),
             copyCode: \(javaScriptStringLiteral(NSLocalizedString("Copy code", comment: "Code block copy button accessibility label"))),
@@ -477,12 +484,60 @@ nonisolated extension MarkdownHTML {
             });
         }
 
+        // The table wrapper, its actions row and the expand button are marked
+        // `data-md-app`, which the sanitizer strips from document content. A
+        // document can write its own `class="md-table-expand"` or
+        // `md-table-wrap`, since classes are the author's, so the click
+        // handler, copy and export go by the marker, never by class.
+        function decorateTables(root = document) {
+            if (!hasHostBridge || !\(tablePopupEnabled)) return;
+            root.querySelectorAll('table').forEach(table => {
+                if (table.closest('.md-frontmatter') || table.parentElement.closest('table')
+                    || table.parentElement.dataset.mdApp === 'table-wrap') return;
+                const wrap = document.createElement('div');
+                wrap.className = 'md-table-wrap';
+                wrap.dataset.mdApp = 'table-wrap';
+                table.before(wrap);
+                wrap.append(table);
+                const actions = document.createElement('div');
+                actions.className = 'md-table-actions';
+                actions.dataset.mdApp = 'table-actions';
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'md-table-expand';
+                button.dataset.mdApp = 'table-expand';
+                button.innerHTML = \(javaScriptStringLiteral(tableExpandIconSVG));
+                button.title = localized.expandTable;
+                button.setAttribute('aria-label', localized.expandTable);
+                actions.append(button);
+                wrap.prepend(actions);
+            });
+        }
+        document.addEventListener('click', event => {
+            const button = event.target.closest('[data-md-app="table-expand"]');
+            // No `isTrusted` check: documents run no script, so the marker,
+            // which they cannot carry, is what keeps a forged button out.
+            if (!button) return;
+            const table = button.closest('[data-md-app="table-wrap"]')?.querySelector('table');
+            if (!table) return;
+            event.preventDefault();
+            const clone = table.cloneNode(true);
+            clone.querySelectorAll('[data-md-app="table-actions"], .md-code-header').forEach(node => node.remove());
+            let title = '';
+            for (const heading of document.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
+                if (heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING)
+                    title = heading.textContent.trim();
+                else break;
+            }
+            post({kind: 'tablePopup', markdown: clone.outerHTML, title});
+        });
+
         function selectionFragment(selection) {
             const fragment = document.createDocumentFragment();
             for (let i = 0; i < selection.rangeCount; i += 1) {
                 fragment.appendChild(selection.getRangeAt(i).cloneContents());
             }
-            const buttons = fragment.querySelectorAll('.md-code-header');
+            const buttons = fragment.querySelectorAll('.md-code-header, [data-md-app="table-actions"]');
             buttons.forEach((button) => button.remove());
             return { fragment, removedButtons: buttons.length > 0 };
         }
@@ -728,6 +783,8 @@ nonisolated extension MarkdownHTML {
             //   calls `run`
             lazyRenderer({ src, extras, run }) {
                 let loaded = false;
+                let firstRunDone;
+                this.firstRuns.push(new Promise(resolve => { firstRunDone = resolve; }));
                 if (window.MdPreview && window.MdPreview.registerReapplier) {
                     window.MdPreview.registerReapplier(() => { if (loaded) run(); });
                 }
@@ -735,12 +792,23 @@ nonisolated extension MarkdownHTML {
                     try {
                         await this.loadScript(src);
                         loaded = true;
-                        run();
+                        await run();
                         if (extras) {
                             for (const e of extras) this.loadScript(e).catch(() => {});
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                    } finally {
+                        firstRunDone();
+                    }
                 });
+            },
+            // One promise per lazy renderer, settled once it has loaded and
+            // run, or failed. Printing and export copy the page and strip its
+            // scripts, so math or highlighting that had not run by then would
+            // stay raw source in the copy for good. They wait for this first.
+            firstRuns: [],
+            settled() {
+                return Promise.allSettled(this.firstRuns);
             }
         };
 
@@ -782,8 +850,10 @@ nonisolated extension MarkdownHTML {
             // modal, which covers the page and makes the rest of it inert,
             // with no script. DOMPurify 3.4.2 dropped them; later 3.4.x
             // releases allow them by default, so they are forbidden here to
-            // keep the surface the reader had.
-            FORBID_ATTR: ['style', 'command', 'commandfor'],
+            // keep the surface the reader had. `data-md-app` marks the app's
+            // own table controls (see decorateTables); a document may not
+            // claim it.
+            FORBID_ATTR: ['style', 'command', 'commandfor', 'data-md-app'],
             ADD_ATTR: ['target'],
             ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|md-asset):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))/i
         };
@@ -1001,6 +1071,7 @@ nonisolated extension MarkdownHTML {
                     // Pre-shape the incoming tree so the decorators' wrappers
                     // pair one-to-one with the live DOM during the diff.
                     decorateCodeBlocks(next);
+                    decorateTables(next);
                     keyExpensiveBlocks(article);
                     keyExpensiveBlocks(next);
                     morphdom(article, next, MORPH_OPTIONS);
@@ -1031,6 +1102,7 @@ nonisolated extension MarkdownHTML {
                 // the innerHTML swap leaves fresh undecorated nodes behind.
                 if (!morphed) {
                     decorateCodeBlocks();
+                    decorateTables();
                     deferBlockedImages();
                 }
                 for (const fn of reappliers) {
@@ -1061,6 +1133,7 @@ nonisolated extension MarkdownHTML {
             perfLog('start (DOM ready)');
             populateFromTemplate();
             decorateCodeBlocks();
+            decorateTables();
             // No deferBlockedImages() here: populateFromTemplate routes through
             // MdPreview.update, which defers. A second call would be dead code
             // whose rationale reads as a real requirement.

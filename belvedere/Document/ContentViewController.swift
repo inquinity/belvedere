@@ -337,9 +337,17 @@ final class ContentViewController: NSViewController {
         return top >= visibleTop && bottom <= visibleBottom
     }
 
-    func printDocument() {
-        guard let window = view.window, hasExportableDocument else { return }
-        webView.printDocument(from: window)
+    /// True once a document has reached the page, not merely been requested.
+    /// A print request from Finder waits for it, since printing copies the
+    /// page; a warmup page that finishes loading late does not count.
+    var hasPaintedFirstDocument: Bool { webView.appliedDocument != nil }
+
+    func printDocument(completion: ((Bool) -> Void)? = nil) {
+        guard let window = view.window, hasExportableDocument else {
+            completion?(false)
+            return
+        }
+        webView.printDocument(from: window, completion: completion)
     }
 
     var hasExportableDocument: Bool {

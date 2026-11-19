@@ -851,6 +851,30 @@ class TableEditorWidget extends WidgetType {
       model.rows[active.row][active.column] = active.element.innerText || ""
     }
 
+    const actions = document.createElement("div")
+    actions.className = "md-table-actions"
+    const expand = document.createElement("button")
+    expand.type = "button"
+    expand.className = "md-table-expand"
+    // The app's own icon, shared with the reader; a glyph if it is missing.
+    if (window.__mdTableExpandIcon) expand.innerHTML = window.__mdTableExpandIcon
+    else expand.textContent = "⛶"
+    expand.title = window.__mdTableExpandLabel || "Expand Table"
+    expand.setAttribute("aria-label", expand.title)
+    expand.addEventListener("mousedown", event => event.preventDefault())
+    expand.addEventListener("click", event => {
+      event.preventDefault()
+      event.stopPropagation()
+      const before = serializeTable(model)
+      captureActiveValue()
+      const snapshot = serializeTable(model)
+      // Preserve the original escapes/formatting unless an active cell has
+      // pending edits that have not reached the document yet.
+      window.__mdOpenTablePopup?.(snapshot === before ? this.source : snapshot)
+    })
+    actions.appendChild(expand)
+    root.prepend(actions)
+
     const clearPartSelection = () => {
       root.querySelectorAll(".is-table-part-selected").forEach((cell) => {
         cell.classList.remove("is-table-part-selected")

@@ -168,6 +168,35 @@ final class SanitizerNegativeTests: XCTestCase {
         XCTAssertEqual(survivors.links, 0, survivors.raw)
     }
 
+    /// The expand control, print and export find the app's own table
+    /// controls by `data-md-app`, never by class. A document that writes the
+    /// marker itself must lose it, or it could open the full-screen table
+    /// window with a table and title of its choosing, or hide its own content
+    /// from print and export.
+    @MainActor
+    func testDocumentCannotClaimTheAppTableMarker() async throws {
+        let webView = try await loadHarness()
+        let forged = """
+            <div class="md-table-wrap" data-md-app="table-wrap"><div class="md-table-actions" data-md-app="table-actions">\
+            <button class="md-table-expand" data-md-app="table-expand">Forged</button></div>\
+            <table><tr><td>cell</td></tr></table></div>
+            """
+        _ = try await webView.evaluateJavaScript(
+            "window.MdPreview.update(\(MarkdownHTML.javaScriptStringLiteral(forged))); true")
+        let result = try await webView.evaluateJavaScript("""
+            JSON.stringify({
+                forged: [...document.querySelectorAll('[data-md-app]')]
+                    .filter(el => el.textContent.includes('Forged')).length,
+                expandButtons: document.querySelectorAll('[data-md-app="table-expand"]').length,
+                tables: document.querySelectorAll('table').length
+            })
+            """) as? String
+        let json = try XCTUnwrap(result)
+        XCTAssertTrue(json.contains("\"forged\":0"), "a document kept the app's marker: \(json)")
+        // The app still decorates the real table, once.
+        XCTAssertTrue(json.contains("\"expandButtons\":1"), json)
+    }
+
     // MARK: - Harness
 
     @MainActor

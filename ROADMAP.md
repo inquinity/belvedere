@@ -47,6 +47,12 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 Newest release first.
 
+### Next release (not yet released)
+
+| ID | Item | Outcome |
+|---|---|---|
+| **F29** | Export from a hidden copy of the page, fitted tables, Expand Table | Printing, PDF and PNG work from a hidden copy under the reader's folder boundary and content policy; wide tables are fitted to the page; Scale is applied before pagination; Expand Table (a box with outward arrows, just above the table) opens a full-screen copy; printing from Finder shows the dialog. Upstream GH-476, GH-510 and GH-653, security- and code-reviewed, hand-tested. |
+
 ### 2.1.0 (released 2026-11-15)
 
 | ID | Item | Outcome |
