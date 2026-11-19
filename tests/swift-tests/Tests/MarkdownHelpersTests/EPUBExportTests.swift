@@ -291,7 +291,7 @@ final class EPUBExportTests: XCTestCase {
         // The page finds the file as it does in the app: relative to a base
         // that names the document's folder, through the `md-asset` scheme.
         let markdown = "Words.\n\n![Local](pictures/local.svg)\n"
-        let files = LocalFiles()
+        let files = LocalFiles(folder: folder)
         let harness = makeHarness(markdown: markdown, folder: folder, assetHandler: files)
         defer { harness.close() }
         _ = try await harness.layout(texts: ["Words."], imageCount: 1)
@@ -383,11 +383,18 @@ final class EPUBExportTests: XCTestCase {
 }
 
 /// Stands in for the app's `md-asset` handler, which is not part of this
-/// test target: serves the file a request's path names.
+/// test target: serves the file a request's path names, inside the
+/// document's folder as the app's handler does.
 private final class LocalFiles: NSObject, WKURLSchemeHandler {
+    let folder: URL
+
+    init(folder: URL) {
+        self.folder = folder
+    }
+
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
         guard let url = urlSchemeTask.request.url,
-              let file = MarkdownAssetResolution.fileURL(for: url),
+              let file = MarkdownAssetResolution.fileURL(for: url, containedIn: folder),
               let data = try? Data(contentsOf: file) else {
             return urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
         }

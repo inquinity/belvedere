@@ -16,7 +16,7 @@ private final class InspectorSelectionRecorder: NSObject, WKScriptMessageHandler
 @MainActor
 final class EditorFormattingTests: XCTestCase {
     func testFormattingBridgePublishesSelectionWithoutDocumentChanges() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let recorder = InspectorSelectionRecorder()
         let source = "Start 🙂 end"
         let editor = WebViewLayoutHarness(
@@ -44,7 +44,7 @@ final class EditorFormattingTests: XCTestCase {
     }
 
     func testSelectionContextPublishesNativeTableCellSelection() async throws {
-        let script = try TestVendor.script("md-preview/Vendor/CodeMirror/mdedit.min.js")
+        let script = try TestVendor.script("belvedere/Vendor/CodeMirror/mdedit.min.js")
         let recorder = InspectorSelectionRecorder()
         let source = "Before\n\n| Label |\n| --- |\n| Ada |\n\nAfter"
         let editor = WebViewLayoutHarness(

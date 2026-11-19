@@ -81,7 +81,7 @@ nonisolated enum EPUBExport {
     document.head.append(style);
     // Preview controls would end up in the pictures, and a closed disclosure
     // hides what the book shows open.
-    article.querySelectorAll('.mermaid-hud, .markdown-alert-icon, .md-code-header, .md-table-actions, button')
+    article.querySelectorAll('.mermaid-hud, .markdown-alert-icon, .md-code-header, [data-md-app="table-actions"], button')
         .forEach(node => node.remove());
     article.querySelectorAll('details').forEach(details => { details.open = true; });
     scrollTo(0, 0);
@@ -210,7 +210,7 @@ nonisolated enum EPUBExport {
     // Every picture is a captured image by now, so any SVG left was not drawn.
     all(`script, style, link, template, button, iframe, object, embed, video, audio, canvas, svg,
          source, map, area, select, textarea, .md-source-blank-line, .md-code-header,
-         .md-code-action, .md-table-actions, .md-search-burst, .mermaid-hud, .markdown-alert-icon`)
+         .md-code-action, [data-md-app="table-actions"], .md-search-burst, .mermaid-hud, .markdown-alert-icon`)
         .forEach(node => node.remove());
     // Form controls are dropped by some readers; a glyph always shows.
     all('input').forEach(input => {

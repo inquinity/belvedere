@@ -114,7 +114,7 @@ final class MarkdownHTMLPDFExportTests: XCTestCase {
             """
         let live = try await harness.webView.evaluateJavaScript(resizeMarkers) as? Int
         XCTAssertEqual(live, 3, "The drag resized the column")
-        let session = try await DocumentExportSession.capture(from: harness.webView)
+        let session = try await DocumentExportSession.capture(from: harness.webView, configuration: WKWebViewConfiguration())
         defer { session.close() }
         let view = try await session.webView(for: .png)
         let exported = try await view.evaluateJavaScript(resizeMarkers) as? Int
