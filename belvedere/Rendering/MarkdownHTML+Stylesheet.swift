@@ -27,8 +27,12 @@ nonisolated extension MarkdownHTML {
     static let tableControlsCSS = """
     .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
     .md-table-wrap > table { margin-top: 0; }
-    .md-table-actions { display: flex; justify-content: flex-end; height: 28px; }
-    .md-table-wrap > .md-table-actions { position: absolute; top: 0; inset-inline-end: 0; }
+    /* Just above the table's leading edge, 4px clear of it, so the control
+       reads as belonging to the table. At the far end of the column it was
+       nowhere near a narrow table. */
+    .md-table-actions { display: flex; justify-content: flex-start; align-items: flex-end;
+        height: 24px; margin-bottom: 4px; }
+    .md-table-wrap > .md-table-actions { position: absolute; top: 0; inset-inline-start: 0; margin: 0; }
     .md-table-expand {
         appearance: none; border: 0; border-radius: 5px; padding: 3px 7px;
         background: transparent; color: var(--secondary, var(--text));

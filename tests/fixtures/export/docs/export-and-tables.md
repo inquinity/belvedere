@@ -71,7 +71,8 @@ same scroll position.
 
 ## 3. Expand Table
 
-Each table above has an Expand Table control at its top right: a box with arrows pointing out to two corners. Click one.
+Each table above has an Expand Table control just above its top left corner,
+near but not touching it: a box with arrows pointing out to two corners. Click one.
 EXPECT: a full-screen window titled "2. Wide tables" shows only that table,
 read-only. Press Escape: the window closes and the document is as you left it.
 Do the same in Edit Mode (⌘E).
