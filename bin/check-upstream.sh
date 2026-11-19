@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Reports whether pluk-inc/markdown-preview has moved ahead of this fork.
+# Reports whether pluk-inc/markdown-preview has new commits since the last review.
 # Read-only: fetches remote metadata and prints counts, never merges.
+#
+# Belvedere takes upstream changes by cherry-picking, so upstream's commits never
+# become ancestors of HEAD and "HEAD..upstream/main" only grows. The count that
+# matters starts at the review mark: the line "Reviewed through upstream: `<sha>`"
+# near the top of docs/Upstream-Changed.md, moved forward after each sync round.
 
 COLOR_GREEN="\e[32m"
 COLOR_RED="\e[31m"
@@ -19,12 +24,15 @@ print_colored() {
 remote_name="${REMOTE:-upstream}"
 remote_branch="${REMOTE_BRANCH:-}"
 upstream_url="${UPSTREAM_URL:-https://github.com/pluk-inc/markdown-preview.git}"
+review_record="${REVIEW_RECORD:-docs/Upstream-Changed.md}"
 
 usage() {
     printf '%b\n' "${COLOR_YELLOW}Usage: check-upstream.sh [options]${COLOR_RESET}"
     printf '\n'
-    printf '%s\n' 'Fetch upstream metadata and report whether new commits or tags exist.'
-    printf '%s\n' 'Commit details are intentionally not listed.'
+    printf '%s\n' 'Fetch upstream metadata and report how many upstream commits and tags'
+    printf '%s\n' 'are newer than the review mark in docs/Upstream-Changed.md.'
+    printf '%s\n' 'Commit details are intentionally not listed; for those, run:'
+    printf '%s\n' '  git log --no-merges <mark>..upstream/main'
     printf '\n'
     printf '%b\n' "${COLOR_YELLOW}Options:${COLOR_RESET}"
     printf '%s\n' '  -h, --help             Show this help text.'
@@ -101,12 +109,25 @@ resolve_remote_branch() {
     git rev-parse --verify --quiet "$remote_name/$remote_branch" >/dev/null || die "remote branch '$remote_name/$remote_branch' was not found"
 }
 
+# Prints the commit recorded as "Reviewed through upstream: `<sha>`".
+read_review_mark() {
+    local mark_line
+    local review_mark
+
+    [[ -f "$review_record" ]] || die "review record not found: $review_record"
+    mark_line="$(grep -m 1 -E '^Reviewed through upstream: `[0-9a-f]{7,40}`' "$review_record" || true)"
+    [[ -n "$mark_line" ]] || die "no 'Reviewed through upstream: \`<sha>\`' line in $review_record"
+    review_mark="${mark_line#*\`}"
+    review_mark="${review_mark%%\`*}"
+    git rev-parse --verify --quiet "${review_mark}^{commit}" >/dev/null \
+        || die "review mark $review_mark is not a known commit; fetch upstream first"
+    printf '%s\n' "$review_mark"
+}
+
 main() {
     local upstream_ref
-    local local_ref
-    local commits_behind
-    local commits_ahead
-    local latest_local_tag
+    local review_mark
+    local commits_since_review
     local latest_upstream_tag
 
     parse_arguments "$@"
@@ -119,25 +140,23 @@ main() {
     resolve_remote_branch
 
     upstream_ref="$remote_name/$remote_branch"
-    local_ref="HEAD"
-    commits_behind="$(git rev-list --count "$local_ref..$upstream_ref")"
-    commits_ahead="$(git rev-list --count "$upstream_ref..$local_ref")"
-
-    latest_local_tag="$(git describe --tags --abbrev=0 "$local_ref" 2>/dev/null || true)"
+    review_mark="$(read_review_mark)"
+    commits_since_review="$(git rev-list --no-merges --count "$review_mark..$upstream_ref")"
     latest_upstream_tag="$(git describe --tags --abbrev=0 "$upstream_ref" 2>/dev/null || true)"
 
     print_colored "$COLOR_YELLOW" "Remote: $remote_name"
     print_colored "$COLOR_YELLOW" "Remote branch: $upstream_ref"
+    print_colored "$COLOR_YELLOW" "Reviewed through: $review_mark"
 
-    if [[ $commits_behind -eq 0 ]]; then
+    if [[ $commits_since_review -eq 0 ]]; then
         print_colored "$COLOR_GREEN" "No incoming changes"
     else
-        print_colored "$COLOR_YELLOW" "Commits available: $commits_behind"
+        print_colored "$COLOR_YELLOW" "Commits since review: $commits_since_review"
     fi
 
-    print_colored "$COLOR_YELLOW" "Local-only commits: $commits_ahead"
-
-    if [[ -n "$latest_upstream_tag" && "$latest_upstream_tag" != "$latest_local_tag" ]]; then
+    # A tag is new when the reviewed commit does not already contain it.
+    if [[ -n "$latest_upstream_tag" ]] \
+        && ! git merge-base --is-ancestor "$latest_upstream_tag" "$review_mark"; then
         print_colored "$COLOR_GREEN" "New tagged version: yes ($latest_upstream_tag)"
     else
         print_colored "$COLOR_GREEN" "New tagged version: no"

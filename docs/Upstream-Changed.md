@@ -27,6 +27,17 @@ changes are applied".
 
 Upstream PR numbers below refer to `pluk-inc/markdown-preview`.
 
+## Review mark
+
+Reviewed through upstream: `36debd1` (2026-11-11)
+Open pull requests last read: 2026-11-12
+
+`bin/check-upstream.sh` and the monthly upstream watch read these two lines; keep their
+wording. Move them forward when a round finishes reviewing: the commit to the newest
+upstream commit read (taken, declined or found not to apply), the date to the day the
+open pull requests were read. A pick taken out of order, ahead of the commits before
+it, does not move the mark.
+
 ## Standing removals — keep them out on every sync
 
 Files upstream carries that Belvedere deleted. A merge that finds upstream changed one

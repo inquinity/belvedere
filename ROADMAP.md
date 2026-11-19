@@ -17,7 +17,9 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **2.1.0 shipped 2026-11-15** (tag `v2.1.0`, build 21): callouts with a Markdown flavor setting (F27), the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
 
-**Next (2.2):** F19, F7 and S7 are the candidates, moved from 2.1. S7 matters most for the security posture; F19 has an open sandbox question to settle first.
+**Next (2.2):** the rest of the upstream features approved on 2026-11-12 (H16), on top of the export rewrite already on `main` (F29): EPUB export, the expanded table's pinned header and column resizing, text alignment, selection word counts, live math in the editor and the navigator's + menu, plus the upstream fixes since. The navigator menu adds a bookmarks entitlement and needs its own security sign-off.
+
+**Then (2.3):** F19, F7 and S7, moved from 2.2 on 2026-11-19 so 2.2 carries the upstream imports. S7 matters most for the security posture, and overlaps the bookmarks the navigator menu brings; F19 has an open sandbox question to settle first.
 
 **Unscheduled:** the ideas, upstream work and housekeeping under Open.
 
@@ -25,9 +27,11 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 | ID | Item | Where it stands | Release |
 |---|---|---|---|
-| **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.2 candidate |
-| **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.2 candidate |
-| **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.2 candidate |
+| **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.3 candidate |
+| **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.3 candidate |
+| **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.3 candidate |
+| **H16** | Third upstream round: the features approved 2026-11-12 | EPUB export (GH-517), pinned header and column resizing in the expanded table (GH-563, GH-564), text alignment (GH-480), selection word counts (GH-534), live math in the editor (GH-555), the navigator's + menu and filter (GH-566, bookmarks entitlement), the editor bundle's npm updates, and the 17 upstream commits after `36debd1`. Removing the spare reader (GH-471) is declined: it conflicts with the spare-reader setting. | 2.2 |
+| **H17** | Monthly upstream watch | A scheduled task on the 1st of each month reads new upstream commits and pull requests since the review mark in `docs/Upstream-Changed.md` and proposes take, take with changes or decline for each, with a security pass on anything that touches entitlements, network, dependencies or what a document can load. Read-only. Set up 2026-11-19. | — |
 | **F12** | Reword the “Continue” button on leaving edit mode | Idea: the word does not say the changes stay unsaved. | — |
 | **F13** | Edit as plain text | Idea: a plain-text edit mode for exact copy and paste. | — |
 | **F14** | Drop a folder on a window or sidebar to open it | Works on the Dock icon only. | — |
