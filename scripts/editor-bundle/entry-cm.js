@@ -856,7 +856,9 @@ class TableEditorWidget extends WidgetType {
     const expand = document.createElement("button")
     expand.type = "button"
     expand.className = "md-table-expand"
-    expand.textContent = "⛶"
+    // The app's own icon, shared with the reader; a glyph if it is missing.
+    if (window.__mdTableExpandIcon) expand.innerHTML = window.__mdTableExpandIcon
+    else expand.textContent = "⛶"
     expand.title = window.__mdTableExpandLabel || "Expand Table"
     expand.setAttribute("aria-label", expand.title)
     expand.addEventListener("mousedown", event => event.preventDefault())

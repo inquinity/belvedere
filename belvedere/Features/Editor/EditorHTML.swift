@@ -690,6 +690,7 @@ nonisolated enum EditorHTML {
                 try { window.webkit.messageHandlers.\(configuration.bridgeName).postMessage(m); } catch (e) {}
             };
             window.__mdTableExpandLabel = \(jsStringLiteral(NSLocalizedString("Expand Table", comment: "Open a table in full screen")));
+            window.__mdTableExpandIcon = \(jsStringLiteral(MarkdownHTML.tableExpandIconSVG));
             window.__mdOpenTablePopup = function (markdown) { post({kind: "tablePopup", markdown}); };
             window.__mdRequestTableContextMenu = function (details) {
                 post(Object.assign({ kind: "tableContextMenu" }, details));

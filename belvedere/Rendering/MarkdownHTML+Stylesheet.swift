@@ -18,6 +18,12 @@ nonisolated extension MarkdownHTML {
     /// runtime, yet its spans still need their colors.
     static let stylesheet = baseStylesheet + "\n" + highlightThemeCSS + "\n" + tableControlsCSS
 
+    /// The Expand Table control's icon: a box with arrows from its centre to
+    /// two corners, as macOS draws full screen, since the table opens in a
+    /// full-screen window. Drawn in the text colour; the reader and the
+    /// editor share it.
+    static let tableExpandIconSVG = #"<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><path d="M9 7l3.25-3.25M9.25 3.75h3v3M7 9l-3.25 3.25M3.75 9.25v3h3"/></svg>"#
+
     static let tableControlsCSS = """
     .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
     .md-table-wrap > table { margin-top: 0; }
@@ -27,7 +33,9 @@ nonisolated extension MarkdownHTML {
         appearance: none; border: 0; border-radius: 5px; padding: 3px 7px;
         background: transparent; color: var(--secondary, var(--text));
         font: inherit; font-size: 13px; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
     }
+    .md-table-expand svg { display: block; }
     .md-table-expand:hover { background: var(--code-bg); color: var(--text); }
     .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }

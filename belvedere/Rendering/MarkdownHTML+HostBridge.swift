@@ -506,7 +506,7 @@ nonisolated extension MarkdownHTML {
                 button.type = 'button';
                 button.className = 'md-table-expand';
                 button.dataset.mdApp = 'table-expand';
-                button.textContent = '⛶';
+                button.innerHTML = \(javaScriptStringLiteral(tableExpandIconSVG));
                 button.title = localized.expandTable;
                 button.setAttribute('aria-label', localized.expandTable);
                 actions.append(button);
@@ -515,7 +515,9 @@ nonisolated extension MarkdownHTML {
         }
         document.addEventListener('click', event => {
             const button = event.target.closest('[data-md-app="table-expand"]');
-            if (!button || !event.isTrusted) return;
+            // No `isTrusted` check: documents run no script, so the marker,
+            // which they cannot carry, is what keeps a forged button out.
+            if (!button) return;
             const table = button.closest('[data-md-app="table-wrap"]')?.querySelector('table');
             if (!table) return;
             event.preventDefault();
