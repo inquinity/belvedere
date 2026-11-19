@@ -51,7 +51,8 @@ nonisolated struct ZIPArchiveWriter {
         fields.append(littleEndian: UInt16(method == 8 ? 20 : 10))  // version needed
         fields.append(littleEndian: UInt16(0x0800))                 // UTF-8 names
         fields.append(littleEndian: method)
-        // A fixed timestamp (1980-01-01): the archive records no export time.
+        // A fixed timestamp (1980-01-01) on every entry. The book's own
+        // modified date, which EPUB 3 requires, is in content.opf.
         fields.append(littleEndian: UInt16(0))
         fields.append(littleEndian: UInt16(0x0021))
         fields.append(littleEndian: checksum)

@@ -233,14 +233,25 @@ nonisolated extension MarkdownHTML {
         try! NSRegularExpression(pattern: #"\n(?:[ \t]{0,3}>[ \t]?){0,"# + String(depth) + "}")
     }
 
+    /// The longest quote prefix carried onto a formula's lines. The prefix is
+    /// repeated once per line of the formula, so a document with a huge prefix
+    /// and a tall formula would otherwise ask for prefix × lines characters: a
+    /// 1 MB file could exhaust memory in the app or Quick Look. Past this, the
+    /// formula is treated as outside any quotation, as it was before quote
+    /// prefixes were carried at all. 128 characters is 32 levels with spaces,
+    /// far deeper than any real document nests.
+    static let maxQuotePrefixLength = 128
+
     /// The quote markers that open the line containing `location`, or "".
     private static func quoteMarkerPrefix(in source: NSString, before location: Int) -> String {
         let lineStart = source.lineRange(for: NSRange(location: location, length: 0)).location
-        let lead = source.substring(with: NSRange(location: lineStart, length: location - lineStart))
+        // Only the stretch the cap allows is read, so a giant line costs nothing.
+        let leadLength = min(location - lineStart, maxQuotePrefixLength + 1)
+        let lead = source.substring(with: NSRange(location: lineStart, length: leadLength))
         guard let match = quoteMarkersRegex.firstMatch(
             in: lead,
             range: NSRange(location: 0, length: (lead as NSString).length)
-        ) else { return "" }
+        ), match.range.length <= maxQuotePrefixLength else { return "" }
         return (lead as NSString).substring(with: match.range)
     }
 

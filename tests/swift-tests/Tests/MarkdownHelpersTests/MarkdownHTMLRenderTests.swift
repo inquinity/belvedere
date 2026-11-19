@@ -2240,6 +2240,22 @@ final class MarkdownHTMLRenderTests: XCTestCase {
         XCTAssertTrue(comparison.articleHTML.contains("\na\n&gt; b\n</div>"), comparison.articleHTML)
     }
 
+    /// A formula's quote prefix is repeated on each of its lines. A huge
+    /// prefix on a tall formula must not multiply into a string that
+    /// exhausts memory: past the cap the formula keeps no prefix.
+    func testAHugeQuotePrefixIsNotRepeatedOnEveryFormulaLine() {
+        let prefix = String(repeating: ">", count: 50_000)
+        let formula = String(repeating: "x\n", count: 2_000)
+        let markdown = prefix + "$$\n" + formula + "$$"
+        let extraction = MarkdownHTML.extractMath(from: markdown)
+        XCTAssertLessThan(extraction.processedMarkdown.utf16.count, markdown.utf16.count + 10_000)
+
+        // At the cap and below, the prefix still carries over.
+        let deep = String(repeating: "> ", count: MarkdownHTML.maxQuotePrefixLength / 2)
+        let kept = MarkdownHTML.extractMath(from: deep + "$$\nx\n" + deep + "$$")
+        XCTAssertTrue(kept.processedMarkdown.contains("\n" + deep), "the prefix is kept within the cap")
+    }
+
     func testEscapedDollarDoesNotCloseInlineMath() {
         let rendered = MarkdownHTML.render(
             markdown: #"Prices: $5 and $10. Escaped dollar: \$x$."#,

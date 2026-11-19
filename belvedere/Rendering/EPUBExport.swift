@@ -84,6 +84,9 @@ nonisolated enum EPUBExport {
     article.querySelectorAll('.mermaid-hud, .markdown-alert-icon, .md-code-header, [data-md-app="table-actions"], button')
         .forEach(node => node.remove());
     article.querySelectorAll('details').forEach(details => { details.open = true; });
+    // The marker below is the app's; a document's own copy of it would swap
+    // its content for another picture in the book.
+    article.querySelectorAll('[data-epub-picture]').forEach(node => node.removeAttribute('data-epub-picture'));
     scrollTo(0, 0);
 
     const pictures = [];

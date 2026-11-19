@@ -25,6 +25,7 @@ final class ForkPostureTests: XCTestCase {
             ("belvedere/Document/DocumentWindowController+EditSession.swift", 4),
             ("belvedere/Document/DocumentWindowController+ImageHandling.swift", 2),
             ("belvedere/Rendering/MarkdownWebView+PDFExport.swift", 1),
+            ("belvedere/Features/Sidebar/ProjectNavigatorView.swift", 3),
         ]
         for (path, minimum) in sites {
             let calls = try text(at: path).components(separatedBy: "AppBundleWriteGuard").count - 1

@@ -355,6 +355,12 @@ final class ProjectNavigatorView: NSView {
     private func withWriteAccess<T>(to folder: URL,
                                     _ body: @escaping () throws -> T,
                                     then: @escaping (T) -> Void) {
+        // Expanding an application bundle in the tree must not make writing
+        // into it possible: that breaks its code seal (see AppBundleWriteGuard).
+        guard !AppBundleWriteGuard.isInsideAppBundle(folder) else {
+            showError(AppBundleWriteGuard.WriteRefused())
+            return
+        }
         func attempt() throws { then(try body()) }
         do {
             try attempt()
@@ -378,8 +384,13 @@ final class ProjectNavigatorView: NSView {
                                       comment: "Project navigator write access panel message; folder name"),
             grantFolder.lastPathComponent)
         panel.beginSheetModal(for: window) { [weak self] response in
-            guard let self, response == .OK, let chosen = panel.url else { return }
-            guard folder.isDescendantOrSame(of: chosen.standardizedFileURL) else {
+            guard let self, response == .OK, let chosen = panel.url?.standardizedFileURL else { return }
+            // Only the project folder, or a folder inside it that holds the
+            // target, is used. The sandbox has already granted whatever was
+            // chosen, for this session, and cannot take it back; refusing a
+            // wider choice keeps the navigator from writing outside the project.
+            guard folder.isDescendantOrSame(of: chosen),
+                  chosen.isDescendantOrSame(of: grantFolder) else {
                 NSSound.beep()
                 return
             }
@@ -431,6 +442,9 @@ final class ProjectNavigatorView: NSView {
         var finalURL = url
         if commit, let renamed = renamedURL(for: url, typed: label.stringValue) {
             do {
+                if AppBundleWriteGuard.isInsideAppBundle(url) || AppBundleWriteGuard.isInsideAppBundle(renamed) {
+                    throw AppBundleWriteGuard.WriteRefused()
+                }
                 try FileManager.default.moveItem(at: url, to: renamed)
                 finalURL = renamed
             } catch {
