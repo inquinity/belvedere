@@ -413,3 +413,6 @@
 
 /* Edit menu and reader context menu */
 "Copy as Plain Text" = "Copy as Plain Text";
+
+/* Reader overlay while a slow file loads */
+"Loading…" = "Loading…";
