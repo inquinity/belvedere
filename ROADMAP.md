@@ -17,7 +17,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 
 **2.1.0 shipped 2026-11-15** (tag `v2.1.0`, build 21): callouts with a Markdown flavor setting (F27), the first cherry-picked upstream round (H15), updated libraries (H14), Mermaid 12.3.0 (H13), the spare-reader setting (F28) and the end of the reader/editor diagram size difference (F22). Chosen as 2.1.0 rather than 2.0.4 for the weight of the change, not 3.0, because nothing changes for a reader's documents, settings or supported Macs.
 
-**Next (2.2):** the rest of the upstream features approved on 2026-11-12 (H16), on top of the export rewrite already on `main` (F29): EPUB export, the expanded table's pinned header and column resizing, text alignment, selection word counts, live math in the editor and the navigator's + menu, plus the upstream fixes since. The navigator menu adds a bookmarks entitlement and needs its own security sign-off.
+**Next (2.2):** the upstream features approved on 2026-11-12 and the ones chosen from the first monthly watch (H16), on top of the export rewrite already on `main` (F29). Picked on `sync/upstream-2.2-features` on 2026-11-19; the navigator's + menu came in without lasting folder grants, so no new entitlement. Left before release: review fixes, a hand test, and the merge.
 
 **Then (2.3):** F19, F7 and S7, moved from 2.2 on 2026-11-19 so 2.2 carries the upstream imports. S7 matters most for the security posture, and overlaps the bookmarks the navigator menu brings; F19 has an open sandbox question to settle first.
 
@@ -30,10 +30,7 @@ not. Older notes use earlier numbering; the mapping is in FORK-NOTES, *ID mappin
 | **F19** | Quick Look repair setting | A setting that checks Belvedere’s Quick Look extension is the one handling Markdown, and repairs it. Open question: can a sandboxed app do that at all. | 2.3 candidate |
 | **F7** | ⌘R reload from disk | Revert to Saved is done; re-reading a file that has no local changes is not. | 2.3 candidate |
 | **S7** | Trusted folders and bookmarks | Trust a folder, take a security-scoped bookmark, and drop the `/` read-only entitlement. | 2.3 candidate |
-| **H16** | Third upstream round: the features approved 2026-11-12 | EPUB export (GH-517), pinned header and column resizing in the expanded table (GH-563, GH-564), text alignment (GH-480), selection word counts (GH-534), live math in the editor (GH-555), the navigator's + menu and filter (GH-566, bookmarks entitlement), the editor bundle's npm updates, and the 17 upstream commits after `36debd1`. Removing the spare reader (GH-471) is declined: it conflicts with the spare-reader setting. | 2.2 |
-| **H17** | Monthly upstream watch | A scheduled task on the 1st of each month reads new upstream commits and pull requests since the review mark in `docs/Upstream-Changed.md` and proposes take, take with changes or decline for each, with a security pass on anything that touches entitlements, network, dependencies or what a document can load. Read-only. Set up 2026-11-19. | — |
 | **F12** | Reword the “Continue” button on leaving edit mode | Idea: the word does not say the changes stay unsaved. | — |
-| **F13** | Edit as plain text | Idea: a plain-text edit mode for exact copy and paste. | — |
 | **F14** | Drop a folder on a window or sidebar to open it | Works on the Dock icon only. | — |
 | **F15** | Search the text of files across the opened folder | Idea, on ⇧⌘F, beside Go to File on ⇧⌘O. | — |
 | **F18** | Stray whitespace after an italic table cell | Seen once while editing; not reproduced. | — |
@@ -56,6 +53,8 @@ Newest release first.
 | ID | Item | Outcome |
 |---|---|---|
 | **F29** | Export from a hidden copy of the page, fitted tables, Expand Table | Printing, PDF and PNG work from a hidden copy under the reader's folder boundary and content policy; wide tables are fitted to the page; Scale is applied before pagination; Expand Table (a box with outward arrows, just above the table) opens a full-screen copy; printing from Finder shows the dialog. Upstream GH-476, GH-510 and GH-653, security- and code-reviewed, hand-tested. |
+| **H16** | Third upstream round | EPUB export, text alignment, live math and plain-text source mode in the editor, column resizing and a pinned header in Expand Table, selection word counts, Copy as Plain Text, the navigator's filter and + menu (write access lasts until quit; no bookmarks entitlement), a Loading panel for cloud files, the editor bundle's library updates and three upstream fixes. Upstream GH-480, GH-517, GH-534, GH-555, GH-563, GH-564, GH-566, GH-630, GH-637, GH-641, GH-651, GH-657, GH-659, GH-663. |
+| **F13** | Edit as plain text | Done through upstream's source mode (GH-651): *View → Show Markdown Source*, ⇧⌘E. |
 
 ### 2.1.0 (released 2026-11-15)
 
@@ -156,6 +155,7 @@ Newest release first.
 
 | ID | Item | Outcome |
 |---|---|---|
+| **H17** | Monthly upstream watch | Set up 2026-11-19: a read-only scheduled task on the 1st of each month reports new upstream commits and pull requests since the review mark in `docs/Upstream-Changed.md`, with a security pass and a proposed disposition for each. `just check-upstream` counts from the same mark. |
 | **H9** | Stray Belvedere builds in the application list | Dev builds go to `build.noindex`; `just clean-apps` unregisters strays. |
 | **S5** | Launch arguments saved as shared settings | Not reproducible; closed. |
 | **F16** | Table editing failures on macOS 27 | A test-harness fault, not an editor bug. |
