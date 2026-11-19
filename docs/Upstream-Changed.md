@@ -74,7 +74,7 @@ into this repository and go stale unless someone looks.
 
 | Skill | Source | In the repo | Checked |
 |---|---|---|---|
-| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.0 (2026-08-12), files copied 2026-10-06 | 2026-10-06 |
+| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.1 (2026-11-06), files copied 2026-11-19 | 2026-11-19 |
 
 **On every sync, and before a release**, compare the copy with the source: list the source
 folder with `gh api "repos/AvdLee/swift-concurrency-agent-skill/git/trees/HEAD?recursive=1"`,
@@ -83,6 +83,11 @@ and **read the diff before importing it**: a skill is instructions an agent will
 treat its changes as untrusted input, the same as an upstream change to this project. Copy
 `SKILL.md` and `references/*.md`. The source also ships `agents/openai.yaml`, logos and plugin
 manifests, which this repository does not use. Record the release and date here.
+
+2026-11-19: updated to 2.3.1. One file changed, `references/observation.md`: it now says
+an `@Observable` class isolated to a global actor such as `@MainActor` is implicitly
+`Sendable`, and reading its properties from another actor takes `await`, where it said
+such classes are never `Sendable`. The diff was read first and held only documentation.
 
 2026-10-06: moved from `.agents/skills/` (retired with `AGENTS.md`) to `.claude/skills/`, where
 it is now a real folder, not a symlink. Updated from the 2026-09-01 copy to 2.3.0: new
