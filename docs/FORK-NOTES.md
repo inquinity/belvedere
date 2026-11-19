@@ -86,9 +86,8 @@ so the PR diff is exactly what upstream is being asked to review. They were made
 ### Syncing with upstream
 
 ```bash
-./bin/check-upstream.sh                          # read-only: has upstream moved?
-git fetch upstream
-git log --no-merges <last reviewed>..upstream/main   # what is new
+./bin/check-upstream.sh                          # read-only: commits since the review mark
+git log --no-merges <review mark>..upstream/main     # what is new
 git cherry-pick <commit>                         # on a sync/ branch, one change at a time
 ```
 
@@ -98,8 +97,18 @@ an in-app updater and several localizations, each to be cut out again on every l
 sync, and 90 conflicted paths across the `md-preview/` → `belvedere/` rename. Picking
 what Belvedere wants is cheaper and keeps out what it does not. The cost is that git no
 longer knows which upstream commits were considered, so `docs/Upstream-Changed.md`
-records the last upstream commit reviewed, and `check-upstream.sh`'s count keeps
-growing; it means "upstream has moved", not "this much is unmerged".
+records the last upstream commit reviewed, in its *Review mark* section, and
+`check-upstream.sh` counts from there.
+
+**Monthly watch.** A Claude scheduled task, `watch-belvedere-upstream` (on this Mac, in
+`~/.claude/scheduled-tasks/`), runs at 01:30 on the 1st of each month. It fetches
+upstream, reads every commit since the review mark and every pull request updated since
+the date beside it, checks each against the decisions in `docs/Upstream-Changed.md`,
+runs a security pass on anything that touches entitlements, network, dependencies, the
+Quick Look target or what a document can load or run, and proposes take, take with
+changes, decline or decide for each. It is read-only apart from the fetch, and saves its
+report in the task's `reports/` folder. It does not sync: a round is still started by
+hand, and ends by moving the review mark.
 
 Before picking, read `docs/Upstream-Changed.md`: it lists every upstream change
 Belvedere took with changes or declined, and what keeps each decision in place. After,
