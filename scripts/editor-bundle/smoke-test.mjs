@@ -1330,8 +1330,10 @@ quotedMathEditor.focus()
 quotedMathEditor.select(quotedMathSource.indexOf('$$'))
 await new Promise(resolve => setTimeout(resolve, 10))
 const quotedMathLines = Array.from(quotedMathHost.querySelectorAll('.cm-md-codeblock')).map(line => line.textContent)
+// The caret is on the opening line, so it stays; the closing line, away
+// from the caret, collapses like a code fence's.
 check("quoted math source hides the quote markers of its later lines",
-  quotedMathLines.length === 3 && quotedMathLines.slice(1).every(text => !text.includes('>')))
+  quotedMathLines.length === 2 && quotedMathLines.slice(1).every(text => !text.includes('>')))
 quotedMathEditor.destroy()
 
 for (const [label, source, count] of [
@@ -1459,8 +1461,10 @@ for (const [label, formula, card] of [
   check(`${label}: no language picker for dollar math`, !host.querySelector('.cm-md-code-language-input'))
   if (label === 'inline math') check('active inline math reuses the inline-code content span',
     host.querySelector('.cm-md-inline-code')?.textContent === '\\frac{1}{x}')
-  if (card) check(`${label}: both delimiters stay visible`,
-    [...host.querySelectorAll('.cm-md-fence-info')].map(node => node.textContent).join('') === '$$$$')
+  // The card says "formula", so its delimiters are hidden like a code
+  // fence's while the caret is away from them (GH-663).
+  if (card) check(`${label}: delimiters are hidden away from the caret`,
+    ![...host.querySelectorAll('.cm-md-fence-info')].some(node => node.textContent.includes('$$')))
   check(`${label}: dollar source has no toolbar`, !host.querySelector('.cm-md-code-action'))
   const closing = source.lastIndexOf('$$')
   if (card) {
