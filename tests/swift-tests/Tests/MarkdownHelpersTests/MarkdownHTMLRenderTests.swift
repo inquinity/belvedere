@@ -459,8 +459,9 @@ final class MarkdownHTMLRenderTests: XCTestCase {
         let values = try JSONDecoder().decode([Double].self, from: Data(try XCTUnwrap(result as? String).utf8))
 
         XCTAssertEqual(values[0], 0, "the article scrolls sideways by \(values[0]) px")
-        // The slack comes out of the page padding, so the text column stays put.
-        XCTAssertEqual(values[1], Double(MarkdownHTML.pagePaddingHorizontal), accuracy: 0.01)
+        // The slack comes out of the page padding, so the text column stays put,
+        // to within one WebKit layout unit (1/64 px) of rounding.
+        XCTAssertEqual(values[1], Double(MarkdownHTML.pagePaddingHorizontal), accuracy: 1.0 / 64 + 0.001)
     }
 
     /// PDF export makes the body the column, without padding, and fits wide
