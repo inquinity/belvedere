@@ -272,13 +272,13 @@ final class ContentViewController: NSViewController {
 
     private var loadingOverlay: DocumentLoadingOverlayView?
 
-    /// The centered "Loading…" panel for a slow file read. Only over a
-    /// blank page: a slow reload of the document already on screen keeps
-    /// it readable and leaves the feedback to the sidebar's row spinner.
     func resyncSelectedText() {
         webView.resyncSelectedText()
     }
 
+    /// The centered "Loading…" panel for a slow file read. Only over a
+    /// blank page: a slow reload of the document already on screen keeps
+    /// it readable and leaves the feedback to the sidebar's row spinner.
     func setLoading(_ isLoading: Bool) {
         if isLoading {
             guard loadingOverlay == nil, exportSource == nil else { return }
