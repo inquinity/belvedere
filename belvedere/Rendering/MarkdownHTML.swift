@@ -139,13 +139,13 @@ nonisolated enum MarkdownHTML {
                 """)
             }
             if let light = Self.sanitizedHexColor(lightPageBackground) {
-                rules.append("html { background: \(light); }")
+                rules.append("html { background: \(light); --mdp-page-bg: \(light); }")
             }
             if let dark = Self.sanitizedHexColor(darkPageBackground) {
-                rules.append(":root[data-mdp-color-scheme=\"dark\"] { background: \(dark); }")
+                rules.append(":root[data-mdp-color-scheme=\"dark\"] { background: \(dark); --mdp-page-bg: \(dark); }")
                 rules.append("""
                 @media (prefers-color-scheme: dark) {
-                    html:not([data-mdp-color-scheme="light"]) { background: \(dark); }
+                    html:not([data-mdp-color-scheme="light"]) { background: \(dark); --mdp-page-bg: \(dark); }
                 }
                 """)
             }
@@ -195,6 +195,9 @@ nonisolated enum MarkdownHTML {
     /// PDF export keeps the preview's column width and colors, with margins
     /// on every page. Oversized tables are fitted before printing.
     static let previewPrintOverrideCSS = """
+    /* The body is the column here and has no padding to lend, so the article
+       keeps the full width for the table fit that runs before printing. */
+    html.\(previewPrintClass) { --mdp-inline-slack: 0px; }
     html.\(previewPrintClass) body {
         box-sizing: border-box;
         width: \(contentColumnWidth)px;
@@ -245,6 +248,7 @@ nonisolated enum MarkdownHTML {
     /// source line.
     static let blankLineGap: CGFloat = 4
     static let quoteSpacing = bodyFontSize * 1.2
+    static let mathSpacing = bodyFontSize * 1.2  // .math-display (1.2em)
     static let largeBlockSpacing = bodyFontSize * 1.6  // alerts, tables, mermaid
     /// hr margin-top only. The rule carries no margin-bottom: the following
     /// block's own margin-top provides the space below, so the gaps above and
@@ -271,7 +275,8 @@ nonisolated enum MarkdownHTML {
                          documentFont: DocumentFontSetting = .current,
                          readerLayout: ReaderLayoutSetting = .current,
                          strictLineBreaks: Bool = StrictLineBreaksSetting.current,
-                         markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current) -> String {
+                         markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current,
+                         textAlignment: TextAlignmentSetting = .current) -> String {
         render(markdown: markdown,
                allowsScroll: allowsScroll,
                assetBaseHref: assetBaseHref,
@@ -280,8 +285,25 @@ nonisolated enum MarkdownHTML {
                documentFont: documentFont,
                readerLayout: readerLayout,
                strictLineBreaks: strictLineBreaks,
-               markdownFlavor: markdownFlavor).html
+               markdownFlavor: markdownFlavor,
+               textAlignment: textAlignment).html
     }
+
+    /// WebKit does not reserve room for the cloned end padding of an inline
+    /// box that wraps (inline code, highlights), so the first fragment can
+    /// end a few pixels past its line. The article is the sideways scroller,
+    /// so that overshoot made the whole page scroll left and right. With this
+    /// slack the article takes a strip of the page padding as its own
+    /// padding (see the stylesheet), and the overshoot lands inside the
+    /// article instead of in its scrollable overflow. The largest overshoot
+    /// is inline code in an h1: 0.3em of padding at a 2em font size, plus the
+    /// border. Never more than the page padding, so the text column does not
+    /// move. Screen only: print sets its own page box.
+    static let inlineOverflowSlackCSS = """
+    @media screen {
+        :root { --mdp-inline-slack: min(0.7em, var(--mdp-page-padding, \(pagePaddingHorizontal)px)); }
+    }
+    """
 
     static func render(markdown: String,
                        allowsScroll: Bool = false,
@@ -294,6 +316,7 @@ nonisolated enum MarkdownHTML {
                        readerLayout: ReaderLayoutSetting = .current,
                        strictLineBreaks: Bool = StrictLineBreaksSetting.current,
                        markdownFlavor: MarkdownFlavor = MarkdownFlavorSetting.current,
+                       textAlignment: TextAlignmentSetting = .current,
                        warmup: Bool = false,
                        preloadsMathAndCode: Bool = false,
                        pageTopClearance: CGFloat = 0,
@@ -360,6 +383,7 @@ nonisolated enum MarkdownHTML {
            overflow-y:auto, and even 1px of article overflow can swallow a wheel gesture. */
         article.markdown-body { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; overflow-wrap: anywhere; }
         article.markdown-body table { overflow-wrap: normal; }
+        \(inlineOverflowSlackCSS)
         </style>
         """ : ""
         let contentWidthOverride: String
@@ -479,6 +503,7 @@ nonisolated enum MarkdownHTML {
         \(contentWidthOverride)
         \(documentFontOverride)
         \(readerLayoutBlock)
+        \(textAlignment.styleBlock)
         \(sanitizerBlock)
         \(morphBlock)
         \(hostBridgeScript)

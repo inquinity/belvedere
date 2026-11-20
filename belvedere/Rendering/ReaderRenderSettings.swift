@@ -6,6 +6,7 @@ import Foundation
 struct ReaderRenderSettings: Equatable {
     let contentWidth: ContentWidthSetting
     let documentFont: DocumentFontSetting
+    let textAlignment: TextAlignmentSetting
     let strictLineBreaks: Bool
     let markdownFlavor: MarkdownFlavor
     let readerLayout: ReaderLayoutSetting
@@ -14,6 +15,7 @@ struct ReaderRenderSettings: Equatable {
     static var current: ReaderRenderSettings {
         ReaderRenderSettings(contentWidth: .current,
                              documentFont: .current,
+                             textAlignment: .current,
                              strictLineBreaks: StrictLineBreaksSetting.current,
                              markdownFlavor: MarkdownFlavorSetting.current,
                              readerLayout: .current,
@@ -25,7 +27,7 @@ struct ReaderRenderSettings: Equatable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         let layout = (try? encoder.encode(readerLayout)).map { String(decoding: $0, as: UTF8.self) } ?? ""
-        return [contentWidth.rawValue, documentFont.rawValue, layout, String(strictLineBreaks),
+        return [contentWidth.rawValue, documentFont.rawValue, textAlignment.rawValue, layout, String(strictLineBreaks),
                 markdownFlavor.rawValue, themeOverrides?.css ?? ""]
             .joined(separator: "|")
     }

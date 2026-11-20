@@ -139,6 +139,288 @@ nonisolated extension MarkdownHTML {
 
         window.MdPreviewHost = { pushHeight, measureHeight };
 
+        // Controls injected into the article. Copying and Inspector counts
+        // both leave them out.
+        const MD_CHROME_SELECTOR = '[data-md-app="code-header"], [data-md-app="table-actions"], .mermaid-hud';
+        // A decorated table sits in its wrapper, or in the inner scroller
+        // that column resize adds. Both carry the app's marker, which the
+        // sanitizer removes from documents.
+        const MD_TABLE_PARENT_SELECTOR = '[data-md-app="table-wrap"], [data-md-app="table-scroll"]';
+        // Rendered but not document text: diagram zoom controls and KaTeX's
+        // visually hidden MathML twin. Inspector counts only.
+        const MD_UNCOUNTED_SELECTOR = MD_CHROME_SELECTOR + ', .mermaid-hud, .katex-mathml';
+
+        // Rendered but not text worth pasting: diagrams, footnote back
+        // links, and rules. Copy as Plain Text only.
+        const MD_PLAIN_SKIPPED_SELECTOR = '.mermaid-figure, .mermaid, .footnote-backrefs, .footnote-backref, hr, .md-source-list-marker';
+
+        // Text of `range` as the preview shows it. Walks the live article
+        // rather than a detached clone so computed styles decide block
+        // breaks, whitespace collapsing, and visibility (closed <details>,
+        // display:none) the way the page renders them.
+        //
+        // `plain` is Copy as Plain Text: the text a reader would type to
+        // reproduce the page without Markdown. Blocks get a blank line
+        // between them, list items their bullet, number, or checkbox,
+        // footnote references their [n], and math its TeX source.
+        function renderedTextOfRange(range, root, { plain = false } = {}) {
+            const styles = new Map();
+            function styleOf(element) {
+                let style = styles.get(element);
+                if (!style) {
+                    style = getComputedStyle(element);
+                    styles.set(element, style);
+                }
+                return style;
+            }
+            function whiteSpaceMode(element) {
+                const style = styleOf(element);
+                const collapse = style.whiteSpaceCollapse;
+                if (collapse) {
+                    if (collapse === 'preserve-breaks') return 'preserve-breaks';
+                    return collapse === 'collapse' ? 'collapse' : 'preserve';
+                }
+                const ws = style.whiteSpace;
+                if (ws === 'pre-line') return 'preserve-breaks';
+                return /^(?:pre|pre-wrap|break-spaces)$/.test(ws) ? 'preserve' : 'collapse';
+            }
+            function isBlock(display) {
+                return !/^(?:inline|contents|table-cell|ruby)/.test(display);
+            }
+
+            // Separators wait until the next visible text, so leading and
+            // trailing breaks never reach the result. Line breaks win over
+            // cell tabs, which win over collapsed spaces.
+            let text = '';
+            let breaks = 0;
+            let cell = false;
+            let space = false;
+            // A list item's marker, written before its first text, and how
+            // many list items the walk is inside.
+            let prefix = '';
+            let listDepth = 0;
+            function emit(value) {
+                if (text) {
+                    if (breaks) {
+                        const trailing = /\\n*$/.exec(text)[0].length;
+                        text += '\\n'.repeat(Math.max(0, breaks - trailing));
+                    } else if (cell) {
+                        text += '\\t';
+                    } else if (space && !text.endsWith('\\n') && !value.startsWith('\\n')) {
+                        text += ' ';
+                    }
+                }
+                breaks = 0;
+                cell = false;
+                space = false;
+                text += prefix + value;
+                prefix = '';
+            }
+            function listMarker(item) {
+                const list = item.parentElement;
+                let marker = '•';
+                if (list && list.nodeName === 'OL') {
+                    let number = parseInt(list.getAttribute('start'), 10);
+                    if (!Number.isFinite(number)) number = 1;
+                    for (let el = item.previousElementSibling; el; el = el.previousElementSibling) {
+                        if (el.nodeName === 'LI') number += 1;
+                    }
+                    marker = number + '.';
+                }
+                const box = item.classList.contains('task-list-item')
+                    && item.querySelector(':scope > input[type=checkbox], :scope > p > input[type=checkbox]');
+                if (box) marker = (marker === '•' ? '' : marker + ' ') + (box.checked ? '☑' : '☐');
+                return '  '.repeat(listDepth) + marker + ' ';
+            }
+            function sourceLineMarker(line) {
+                let depth = listDepth;
+                for (let el = line.parentElement; el && el !== root && el.nodeName !== 'LI'; el = el.parentElement) {
+                    if (el.classList.contains('md-source-list-indent-step')) depth += 1;
+                }
+                const marker = line.querySelector(':scope > .md-source-list-marker');
+                const box = marker && marker.querySelector('input[type=checkbox]');
+                const text = box ? (box.checked ? '☑' : '☐') : (marker ? marker.textContent.trim() : '•');
+                return '  '.repeat(depth) + text + ' ';
+            }
+            // One line break inside lists, tables, and callouts; a blank
+            // line between every other pair of blocks.
+            function plainBlockBreaks(node, display) {
+                if (listDepth || node.nodeName === 'LI' || display.startsWith('table-')) return 1;
+                return node.parentElement?.classList.contains('markdown-alert') ? 1 : 2;
+            }
+            // Whether the character at `index` takes up space on screen.
+            function rendersCharacter(node, index) {
+                const probe = document.createRange();
+                probe.setStart(node, index);
+                probe.setEnd(node, index + 1);
+                return probe.getBoundingClientRect().width > 0;
+            }
+            function addText(node) {
+                const from = node === range.startContainer ? range.startOffset : 0;
+                const to = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+                const selected = node.nodeValue.slice(from, to);
+                const parent = node.parentElement;
+                if (!selected || !parent || styleOf(parent).visibility !== 'visible') return;
+                const mode = whiteSpaceMode(parent);
+                if (mode === 'preserve') {
+                    emit(selected);
+                    return;
+                }
+                let value = mode === 'preserve-breaks'
+                    ? selected.replace(/[ \\t]*\\n[ \\t]*/g, '\\n').replace(/[ \\t]+/g, ' ')
+                    : selected.replace(/[ \\t\\n\\r\\f]+/g, ' ');
+                // Spaces between text nodes wait for the next visible text so
+                // source formatting drops out. A space at a selection edge has
+                // no such neighbor in the selection, so ask layout instead.
+                if (value.startsWith(' ')) {
+                    value = value.slice(1);
+                    if (node === range.startContainer && rendersCharacter(node, from)) emit(' ');
+                    else space = true;
+                }
+                const trailingSpace = value.endsWith(' ');
+                if (trailingSpace) value = value.slice(0, -1);
+                if (value) emit(value);
+                if (trailingSpace) {
+                    const run = /[ \\t\\n\\r\\f]+$/.exec(selected);
+                    if (node === range.endContainer && rendersCharacter(node, from + run.index)) emit(' ');
+                    else space = true;
+                }
+            }
+
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT;
+                    if (node.nodeType !== Node.ELEMENT_NODE) return NodeFilter.FILTER_ACCEPT;
+                    if (node.matches(MD_UNCOUNTED_SELECTOR)) return NodeFilter.FILTER_REJECT;
+                    if (plain && node.matches(MD_PLAIN_SKIPPED_SELECTOR)) return NodeFilter.FILTER_REJECT;
+                    // display:contents has no box of its own, so checkVisibility
+                    // reports false even though its children render.
+                    if (styleOf(node).display === 'contents') return NodeFilter.FILTER_ACCEPT;
+                    if (typeof node.checkVisibility === 'function' && !node.checkVisibility())
+                        return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            function walkChildren(node) {
+                if (!walker.firstChild()) return;
+                // A closed <details> renders only its summary.
+                const closedDetails = node.nodeName === 'DETAILS' && !node.open;
+                do {
+                    const child = walker.currentNode;
+                    if (closedDetails && child.nodeName !== 'SUMMARY') continue;
+                    walk(child);
+                } while (walker.nextSibling());
+                walker.parentNode();
+            }
+            function walk(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    addText(node);
+                    return;
+                }
+                if (node.nodeName === 'BR') {
+                    emit('\\n');
+                    return;
+                }
+                const display = styleOf(node).display;
+                if (plain) {
+                    const tex = node.classList.contains('katex')
+                        && node.querySelector('annotation[encoding="application/x-tex"]');
+                    if (tex) {
+                        if (isBlock(display)) breaks = Math.max(breaks, plainBlockBreaks(node, display));
+                        emit(tex.textContent.trim());
+                        return;
+                    }
+                    if (node.matches('sup.footnote-ref')) {
+                        emit('[' + node.textContent.trim() + ']');
+                        return;
+                    }
+                }
+                const blockBreaks = !isBlock(display) ? 0
+                    : plain ? plainBlockBreaks(node, display)
+                    : node.nodeName === 'P' ? 2 : 1;
+                breaks = Math.max(breaks, blockBreaks);
+                if (plain && display === 'table-row') {
+                    // Cell by cell, so an empty cell keeps its column.
+                    const cells = [...node.children]
+                        .filter(child => range.intersectsNode(child)
+                            && (typeof child.checkVisibility !== 'function' || child.checkVisibility()))
+                        .map(child => renderedTextOfRange(range, child, { plain }).replace(/\\s*\\n\\s*/g, ' '));
+                    breaks = Math.max(breaks, 1);
+                    if (cells.some(Boolean)) emit(cells.join('\\t'));
+                    breaks = Math.max(breaks, 1);
+                    return;
+                }
+                // Over-indented source lines render as list-like lines
+                // inside a paragraph (see EscapingHTMLFormatter).
+                const sourceLine = plain && node.classList.contains('md-source-list-line');
+                const listItem = plain && (node.nodeName === 'LI' || sourceLine);
+                // A selection that starts inside the item's text copies
+                // that text without the item's marker.
+                if (listItem && coversBlockEdge(range, node, 'start')) {
+                    prefix = sourceLine ? sourceLineMarker(node) : listMarker(node);
+                }
+                if (listItem) listDepth += 1;
+                walkChildren(node);
+                if (listItem) {
+                    listDepth -= 1;
+                    prefix = '';
+                }
+                breaks = Math.max(breaks, blockBreaks);
+                if (display === 'table-cell') cell = true;
+            }
+            walkChildren(root);
+            return text;
+        }
+
+        // The selection's range clipped to the article, or null.
+        function selectedArticleRange(article) {
+            const selection = window.getSelection();
+            if (!article || !selection || selection.isCollapsed || !selection.rangeCount) return null;
+            const range = selection.getRangeAt(0);
+            if (!range.intersectsNode(article)) return null;
+            const clipped = range.cloneRange();
+            const bounds = document.createRange();
+            bounds.selectNodeContents(article);
+            if (clipped.compareBoundaryPoints(Range.START_TO_START, bounds) < 0)
+                clipped.setStart(bounds.startContainer, bounds.startOffset);
+            if (clipped.compareBoundaryPoints(Range.END_TO_END, bounds) > 0)
+                clipped.setEnd(bounds.endContainer, bounds.endOffset);
+            return clipped;
+        }
+
+        // Copy as Plain Text: the selection as text without Markdown, plus
+        // the same HTML a normal copy writes, for rich text fields.
+        function plainTextForSelection() {
+            const article = document.querySelector('article.markdown-body');
+            const range = selectedArticleRange(article);
+            if (!range) return null;
+            const text = renderedTextOfRange(range, article, { plain: true });
+            if (!text) return null;
+            const { fragment } = selectionFragment(window.getSelection());
+            return { text, html: htmlFromFragment(fragment) };
+        }
+
+        // Mirror read-only text selections to the native Inspector. Only the
+        // rendered article counts, even when Select All includes page chrome.
+        let lastSelectedText = null;
+        function pushSelectedText() {
+            if (!hasHostBridge) return;
+            const article = document.querySelector('article.markdown-body');
+            const range = selectedArticleRange(article);
+            const text = range ? renderedTextOfRange(range, article) || null : null;
+            if (text === lastSelectedText) return;
+            lastSelectedText = text;
+            post({ kind: 'selectedText', value: text });
+        }
+        document.addEventListener('selectionchange', pushSelectedText);
+        // Reports the selection again even when it has not changed: the
+        // Inspector forgets it while Edit Mode is open, and a reader that
+        // was not re-rendered keeps its highlight.
+        function resyncSelectedText() {
+            lastSelectedText = undefined;
+            pushSelectedText();
+        }
+
         function elementForEventTarget(target) {
             if (target instanceof Element) return target;
             if (target && target.parentElement instanceof Element) return target.parentElement;
@@ -461,6 +743,10 @@ nonisolated extension MarkdownHTML {
 
                 const header = document.createElement('div');
                 header.className = 'md-code-header';
+                // The app's marker, which documents cannot carry: copying,
+                // counts, Expand Table and EPUB leave out only this header,
+                // not a document's own element with the same class.
+                header.dataset.mdApp = 'code-header';
                 const language = document.createElement('span');
                 language.className = 'md-code-language';
                 language.textContent = pre.dataset.codeLanguage || 'text';
@@ -493,7 +779,7 @@ nonisolated extension MarkdownHTML {
             if (!hasHostBridge || !\(tablePopupEnabled)) return;
             root.querySelectorAll('table').forEach(table => {
                 if (table.closest('.md-frontmatter') || table.parentElement.closest('table')
-                    || table.parentElement.dataset.mdApp === 'table-wrap') return;
+                    || table.parentElement.matches(MD_TABLE_PARENT_SELECTOR)) return;
                 const wrap = document.createElement('div');
                 wrap.className = 'md-table-wrap';
                 wrap.dataset.mdApp = 'table-wrap';
@@ -513,6 +799,17 @@ nonisolated extension MarkdownHTML {
                 wrap.prepend(actions);
             });
         }
+        // Undoes everything column resize adds to a table (below). The
+        // Expand button and export use it, so neither copies dragged widths.
+        function clearColumnResize(table) {
+            table.querySelector('.mdp-column-edge-active')?.classList.remove('mdp-column-edge-active');
+            if (!table.classList.contains('mdp-columns-resized')) return;
+            const scroller = table.parentElement;
+            if (scroller?.dataset.mdApp === 'table-scroll') scroller.replaceWith(table);
+            table.querySelector(':scope > colgroup[data-md-app="column-widths"]')?.remove();
+            table.classList.remove('mdp-columns-resized');
+            table.style.removeProperty('width');
+        }
         document.addEventListener('click', event => {
             const button = event.target.closest('[data-md-app="table-expand"]');
             // No `isTrusted` check: documents run no script, so the marker,
@@ -522,7 +819,9 @@ nonisolated extension MarkdownHTML {
             if (!table) return;
             event.preventDefault();
             const clone = table.cloneNode(true);
-            clone.querySelectorAll('[data-md-app="table-actions"], .md-code-header').forEach(node => node.remove());
+            clone.querySelectorAll('[data-md-app="table-actions"], [data-md-app="code-header"]').forEach(node => node.remove());
+            // The table window starts at natural widths, not the document's.
+            clearColumnResize(clone);
             let title = '';
             for (const heading of document.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
                 if (heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -532,12 +831,157 @@ nonisolated extension MarkdownHTML {
             post({kind: 'tablePopup', markdown: clone.outerHTML, title});
         });
 
+        // Drag the edge between two header cells to resize a column, in the
+        // document and in the table window; double-click an edge to fit that
+        // column to its header text. The first drag fixes each column at its
+        // current width, so the others keep theirs. Widths are not saved: a
+        // new render, export, or print uses the natural widths.
+        if (hasHostBridge && \(tablePopupEnabled)) (() => {
+            const edgeSlop = 5;
+            const minimumWidth = 40;
+            let drag = null;
+            let activeCell = null;
+
+            function headerCells(table) {
+                const row = table.tHead?.rows[0] ?? table.rows[0];
+                return row ? Array.from(row.cells) : [];
+            }
+
+            // A cell's start edge is the previous column's end edge, so the
+            // pointer can grab an edge from either side of it.
+            function edgeAt(event) {
+                const cell = event.target.closest?.('th');
+                if (!cell) return null;
+                // Runs on every pointer move over a header: bail out before
+                // the table checks unless the pointer is near a cell side.
+                const rect = cell.getBoundingClientRect();
+                if (Math.abs(event.clientX - rect.left) > edgeSlop
+                    && Math.abs(event.clientX - rect.right) > edgeSlop) return null;
+                const table = cell.closest('table');
+                if (!table?.parentElement.matches(MD_TABLE_PARENT_SELECTOR)) return null;
+                const cells = headerCells(table);
+                const index = cells.indexOf(cell);
+                if (index < 0 || cells.some(c => c.colSpan > 1)
+                    || table.querySelector(':scope > colgroup:not([data-md-app="column-widths"])')) return null;
+                const rtl = getComputedStyle(table).direction === 'rtl';
+                const end = rtl ? rect.left : rect.right;
+                const start = rtl ? rect.right : rect.left;
+                if (Math.abs(event.clientX - end) <= edgeSlop) return { table, cells, index, rtl };
+                if (index > 0 && Math.abs(event.clientX - start) <= edgeSlop)
+                    return { table, cells, index: index - 1, rtl };
+                return null;
+            }
+
+            function fixColumns(table, cells) {
+                const existing = table.querySelector(':scope > colgroup[data-md-app="column-widths"]');
+                if (existing) return Array.from(existing.children);
+                const widths = cells.map(cell => cell.getBoundingClientRect().width);
+                const group = document.createElement('colgroup');
+                group.dataset.mdApp = 'column-widths';
+                const cols = widths.map(width => {
+                    const col = document.createElement('col');
+                    col.style.width = `${width}px`;
+                    return group.appendChild(col);
+                });
+                table.prepend(group);
+                // Fixed widths need a real table box, which cannot scroll, so
+                // an inner box scrolls it. The wrapper stays put, and with it
+                // the Expand button.
+                // Keep the reader's place: before this, the table itself
+                // scrolled horizontally.
+                const scrollLeft = table.scrollLeft;
+                const scroller = document.createElement('div');
+                scroller.dataset.mdApp = 'table-scroll';
+                table.before(scroller);
+                scroller.append(table);
+                table.classList.add('mdp-columns-resized');
+                table.style.width = `${widths.reduce((sum, width) => sum + width, 0)}px`;
+                // Only after the width is set: until then the table fits the box.
+                scroller.scrollLeft = scrollLeft;
+                return cols;
+            }
+
+            // Measures the header text on one line, so the column is just
+            // wide enough for its name. Body cells keep wrapping in it.
+            function fitColumn(table, cells, index) {
+                const col = fixColumns(table, cells)[index];
+                const cell = cells[index];
+                const range = document.createRange();
+                range.selectNodeContents(cell);
+                cell.style.whiteSpace = 'nowrap';
+                const textWidth = range.getBoundingClientRect().width;
+                cell.style.removeProperty('white-space');
+                const style = getComputedStyle(cell);
+                const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                const width = Math.max(minimumWidth, Math.ceil(textWidth + padding) + 1);
+                const tableWidth = parseFloat(table.style.width) - parseFloat(col.style.width) + width;
+                col.style.width = `${width}px`;
+                table.style.width = `${tableWidth}px`;
+            }
+
+            function showEdge(cell) {
+                if (cell === activeCell) return;
+                activeCell?.classList.remove('mdp-column-edge-active');
+                activeCell = cell;
+                cell?.classList.add('mdp-column-edge-active');
+            }
+
+            function endDrag() {
+                drag = null;
+                showEdge(null);
+                document.documentElement.classList.remove('mdp-column-resizing');
+            }
+
+            document.addEventListener('pointermove', event => {
+                // The release can go to a context menu instead of the page.
+                if (drag && !(event.buttons & 1)) endDrag();
+                if (!drag) {
+                    const edge = edgeAt(event);
+                    showEdge(edge ? edge.cells[edge.index] : null);
+                    return;
+                }
+                const delta = (event.clientX - drag.x) * (drag.rtl ? -1 : 1);
+                const width = Math.max(minimumWidth, drag.width + delta);
+                drag.col.style.width = `${width}px`;
+                drag.table.style.width = `${drag.tableWidth - drag.width + width}px`;
+            });
+            document.addEventListener('pointerdown', event => {
+                // Control-click opens the context menu on macOS.
+                if (event.button !== 0 || event.ctrlKey) return;
+                const edge = edgeAt(event);
+                if (!edge) return;
+                // Without this the drag selects the header text.
+                event.preventDefault();
+                const col = fixColumns(edge.table, edge.cells)[edge.index];
+                drag = {
+                    table: edge.table, col, rtl: edge.rtl, x: event.clientX,
+                    width: parseFloat(col.style.width),
+                    tableWidth: parseFloat(edge.table.style.width),
+                };
+                document.documentElement.classList.add('mdp-column-resizing');
+                event.target.setPointerCapture?.(event.pointerId);
+            });
+            // A double-click starts its word selection on mousedown, which
+            // the pointerdown handler alone does not stop.
+            document.addEventListener('mousedown', event => {
+                if (edgeAt(event)) event.preventDefault();
+            });
+            document.addEventListener('pointerup', endDrag);
+            document.addEventListener('pointercancel', endDrag);
+            document.addEventListener('dblclick', event => {
+                const edge = edgeAt(event);
+                if (!edge) return;
+                event.preventDefault();
+                fitColumn(edge.table, edge.cells, edge.index);
+            });
+        })();
+
         function selectionFragment(selection) {
             const fragment = document.createDocumentFragment();
             for (let i = 0; i < selection.rangeCount; i += 1) {
                 fragment.appendChild(selection.getRangeAt(i).cloneContents());
             }
-            const buttons = fragment.querySelectorAll('.md-code-header, [data-md-app="table-actions"]');
+            const buttons = fragment.querySelectorAll(MD_CHROME_SELECTOR);
             buttons.forEach((button) => button.remove());
             return { fragment, removedButtons: buttons.length > 0 };
         }
@@ -1033,6 +1477,9 @@ nonisolated extension MarkdownHTML {
         // second update without the flag once the real document arrives,
         // which clears the inline style and reveals the article.
         window.MdPreview.markdownForSelection = markdownForSelection;
+        window.MdPreview.resyncSelectedText = resyncSelectedText;
+        window.MdPreview.plainTextForSelection = plainTextForSelection;
+        window.MdPreview.clearColumnResize = clearColumnResize;
 
         window.MdPreview.update = (articleHTML, opts) => {
             // The Markdown behind the article, for copy-as-source.
@@ -1050,6 +1497,11 @@ nonisolated extension MarkdownHTML {
             }
             const article = document.querySelector('.markdown-body');
             if (!article) return;
+            // A document swap invalidates any selection from the old article.
+            if (lastSelectedText !== null) {
+                lastSelectedText = null;
+                post({ kind: 'selectedText', value: null });
+            }
             const tStart = perfNow();
             // DOM-diff fast path: morph the live article toward the incoming
             // HTML so finished Mermaid SVGs, KaTeX output, and highlighted
@@ -1109,6 +1561,9 @@ nonisolated extension MarkdownHTML {
                     try { fn(); } catch (e) { /* one bad apple shouldn't block others */ }
                 }
             }
+            // Morphing can preserve a native selection without a selectionchange event.
+            // Re-report it after the DOM update if it still intersects the article.
+            pushSelectedText();
             perfLog('MdPreview.update' + (morphed ? ' (morphdom)' : ''), '(+' + (perfNow() - tStart).toFixed(1) + 'ms)');
             pushHeight();
         };

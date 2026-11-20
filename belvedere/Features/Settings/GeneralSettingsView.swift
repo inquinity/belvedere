@@ -114,6 +114,15 @@ struct GeneralSettingsView: View {
                      + L("New windows and tabs open with this width. Open windows keep theirs; change one from View ▸ Content Width, which is not saved."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Picker(L("Text alignment"), selection: $model.textAlignment) {
+                    ForEach(TextAlignmentSetting.allCases, id: \.self) { setting in
+                        Text(setting.title).tag(setting)
+                    }
+                }
+                Text(L("Alignment applies to prose in reading view and Quick Look. Automatic follows the document. Code, tables and explicit HTML alignment are preserved."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
                 Text(L("Reading"))
             } footer: {

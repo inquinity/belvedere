@@ -40,6 +40,16 @@ final class PreviewContentPolicyTests: XCTestCase {
         XCTAssertTrue(PreviewContentPolicy.policy.contains("script-src 'unsafe-inline' md-asset:"))
     }
 
+    /// The editor loads KaTeX's stylesheet over the custom scheme when the
+    /// first formula renders. Styles come from inline blocks and the bundle
+    /// handler only: never a web origin.
+    func testStylesComeOnlyFromThePageAndTheBundle() {
+        let styleSources = PreviewContentPolicy.policy
+            .components(separatedBy: "; ")
+            .first { $0.hasPrefix("style-src ") }
+        XCTAssertEqual(styleSources, "style-src 'unsafe-inline' md-asset:")
+    }
+
     /// Local images resolve against the page's `<base href>` to md-asset: URLs.
     func testLocalImagesAreStillPermitted() {
         XCTAssertTrue(PreviewContentPolicy.policy.contains("img-src md-asset: data:"))

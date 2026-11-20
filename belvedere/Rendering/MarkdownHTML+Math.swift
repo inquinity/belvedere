@@ -51,11 +51,11 @@ nonisolated extension MarkdownHTML {
         try! NSRegularExpression(pattern: #"(?<!\\)\\\\\[([\s\S]+?)\\\\\]"#)
     }()
 
-    // Reject leading `\$` (escaped) and require non-whitespace adjacent to
+    // Reject escaped `\$` delimiters and require non-whitespace adjacent to
     // delimiters so prose like "$5 and $10" doesn't match.
     private static let inlineMathRegex: NSRegularExpression = {
         // swiftlint:disable:next force_try
-        try! NSRegularExpression(pattern: #"(?<!\\)\$(?=\S)([^\$\n]+?)(?<=\S)\$"#)
+        try! NSRegularExpression(pattern: #"(?<!\\)\$(?=\S)([^\$\n]+?)(?<=[^\s\\])\$"#)
     }()
 
     private static let parenthesizedInlineMathRegex: NSRegularExpression = {
@@ -149,12 +149,25 @@ nonisolated extension MarkdownHTML {
                     location: cursor,
                     length: match.range.location - cursor
                 ))
-                let capture = nsSource.substring(with: match.range(at: 1))
+                // Math is cut out before Markdown parsing, so a formula in a
+                // quotation still carries the `>` markers of its later lines.
+                // Strip them from the TeX and keep them on the replacement
+                // lines so the quotation continues around the formula.
+                let quotePrefix = quoteMarkerPrefix(in: nsSource, before: match.range.location)
+                var capture = nsSource.substring(with: match.range(at: 1))
+                if !quotePrefix.isEmpty {
+                    capture = quoteContinuationRegex(depth: quotePrefix.count(where: { $0 == ">" }))
+                        .stringByReplacingMatches(
+                            in: capture,
+                            range: NSRange(location: 0, length: (capture as NSString).length),
+                            withTemplate: "\n"
+                        )
+                }
                 let fullMatch = nsSource.substring(with: match.range)
                 let newlineCount = fullMatch.count(where: \.isNewline)
                 blockLineCounts.append(newlineCount + 1)
                 result += "MdPreviewMathBlock\(blocks.count)Token"
-                result += String(repeating: "\n", count: newlineCount)
+                result += String(repeating: "\n" + quotePrefix, count: newlineCount)
                 blocks.append(capture)
                 cursor = match.range.location + match.range.length
             }
@@ -206,6 +219,40 @@ nonisolated extension MarkdownHTML {
             blockLineCounts: blockLineCounts,
             inlines: inlines
         )
+    }
+
+    private static let quoteMarkersRegex: NSRegularExpression = {
+        // swiftlint:disable:next force_try
+        try! NSRegularExpression(pattern: #"^(?:[ \t]{0,3}>[ \t]?)+"#)
+    }()
+
+    // A line break followed by up to `depth` quote markers: lazy continuation
+    // lines carry none, and a `>` past the quote's depth belongs to the TeX.
+    private static func quoteContinuationRegex(depth: Int) -> NSRegularExpression {
+        // swiftlint:disable:next force_try
+        try! NSRegularExpression(pattern: #"\n(?:[ \t]{0,3}>[ \t]?){0,"# + String(depth) + "}")
+    }
+
+    /// The longest quote prefix carried onto a formula's lines. The prefix is
+    /// repeated once per line of the formula, so a document with a huge prefix
+    /// and a tall formula would otherwise ask for prefix × lines characters: a
+    /// 1 MB file could exhaust memory in the app or Quick Look. Past this, the
+    /// formula is treated as outside any quotation, as it was before quote
+    /// prefixes were carried at all. 128 characters is 32 levels with spaces,
+    /// far deeper than any real document nests.
+    static let maxQuotePrefixLength = 128
+
+    /// The quote markers that open the line containing `location`, or "".
+    private static func quoteMarkerPrefix(in source: NSString, before location: Int) -> String {
+        let lineStart = source.lineRange(for: NSRange(location: location, length: 0)).location
+        // Only the stretch the cap allows is read, so a giant line costs nothing.
+        let leadLength = min(location - lineStart, maxQuotePrefixLength + 1)
+        let lead = source.substring(with: NSRange(location: lineStart, length: leadLength))
+        guard let match = quoteMarkersRegex.firstMatch(
+            in: lead,
+            range: NSRange(location: 0, length: (lead as NSString).length)
+        ), match.range.length <= maxQuotePrefixLength else { return "" }
+        return (lead as NSString).substring(with: match.range)
     }
 
     private static func protectEscapedBracketsInLinks(
@@ -285,9 +332,19 @@ nonisolated extension MarkdownHTML {
                     lineCount: math.blockLineCounts[index]
                 )
             }
-            rebuilt += isBlock
-                ? "<div\(sourceAttributes) class=\"math math-display\">\(escaped)</div>"
-                : "<span class=\"math math-inline\">\(escaped)</span>"
+            if !isBlock {
+                rebuilt += "<span class=\"math math-inline\">\(escaped)</span>"
+            } else if wrapped {
+                rebuilt += "<div\(sourceAttributes) class=\"math math-display\">\(escaped)</div>"
+            } else {
+                // The formula shares its paragraph (or heading, or cell) with
+                // other text: no blank line separates them in the source. A
+                // <div> there makes the HTML parser close the paragraph at the
+                // formula and leave the rest as loose children of the
+                // flex-column article, one row per inline formula. A <span>
+                // stays inside; `.math-display` makes it a block.
+                rebuilt += "<span class=\"math math-display\">\(escaped)</span>"
+            }
             cursor = match.range.location + match.range.length
         }
         rebuilt += nsHtml.substring(from: cursor)

@@ -65,8 +65,12 @@ final class ContentWidthSettingTests: XCTestCase {
                 let harness = WebViewLayoutHarness(html: html, width: CGFloat(window), isEditor: false, height: 800)
                 defer { harness.close() }
                 _ = try await harness.layout(texts: [], imageCount: 0)
+                // The text column, not the article box: the article lends
+                // itself a strip of page padding on screen (inlineOverflowSlackCSS)
+                // so wrapped inline code cannot scroll the page, which widens
+                // its box but not the column.
                 let width = try await harness.webView.callAsyncJavaScript(
-                    "return document.querySelector('article').getBoundingClientRect().width",
+                    "return document.querySelector('article p').getBoundingClientRect().width",
                     in: nil, contentWorld: .page)
                 measured.append(try XCTUnwrap(width as? Double))
             }

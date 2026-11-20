@@ -15,6 +15,8 @@ nonisolated enum EditorHTML {
         /// Which `[!type]` blockquotes the reading view shows as callouts, so
         /// the editor spaces those blocks to match (see entry-cm.js).
         var markdownFlavor = MarkdownFlavorSetting.current
+        /// Open in plain source mode instead of the formatted live preview.
+        var sourceMode = false
     }
 
     static func render(markdown: String,
@@ -42,6 +44,7 @@ nonisolated enum EditorHTML {
             /* Semantic system colors resolve per appearance on their own. */
             --text: -apple-system-label;
             --secondary: -apple-system-secondary-label;
+            --tertiary: -apple-system-tertiary-label;
             --quote-border: -apple-system-quaternary-label;
             --grid: -apple-system-separator;
             --accent: var(--link);
@@ -80,6 +83,16 @@ nonisolated enum EditorHTML {
         #editor {
             height: 100%;
             box-sizing: border-box;
+        }
+        \(MarkdownHTML.mathStylesheet)
+        /* Source separator lines own block spacing in CodeMirror. */
+        #editor .math-display { margin-top: 0; }
+        /* Nested math shares a CodeMirror line with the hidden quote/list
+           prefix. A block-level div would add empty line boxes around it. */
+        #editor .cm-line .math-display {
+            display: inline-block;
+            width: 100%;
+            vertical-align: top;
         }
         .cm-editor { height: 100%; outline: none; }
         .cm-editor.cm-focused { outline: none; }
@@ -209,7 +222,8 @@ nonisolated enum EditorHTML {
            rule per nesting level as background images (positions inline).
            The rule stops above the block gap the bundle adds when another
            block follows the quotation without a blank line. */
-        #editor .cm-content > .cm-line.cm-md-quote {
+        #editor .cm-content > .cm-line.cm-md-quote,
+        #editor .cm-md-code-card > .cm-line.cm-md-quote {
             padding-inline-end: 1em;
             padding-top: var(--cm-md-quote-top);
             padding-bottom: calc(var(--cm-md-quote-bottom) + var(--cm-md-block-gap, 0px));
@@ -654,6 +668,78 @@ nonisolated enum EditorHTML {
         html[data-page-scrolling="true"] #editor,
         html[data-page-scrolling="true"] .cm-editor { height: auto; }
         html[data-page-scrolling="true"] #editor .cm-scroller { overflow: visible; }
+        /* Plain source mode: the file as text, in the code font, with
+           every Markdown marker visible. Lines carry no preview classes
+           here, so only the token colors below apply. */
+        #editor .cm-md-source .cm-scroller {
+            font-family: \(MarkdownHTML.codeFontFamily) !important;
+            font-size: 0.923em;
+            /* Code spacing, tighter than the reading line height. */
+            line-height: 1.4;
+            tab-size: 4;
+            /* No page gutters: the number column sits on the pane's edge,
+               and the first line starts at the top of the pane. */
+            padding-inline: 0;
+            padding-top: 8px;
+        }
+        /* Source reads like code: numbers on the left edge and text that
+           starts beside them and uses the full width, not a centered column. */
+        #editor .cm-md-source .cm-gutters {
+            background: transparent;
+            border: none;
+            color: var(--tertiary);
+            font-variant-numeric: tabular-nums;
+            user-select: none;
+            -webkit-user-select: none;
+            /* Room for the rounded end of the current-line band. */
+            margin-left: 6px;
+        }
+        #editor .cm-md-source .cm-content {
+            margin: 0;
+            max-width: none;
+            padding-right: 8px;
+            /* Room to scroll past the end, until the last line is in the
+               middle of the pane, so the end of the file is not read or
+               typed at the bottom edge of the window. */
+            padding-bottom: calc((100vh - var(--mdp-top-inset, 0px) / var(--mdp-chrome-zoom, 1)) / 2);
+        }
+        /* The text gap is line padding, not content padding, so the
+           current-line band joins the number column without a break. */
+        #editor .cm-md-source .cm-line { padding: 0 8px 0 var(--src-line-start); }
+        /* Smaller numbers on the text baseline: the gutter keeps the text
+           line height, so a number's line box must not shrink with its font. */
+        #editor .cm-md-source .cm-lineNumbers .cm-gutterElement {
+            padding: 0 10px 0 8px;
+            min-width: 3ch;
+            font-size: 0.917em;
+            line-height: calc(1.4 / 0.917);
+        }
+        /* One band across the number and the text of the line with the caret. */
+        #editor .cm-md-source .cm-activeLineGutter {
+            background: var(--src-active-line);
+            border-radius: 5px 0 0 5px;
+            color: var(--text);
+        }
+        #editor .cm-md-source .cm-activeLine {
+            background: var(--src-active-line);
+            border-radius: 0 5px 5px 0;
+        }
+        #editor .cm-md-source {
+            --src-active-line: color-mix(in srgb, var(--text) 7%, transparent);
+            /* Also the base of the hanging indent the bundle sets on a line. */
+            --src-line-start: 4px;
+        }
+        .cm-src-heading { font-weight: 600; }
+        .cm-src-strong { font-weight: 600; }
+        .cm-src-emphasis { font-style: italic; }
+        .cm-src-strikethrough { text-decoration: line-through; }
+        .cm-src-link { color: var(--link); }
+        .cm-src-title { color: var(--hl-string); }
+        .cm-src-label { color: var(--hl-type); }
+        .cm-src-quote { color: var(--secondary); }
+        .cm-src-comment { color: var(--hl-comment); }
+        .cm-src-escape { color: var(--hl-number); }
+        .cm-src-mark { color: var(--secondary); font-weight: 400; font-style: normal; }
         .hl-keyword { color: var(--hl-keyword); }
         .hl-string { color: var(--hl-string); }
         .hl-comment { color: var(--hl-comment); }
@@ -683,6 +769,32 @@ nonisolated enum EditorHTML {
         }
         </script>
         """ : "")
+        <script>
+        \(MarkdownHTML.mathElementRenderer)
+        window.__mdRenderMathElement = renderMathElement;
+        // Loaded once, on the first rendered formula, including newly typed math.
+        window.__mdLoadMath = function () {
+            if (!window.__mdMathLoading) {
+                const loaded = (element) => new Promise((resolve, reject) => {
+                    element.onload = resolve;
+                    element.onerror = reject;
+                    document.head.appendChild(element);
+                });
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = '\(MarkdownAssetScheme.vendorURL("katex.min.css"))';
+                const script = document.createElement('script');
+                script.src = '\(MarkdownAssetScheme.vendorURL("katex.min.js"))';
+                window.__mdMathLoading = Promise.all([loaded(css), loaded(script)]).catch((error) => {
+                    css.remove();
+                    script.remove();
+                    window.__mdMathLoading = null;
+                    throw error;
+                });
+            }
+            return window.__mdMathLoading;
+        };
+        </script>
         <script>\(editorJavaScript)</script>
         <script>
         (function () {
@@ -691,6 +803,7 @@ nonisolated enum EditorHTML {
             };
             window.__mdTableExpandLabel = \(jsStringLiteral(NSLocalizedString("Expand Table", comment: "Open a table in full screen")));
             window.__mdTableExpandIcon = \(jsStringLiteral(MarkdownHTML.tableExpandIconSVG));
+            window.__mdMathEditLabel = \(jsStringLiteral(NSLocalizedString("Math formula. Click to edit source.", comment: "Accessibility label for a rendered equation in the editor")));
             window.__mdOpenTablePopup = function (markdown) { post({kind: "tablePopup", markdown}); };
             window.__mdRequestTableContextMenu = function (details) {
                 post(Object.assign({ kind: "tableContextMenu" }, details));
@@ -700,6 +813,12 @@ nonisolated enum EditorHTML {
             };
             window.onerror = function (message) { post("error: " + message); };
             let editor = null;
+            // Survives a reload of the document into this page.
+            window.__mdSourceMode = \(configuration.sourceMode);
+            window.__mdSetSourceMode = function (on) {
+                window.__mdSourceMode = !!on;
+                if (editor) editor.setSourceMode(window.__mdSourceMode);
+            };
             window.__mdSetBaseHref = function (baseHref) {
                 let base = document.querySelector("head > base");
                 if (baseHref) {
@@ -712,7 +831,11 @@ nonisolated enum EditorHTML {
                     base.remove();
                 }
             };
-            window.__mdLoadEditor = function (markdown, baseHref) {
+            // `sourceMode` comes with a load into a page kept from an
+            // earlier edit session: the setting can change while that page
+            // has no editor on screen to tell.
+            window.__mdLoadEditor = function (markdown, baseHref, sourceMode) {
+                if (sourceMode !== undefined) window.__mdSourceMode = !!sourceMode;
                 window.__mdSetBaseHref(baseHref);
                 if (editor) editor.destroy();
                 editor = window.MDEditor.create(
@@ -720,10 +843,12 @@ nonisolated enum EditorHTML {
                     markdown,
                     {
                         pageScrolling: \(usesPageScrolling),
+                        sourceMode: window.__mdSourceMode,
                         onDirty: function () { post("dirty"); },
                         onCopyCode: function (text) { post({ kind: "copyCode", value: text }); },
                         onFormattingChange: function (state) {
-                            post({ kind: "formattingState", heading: state.heading, commands: state.commands });
+                            post({ kind: "formattingState", heading: state.heading, commands: state.commands,
+                                   selectedText: state.selectedText });
                         },
                         onSearchChange: function (result) {
                             post({ kind: "findResult", index: result.index, total: result.total });
@@ -737,6 +862,7 @@ nonisolated enum EditorHTML {
                             line: \(MarkdownHTML.sourceLineHeight),
                             blankGap: \(MarkdownHTML.blankLineGap),
                             paragraph: \(MarkdownHTML.paragraphSpacing),
+                            math: \(MarkdownHTML.mathSpacing),
                             quote: \(MarkdownHTML.quoteSpacing),
                             alert: \(MarkdownHTML.largeBlockSpacing),
                             table: \(MarkdownHTML.largeBlockSpacing),

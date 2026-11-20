@@ -10,6 +10,35 @@ import Foundation
 // `nonisolated` matters: the targets default to MainActor isolation, and
 // rendering runs off the main actor.
 nonisolated extension MarkdownHTML {
+    static let mathStylesheet = """
+    .math-display {
+        /* A formula inside a paragraph is a <span>. */
+        display: block;
+        margin: 1.2em 0 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    .math-display .katex-display {
+        margin: 0;
+    }
+    .math-error {
+        color: #b00020;
+        background: var(--code-bg);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: \(codeFontFamily);
+        font-size: 0.88em;
+        white-space: pre-wrap;
+    }
+    :root[data-mdp-color-scheme="dark"] .math-error {
+        color: #ff6e6e;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-mdp-color-scheme="light"]) .math-error { color: #ff6e6e; }
+    }
+    .katex { direction: ltr !important; unicode-bidi: isolate; }
+    """
+
     // Shared document typography, spacing, and controls. Logical positioning
     // keeps lists, quotations, and table alignment consistent in both directions.
     /// The shared document stylesheet plus the code highlighting class rules.
@@ -26,7 +55,7 @@ nonisolated extension MarkdownHTML {
 
     static let tableControlsCSS = """
     .md-table-wrap { position: relative; margin-top: \(largeBlockSpacing)px; padding-top: 28px; }
-    .md-table-wrap > table { margin-top: 0; }
+    .md-table-wrap > table, [data-md-app="table-scroll"] > table { margin-top: 0; }
     /* Just above the table's leading edge, 4px clear of it, so the control
        reads as belonging to the table. At the far end of the column it was
        nowhere near a narrow table. */
@@ -44,6 +73,46 @@ nonisolated extension MarkdownHTML {
     .md-table-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     th code, td code, .cm-md-table-cell .cm-md-inline-code { overflow-wrap: inherit; word-break: normal; }
     html.\(previewPrintClass) [data-md-app="table-actions"] { display: none; }
+    /* Column resize. A short divider between header cells shows where to
+       grab a column edge; the edge under the pointer is darker, and the last
+       edge has a divider only then. A border, not a 1px background, so
+       WebKit snaps it to whole pixels and it stays as sharp as the row lines
+       at every zoom. :where keeps these weaker than the table window's
+       sticky header. */
+    @media screen {
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th { position: relative; }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th::after {
+            content: '';
+            position: absolute;
+            inset-inline-end: 0;
+            top: 25%;
+            bottom: 25%;
+            border-inline-end: 1px solid transparent;
+        }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th:not(:last-child)::after { border-color: var(--grid); }
+        :where([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th.mdp-column-edge-active::after { border-color: var(--secondary); }
+        [data-md-app="table-scroll"] {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+        }
+        table.mdp-columns-resized { display: table; table-layout: fixed; max-width: none; }
+        table.mdp-columns-resized :is(th, td) { overflow-wrap: anywhere; }
+        /* The hover cursor sits on the one cell under the pointer: a class on
+           the root would restyle the whole page at each edge crossing. */
+        thead th.mdp-column-edge-active, html.mdp-column-resizing * { cursor: col-resize !important; }
+        html.mdp-column-resizing { -webkit-user-select: none; user-select: none; }
+    }
+    html.\(previewPrintClass) :is([data-md-app="table-wrap"], [data-md-app="table-scroll"]) > table > thead th::after { content: none; }
+    html.\(previewPrintClass) table.mdp-columns-resized {
+        display: block; table-layout: auto; max-width: 100%; width: auto !important;
+    }
+    html.\(previewPrintClass) colgroup[data-md-app="column-widths"] { display: none; }
+    @media print {
+        table.mdp-columns-resized { width: auto !important; }
+        colgroup[data-md-app="column-widths"] { display: none; }
+    }
     html.\(previewPrintClass) .md-table-wrap { padding-top: 0; }
     @media print {
         [data-md-app="table-actions"] { display: none !important; }
@@ -181,7 +250,7 @@ nonisolated extension MarkdownHTML {
         word-spacing: var(--mdp-word-spacing, normal);
         color: var(--text);
         background: transparent;
-        padding: calc((\(pagePaddingTop)px + var(--mdp-page-top-clearance, 0px)) / var(--mdp-chrome-zoom, 1)) var(--mdp-page-padding, \(pagePaddingHorizontal)px) \(pagePaddingBottom)px;
+        padding: calc((\(pagePaddingTop)px + var(--mdp-page-top-clearance, 0px)) / var(--mdp-chrome-zoom, 1)) calc(var(--mdp-page-padding, \(pagePaddingHorizontal)px) - var(--mdp-inline-slack, 0px)) \(pagePaddingBottom)px;
         -webkit-font-smoothing: antialiased;
     }
     /* Reader spacing tweaks stop at code — whitespace fidelity wins. */
@@ -190,14 +259,17 @@ nonisolated extension MarkdownHTML {
         word-spacing: normal;
     }
 
+    /* --mdp-inline-slack (0 unless the page sets it) moves a strip of the
+       page padding into the article's own padding. The text column stays
+       where it is; see inlineOverflowSlackCSS for why the article needs it. */
     article.markdown-body {
-        max-width: \(contentColumnWidth)px;
+        max-width: calc(\(contentColumnWidth)px + 2 * var(--mdp-inline-slack, 0px));
         margin-left: auto;
         margin-right: auto;
         /* Reader margins: symmetric padding inside the column, so they hold
            in every content-width mode instead of fighting max-width. */
-        padding-left: var(--mdp-page-inset, 0);
-        padding-right: var(--mdp-page-inset, 0);
+        padding-left: calc(var(--mdp-page-inset, 0px) + var(--mdp-inline-slack, 0px));
+        padding-right: calc(var(--mdp-page-inset, 0px) + var(--mdp-inline-slack, 0px));
     }
     article.markdown-body > *:first-child { margin-top: 0 !important; }
     /* A flex column keeps WebKit from painting the selection across the gaps
@@ -314,6 +386,15 @@ nonisolated extension MarkdownHTML {
 
     p {
         margin: \(paragraphSpacing)px 0 0;
+    }
+    /* A display formula with no blank line around it is part of the
+       paragraph: its lines follow each other without a block gap, as they do
+       in Edit mode. The soft break after the formula would add an empty line. */
+    p .math-display {
+        margin-top: 0;
+    }
+    .math-display + br {
+        display: none;
     }
     /* The final blank of a run shrinks to a small gap so a single authored
        blank plus the next block's margin matches other renderers' paragraph
@@ -616,30 +697,7 @@ nonisolated extension MarkdownHTML {
         font-family: \(codeFontFamily);
         font-size: 0.88em;
     }
-    .math-display {
-        margin: 1.2em 0 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-    }
-    .math-display .katex-display {
-        margin: 0;
-    }
-    .math-error {
-        color: #b00020;
-        background: var(--code-bg);
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-family: \(codeFontFamily);
-        font-size: 0.88em;
-        white-space: pre-wrap;
-    }
-    :root[data-mdp-color-scheme="dark"] .math-error {
-        color: #ff6e6e;
-    }
-    @media (prefers-color-scheme: dark) {
-        :root:not([data-mdp-color-scheme="light"]) .math-error { color: #ff6e6e; }
-    }
-    .katex { direction: ltr !important; unicode-bidi: isolate; }
+    \(mathStylesheet)
 
     blockquote {
         position: relative;

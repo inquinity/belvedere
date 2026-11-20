@@ -16,8 +16,6 @@
 #
 # Reviewed at the 0.0.62 merge: FileSearchMatcher rank/init(relativePath:)/score and
 # ThemeColorsSetting.isCustomized are used only by tests/swift-tests.
-# ProjectFileIndex.invalidate(root:) is upstream's hook for a directory watcher
-# that is not wired yet.
 #
 # Reviewed at the 0.0.63 merge:
 # - ReaderRenderSettings.fingerprint was read only by the reopen-snapshot code
@@ -33,9 +31,14 @@
 # - DocumentExportSession's didRun(_:success:contextInfo:) takes the parameters
 #   AppKit's selector requires; the old export file's copy of it was removed.
 #
+# Reviewed at the third upstream round (2026-11-19):
+# - toggleSourceModeFromBar(_:) and toggleSourceModeFromContextMenu(_:) are
+#   @objc target-action methods; AppKit passes the sender the selector names.
+#
 belvedere-quick-look/QuickLookFirstResponderPolicy.swift:31:16: warning: Unused property 'rationale'
 belvedere/Document/ContentViewController.swift:74:13: warning: Assign-only property 'headingID' is assigned, but never used
 belvedere/Document/DocumentWindowController+EditMode.swift:77:43: warning: Unused parameter 'sender'
+belvedere/Document/DocumentWindowController+FormattingBar.swift:178:50: warning: Unused parameter 'sender'
 belvedere/Document/DocumentWindowController+OpenTargets.swift:169:51: warning: Unused parameter 'sender'
 belvedere/Document/DocumentWindowController+OpenTargets.swift:296:49: warning: Unused parameter 'sender'
 belvedere/Document/DocumentWindowController+OpenTargets.swift:515:48: warning: Unused parameter 'sender'
@@ -45,27 +48,27 @@ belvedere/Document/DocumentWindowController+Sidebar.swift:102:53: warning: Unuse
 belvedere/Document/DocumentWindowController+Sidebar.swift:97:55: warning: Unused parameter 'sender'
 belvedere/Document/DocumentWindowController+Toolbar.swift:368:45: warning: Unused parameter 'sender'
 belvedere/Document/DocumentWindowController+Toolbar.swift:546:48: warning: Unused parameter 'sender'
-belvedere/Document/MainSplitViewController.swift:226:10: warning: Unused function 'validateMenuItem(_:)'
+belvedere/Document/MainSplitViewController.swift:245:10: warning: Unused function 'validateMenuItem(_:)'
+belvedere/Features/Editor/EditorViewController.swift:658:58: warning: Unused parameter 'sender'
 belvedere/Features/FileSearch/FileSearchMatcher.swift:32:9: warning: Unused initializer 'init(relativePath:)'
 belvedere/Features/FileSearch/FileSearchMatcher.swift:47:13: warning: Assign-only property 'score' is assigned, but never used
 belvedere/Features/FileSearch/FileSearchMatcher.swift:86:17: warning: Unused function 'rank(query:candidates:)'
-belvedere/Features/FileSearch/ProjectFileIndex.swift:90:10: warning: Unused function 'invalidate(root:)'
 belvedere/Features/Mermaid/MermaidDiagramPopup.swift:172:41: warning: Unused parameter 'notification'
 belvedere/Features/OpenWith/OpenTargetCatalog.swift:25:10: warning: Unused enum case 'copyAndOpen'
 belvedere/Features/OpenWith/OpenTargetCatalog.swift:260:42: warning: Unused parameter 'editors'
 belvedere/Features/OpenWith/OpenTargetCatalog.swift:262:42: warning: Unused parameter 'llmApps'
-belvedere/Features/Settings/SettingsModel.swift:149:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
-belvedere/Features/Settings/SettingsModel.swift:158:10: warning: Unused function 'resetThemeColors()'
-belvedere/Features/Sidebar/SidebarViewController.swift:287:37: warning: Unused parameter 'sender'
-belvedere/Features/Sidebar/SidebarViewController.swift:342:9: warning: Assign-only property 'level' is assigned, but never used
+belvedere/Features/Settings/SettingsModel.swift:156:10: warning: Unused function 'setThemeColor(_:slot:scheme:)'
+belvedere/Features/Settings/SettingsModel.swift:165:10: warning: Unused function 'resetThemeColors()'
+belvedere/Features/Sidebar/SidebarViewController.swift:294:37: warning: Unused parameter 'sender'
+belvedere/Features/Sidebar/SidebarViewController.swift:349:9: warning: Assign-only property 'level' is assigned, but never used
 belvedere/Rendering/CodeFenceInfo.swift:21:9: warning: Assign-only property 'metadata' is assigned, but never used
 belvedere/Rendering/CodeHighlighter.swift:164:21: warning: Unused function 'install(source:)'
 belvedere/Rendering/CodeHighlighter.swift:174:21: warning: Assign-only property 'context' is assigned, but never used
 belvedere/Rendering/CodeHighlighter.swift:34:17: warning: Unused function 'useGrammar(source:)'
 belvedere/Rendering/CodeHighlighter.swift:64:17: warning: Unused function 'supports(language:)'
 belvedere/Rendering/DocumentExportSession.swift:32:17: warning: Assign-only property 'printCompletion' is assigned, but never used
-belvedere/Rendering/DocumentExportSession.swift:336:45: warning: Unused parameter 'operation'
-belvedere/Rendering/DocumentExportSession.swift:337:42: warning: Unused parameter 'contextInfo'
+belvedere/Rendering/DocumentExportSession.swift:415:45: warning: Unused parameter 'operation'
+belvedere/Rendering/DocumentExportSession.swift:416:42: warning: Unused parameter 'contextInfo'
 belvedere/Rendering/EscapingHTMLFormatter.swift:705:18: warning: Unused enum 'TaskCheckboxSource'
 belvedere/Rendering/EscapingHTMLFormatter.swift:735:18: warning: Unused enum 'MarkdownTableEdit'
 belvedere/Rendering/EscapingHTMLFormatter.swift:753:17: warning: Unused function 'applying(_:fromLine:throughLine:in:)'
@@ -73,9 +76,9 @@ belvedere/Rendering/EscapingHTMLFormatter.swift:910:25: warning: Unused function
 belvedere/Rendering/EscapingHTMLFormatter.swift:918:25: warning: Unused function 'escapedCell(_:)'
 belvedere/Rendering/EscapingHTMLFormatter.swift:949:25: warning: Unused function 'serialize(rows:alignments:)'
 belvedere/Rendering/MarkdownHTML+Footnotes.swift:23:13: warning: Assign-only property 'label' is assigned, but never used
-belvedere/Rendering/MarkdownWebView+PDFExport.swift:284:17: warning: Assign-only property 'printInfoObservers' is assigned, but never used
-belvedere/Rendering/MarkdownWebView+PDFExport.swift:678:43: warning: Unused parameter 'sender'
-belvedere/Rendering/ReaderRenderSettings.swift:24:9: warning: Unused property 'fingerprint'
+belvedere/Rendering/MarkdownWebView+PDFExport.swift:291:17: warning: Assign-only property 'printInfoObservers' is assigned, but never used
+belvedere/Rendering/MarkdownWebView+PDFExport.swift:685:43: warning: Unused parameter 'sender'
+belvedere/Rendering/ReaderRenderSettings.swift:26:9: warning: Unused property 'fingerprint'
 belvedere/Theme/ThemeColorsSetting.swift:107:10: warning: Unused function 'hasWindowBackgroundOverride(for:)'
 belvedere/Theme/ThemeColorsSetting.swift:91:9: warning: Unused property 'isCustomized'
 belvedere/Theme/ThemeColorsSetting.swift:99:9: warning: Unused property 'hasWindowBackgroundOverride'

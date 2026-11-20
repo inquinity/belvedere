@@ -116,6 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         installSingleNewLineMenuItems()
         installSidebarViewMenuItems()
         installEditModeMenuItem()
+        installCopyAsPlainTextMenuItem()
         installFormatMenu()
         installNewTabMenuItem()
         installOpenFolderMenuItem()
@@ -138,6 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             || model.themeColors != ThemeColorsSetting.current
             || model.documentFont != DocumentFontSetting.current
             || model.readerLayout != ReaderLayoutSetting.current
+            || model.textAlignment != TextAlignmentSetting.current
             || model.strictLineBreaks != StrictLineBreaksSetting.current
             || model.markdownFlavor != MarkdownFlavorSetting.current
         guard changed else { return }
@@ -370,6 +372,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         applyAppearanceMode(resolved, reloadPreviews: true)
     }
 
+    func applyTextAlignmentSetting(_ setting: TextAlignmentSetting) {
+        guard setting != TextAlignmentSetting.current else { return }
+        TextAlignmentSetting.current = setting
+        reloadDocumentPreviewsForSettingChange()
+    }
+
     /// Saves the default for single new lines. It reaches new windows and tabs
     /// only: a window that is already open keeps the style it has, so nothing is
     /// re-rendered. Quick Look reads the default.
@@ -567,6 +575,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             return activeDocumentWindowController != nil
         case #selector(toggleEditModeFromMenu(_:)):
             return activeDocumentWindowController?.canToggleEditMode ?? false
+        case #selector(toggleEditorSourceModeFromMenu(_:)):
+            menuItem.state = EditorSourceModeSetting.current ? .on : .off
+            return activeDocumentWindowController?.isEditing ?? false
         case #selector(formatMarkdownFromMenu(_:)):
             return activeDocumentWindowController?.canFormatMarkdown ?? false
         case #selector(selectTabFromMenu(_:)):
@@ -859,6 +870,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             let message = errorInfo[NSAppleScript.errorMessage] as? String
                 ?? errorInfo.description
             throw CommandLineToolInstallError.terminalAutomationFailed(message)
+        }
+    }
+
+    private func installCopyAsPlainTextMenuItem() {
+        let action = #selector(MarkdownWebView.copyAsPlainText(_:))
+        for editMenu in NSApp.mainMenu?.items.compactMap(\.submenu) ?? [] {
+            guard let copyIndex = editMenu.items.firstIndex(where: { $0.action == #selector(NSText.copy(_:)) })
+            else { continue }
+            guard !editMenu.items.contains(where: { $0.action == action }) else { return }
+            // nil target: the reader handles it and enables it only while
+            // article text is selected.
+            let item = NSMenuItem(title: L("Copy as Plain Text"), action: action, keyEquivalent: "c")
+            item.keyEquivalentModifierMask = [.command, .option, .shift]
+            editMenu.insertItem(item, at: copyIndex + 1)
+            return
         }
     }
 
@@ -1348,11 +1374,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
             Self.actualSizeMenuTitles.contains($0.title)
         }) ?? viewMenu.numberOfItems
         viewMenu.insertItem(item, at: insertIndex)
-        viewMenu.insertItem(.separator(), at: insertIndex + 1)
+
+        let source = NSMenuItem(title: L("Show Markdown Source"),
+                                action: #selector(toggleEditorSourceModeFromMenu(_:)),
+                                keyEquivalent: "e")
+        source.keyEquivalentModifierMask = [.command, .shift]
+        source.target = self
+        viewMenu.insertItem(source, at: insertIndex + 1)
+        viewMenu.insertItem(.separator(), at: insertIndex + 2)
     }
 
     @objc private func toggleEditModeFromMenu(_ sender: Any?) {
         activeDocumentWindowController?.toggleEditMode()
+    }
+
+    /// One app-wide choice: every open editor switches, and edit mode opens
+    /// in the same style next time.
+    @objc private func toggleEditorSourceModeFromMenu(_ sender: Any?) {
+        toggleEditorSourceMode()
+    }
+
+    func toggleEditorSourceMode() {
+        EditorSourceModeSetting.current.toggle()
+        documentWindowControllers.forEach { $0.applyEditorSourceModeSetting() }
     }
 
     private func installFormatMenu() {

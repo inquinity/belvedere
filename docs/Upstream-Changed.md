@@ -29,8 +29,8 @@ Upstream PR numbers below refer to `pluk-inc/markdown-preview`.
 
 ## Review mark
 
-Reviewed through upstream: `36debd1` (2026-11-11)
-Open pull requests last read: 2026-11-12
+Reviewed through upstream: `55a09b0` (2026-11-19)
+Open pull requests last read: 2026-11-19
 
 `bin/check-upstream.sh` and the monthly upstream watch read these two lines; keep their
 wording. Move them forward when a round finishes reviewing: the commit to the newest
@@ -74,7 +74,7 @@ into this repository and go stale unless someone looks.
 
 | Skill | Source | In the repo | Checked |
 |---|---|---|---|
-| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.0 (2026-08-12), files copied 2026-10-06 | 2026-10-06 |
+| `swift-concurrency` (`.claude/skills/swift-concurrency/`) | [AvdLee/swift-concurrency-agent-skill](https://github.com/AvdLee/swift-concurrency-agent-skill), folder `skills/swift-concurrency/` | release 2.3.1 (2026-11-06), files copied 2026-11-19 | 2026-11-19 |
 
 **On every sync, and before a release**, compare the copy with the source: list the source
 folder with `gh api "repos/AvdLee/swift-concurrency-agent-skill/git/trees/HEAD?recursive=1"`,
@@ -83,6 +83,11 @@ and **read the diff before importing it**: a skill is instructions an agent will
 treat its changes as untrusted input, the same as an upstream change to this project. Copy
 `SKILL.md` and `references/*.md`. The source also ships `agents/openai.yaml`, logos and plugin
 manifests, which this repository does not use. Record the release and date here.
+
+2026-11-19: updated to 2.3.1. One file changed, `references/observation.md`: it now says
+an `@Observable` class isolated to a global actor such as `@MainActor` is implicitly
+`Sendable`, and reading its properties from another actor takes `await`, where it said
+such classes are never `Sendable`. The diff was read first and held only documentation.
 
 2026-10-06: moved from `.agents/skills/` (retired with `AGENTS.md`) to `.claude/skills/`, where
 it is now a real folder, not a symlink. Updated from the 2026-09-01 copy to 2.3.0: new
@@ -93,6 +98,93 @@ records the old install hash; it is provenance only, because nothing here runs t
 installer.
 
 ---
+
+## Features for 2.2 — cherry-picked 2026-11-19, third round
+
+**Reviewed through upstream `55a09b0`** (2026-11-19): the features held for a decision
+on 2026-11-12, and all 17 commits after `36debd1`, read with the first monthly upstream
+watch report. Open pull requests were read the same day.
+
+### Taken unchanged (paths moved to `belvedere/`)
+
+- Pinned header row in the Expand Table window (GH-563).
+- Wrapped inline code no longer scrolls the page sideways (GH-657); a test tolerance
+  widened by one WebKit layout unit (1/64 px) for rounding on macOS 27.
+
+### Taken with changes
+
+- **Text alignment (GH-480).** Stored as `belvedere.textAlignment`; the picker is under
+  *Settings › General › Reading*, since Belvedere has no separate Reading pane.
+- **EPUB export (GH-517).** Runs in Belvedere's hidden export page, so pictures are
+  captured under the reader's folder boundary and content policy. The section check
+  parses XML with external entities never loaded. EPUB finds the table control by the
+  `data-md-app` marker. The test's stand-in image handler serves only inside the
+  document's folder.
+- **Selection word counts (GH-534).** Controls left out of a selection are found by the
+  `data-md-app` marker. The reading view's task-checkbox callback beside it is not
+  taken (see GH-470 below).
+- **Column resizing (GH-564).** The scroller and column group it adds carry
+  `data-md-app="table-scroll"` and `data-md-app="column-widths"`; every selector in
+  Swift, JS and CSS uses those, not upstream's class and `data-mdp-resize` attribute,
+  which a document could also write. Expand Table stays above the table's leading edge.
+- **Live math in the editor (GH-555).** Upstream built it on Pele (declined), so the
+  editor keeps Belvedere's Mermaid widget and fence handling and takes only the helpers
+  maths needs: `fencedCodeNode`, `fenceInfoLanguage`, and `sourceTo`/`closed` returned by
+  `fencedCodeDetails`. The editor loads KaTeX's stylesheet over `md-asset:`, so
+  `PreviewContentPolicy` now allows `style-src 'unsafe-inline' md-asset:`; that
+  handler serves only bundle files and, for user files, images with `nosniff`, which
+  WebKit will not apply as a stylesheet. Pinned by `PreviewContentPolicyTests`.
+- **Sentence after a display formula (GH-663).** Upstream's editor change hides `$$`
+  while a formula's source is open; five of its own smoke assertions still expected
+  them visible and were updated. The EPUB stylesheet hunk is kept.
+- **Editor bundle libraries (GH-630, editor part).** Upstream's lockfile, renamed;
+  installed with `npm ci --ignore-scripts`, all 95 packages pass `npm audit
+  signatures`, and the build is byte-identical across runs. Every package in the bundle
+  is Marijn Haverbeke's, under the existing CodeMirror notice.
+- **Navigator + menu and filter (GH-566).** Write access to a folder lasts until
+  Belvedere quits. Upstream saves it as a security-scoped bookmark, which needs
+  `com.apple.security.files.bookmarks.app-scope` and leaves a lasting grant nobody can
+  see or revoke; neither is taken. Lasting grants belong with the trusted-folders
+  work. `ForkPostureTests.testFolderWriteGrantsAreNotSavedAsBookmarks` fails if either
+  returns.
+- **Navigator context menu (GH-659).** Applied by hand: Belvedere's navigator has
+  diverged.
+- **Copy as Plain Text (GH-637).** Merged upstream before the first round's mark but
+  missed then; found by the monthly watch. The task-checkbox callback and test beside
+  it are not taken.
+- **Loading panel (GH-641), local files only.** The panel, the navigator spinner and
+  the request IDs that drop a stale read. The download placeholder for Share as Link and
+  release notes, and the `AppDelegate` and `ShareLinkOpener` changes, are not taken.
+- **Plain-text source mode (GH-651).** Stored as `belvedere.editorSourceMode`; upstream's
+  pre-macOS 26 formatting bar and tint fallback are not taken.
+- Every pick: README, Chinese, Japanese, Persian, Polish and German strings not taken.
+- **Known limit.** Copying, counts, Expand Table and EPUB find the code header and table
+  controls by the `data-md-app` marker. The Mermaid zoom controls and the skipped
+  `.mermaid`, `.mermaid-figure` and footnote back-link classes come from rendered HTML,
+  which the sanitizer passes through, so a marker there would be stripped; a document
+  that borrows those classes can keep its own text out of a copy or a book. That is the
+  document hiding its own words, not reaching anything.
+
+### Declined
+
+- **Favorite folders (GH-646)** and the menu order that leans on it (GH-658): upstream
+  re-roots the navigator without moving the folder boundary, so the tree and what a
+  document may load would disagree. Revisit with trusted folders, where a favorite can
+  be a deliberate, revocable boundary. Open GH-664 (reopen the last favorite) goes with it.
+- **Editor context menu with photos from iPhone (GH-660):** a new input route
+  (Continuity Camera images saved beside the file) not wanted for 2.2.
+- **Removing the spare reader (GH-471):** Belvedere keeps it, behind its own setting.
+- **Analytics (GH-655, GH-656):** the system language and exact macOS version added to
+  upstream's daily-active event; Belvedere's reporter is a stub.
+- German localization (GH-644, GH-649), Lokalise strings and its `AGENTS.md` section
+  (GH-647), the sponsor credit (GH-645, `docs/sponsors/` is a standing removal), and
+  upstream's release commits (GH-648, GH-654).
+
+### Open upstream pull requests, read 2026-11-19
+
+Decline if merged: the unsandboxed Quick Look takeover helper with its own URL scheme
+that switches off other apps' extensions (GH-661); upstream's bundle-id move (GH-650)
+and update feed for the old id (GH-652). Worth watching: image paste fixes (GH-614).
 
 ## Export rewrite — cherry-picked 2026-11-17, second round
 
@@ -244,12 +336,8 @@ three localizations, each to be cut out again on every later sync.
 
 - **Editor bundle npm updates (GH-630):** `codemirror-lang-hcl` 0.2 and esbuild 0.28,
   with upstream's override that keeps HCL block types and labels coloured as before.
-  Not taken with the other library updates.
-- **Features under evaluation:** live math in the editor (GH-555); table column resizing
-  (GH-564, on top of GH-563; GH-476 was taken in the second round); EPUB export (GH-517,
-  on top of GH-476); selection word counts (GH-534); text alignment (GH-480); the navigator's
-  + menu and filter (GH-566, which adds `com.apple.security.files.bookmarks.app-scope`);
-  removing the spare reader (GH-471).
+  Not taken with the other library updates; taken in the third round (2026-11-19).
+- **Features under evaluation:** all decided in the third round (2026-11-19).
 
 ### Open upstream pull requests, read 2026-11-12
 

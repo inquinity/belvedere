@@ -36,10 +36,35 @@ final class TablePreviewWindow: NSObject, NSWindowDelegate {
             preview.webView.configuration.userContentController.addUserScript(WKUserScript(source: """
                 const tableWindowStyle = document.createElement('style');
                 tableWindowStyle.textContent = `
-                    body { padding: 24px !important; }
+                    body { padding: 24px !important; padding-inline-end: 0 !important; }
                     article.markdown-body { max-width: none !important; margin: 0 !important; }
                     [data-md-app="table-actions"] { display: none !important; }
-                    .md-table-wrap { padding-top: 0 !important; margin-top: 0 !important; }
+                    /* The end padding lives on the wrapper, which may grow
+                       past the window, so a wide table keeps a gap at its
+                       end and its last column edge stays clear of the
+                       window's resize area. */
+                    .md-table-wrap {
+                        padding-top: 0 !important;
+                        margin-top: 0 !important;
+                        max-width: none;
+                        padding-inline-end: 24px;
+                    }
+                    /* The header row sticks to the window, so the page
+                       must be the only scroller: the article and the table
+                       scroll horizontally in the document. A theme page
+                       color wins over the default background here. */
+                    html { overflow-x: auto !important; }
+                    :where(html) { background: -apple-system-text-background; }
+                    article.markdown-body, table, [data-md-app="table-scroll"] { overflow: visible; }
+                    /* Only a single column header row: row headers in a raw
+                       HTML table body, or several header rows, would pile
+                       up at the top. */
+                    thead > tr:only-child > th {
+                        position: sticky;
+                        top: 0;
+                        background: var(--mdp-page-bg, -apple-system-text-background);
+                        box-shadow: inset 0 -1px var(--grid);
+                    }
                 `;
                 document.head.append(tableWindowStyle);
                 """, injectionTime: .atDocumentEnd, forMainFrameOnly: true))

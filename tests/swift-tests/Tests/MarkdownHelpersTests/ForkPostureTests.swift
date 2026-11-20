@@ -25,6 +25,7 @@ final class ForkPostureTests: XCTestCase {
             ("belvedere/Document/DocumentWindowController+EditSession.swift", 4),
             ("belvedere/Document/DocumentWindowController+ImageHandling.swift", 2),
             ("belvedere/Rendering/MarkdownWebView+PDFExport.swift", 1),
+            ("belvedere/Features/Sidebar/ProjectNavigatorView.swift", 3),
         ]
         for (path, minimum) in sites {
             let calls = try text(at: path).components(separatedBy: "AppBundleWriteGuard").count - 1
@@ -120,6 +121,19 @@ final class ForkPostureTests: XCTestCase {
             entitlements["com.apple.security.temporary-exception.apple-events"],
             "The Terminal automation exception is back. It existed only for the CLI installer."
         )
+    }
+
+    /// The navigator's + menu asks for write access to a folder and keeps it
+    /// until the app quits. Upstream saves it as a security-scoped bookmark,
+    /// which needs this entitlement and leaves a lasting grant with no way to
+    /// see or revoke it. Lasting grants belong with trusted folders.
+    func testFolderWriteGrantsAreNotSavedAsBookmarks() throws {
+        let entitlements = try plist(at: "belvedere/belvedere.entitlements")
+        XCTAssertNil(entitlements["com.apple.security.files.bookmarks.app-scope"],
+                     "The bookmarks entitlement is back; see the navigator's withWriteAccess.")
+        let navigator = try text(at: "belvedere/Features/Sidebar/ProjectNavigatorView.swift")
+        XCTAssertFalse(navigator.contains("bookmarkData("), "The navigator saves a folder grant again.")
+        XCTAssertFalse(navigator.contains("resolvingBookmarkData"), "The navigator restores a folder grant again.")
     }
 
     // MARK: - Telemetry and updater

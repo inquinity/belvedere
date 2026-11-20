@@ -6,8 +6,9 @@
 
 import {
   EditorView, keymap, ViewPlugin, Decoration, BlockWrapper, WidgetType, dropCursor,
+  lineNumbers, highlightActiveLineGutter, highlightActiveLine,
 } from "@codemirror/view"
-import { Annotation, EditorState, EditorSelection, MapMode, Prec, StateEffect, StateField, Transaction } from "@codemirror/state"
+import { Annotation, Compartment, EditorState, EditorSelection, MapMode, Prec, StateEffect, StateField, Transaction } from "@codemirror/state"
 import {
   defaultKeymap, history, historyKeymap, indentLess, insertTab,
 } from "@codemirror/commands"
@@ -18,7 +19,7 @@ import {
   syntaxTree, syntaxTreeAvailable, ensureSyntaxTree, syntaxHighlighting, HighlightStyle,
   indentUnit, languageDataProp, LanguageDescription, LanguageSupport, StreamLanguage,
 } from "@codemirror/language"
-import { highlightTree, tags as t } from "@lezer/highlight"
+import { highlightTree, styleTags, tags as t } from "@lezer/highlight"
 import { javascript } from "@codemirror/lang-javascript"
 import { python } from "@codemirror/lang-python"
 import { json } from "@codemirror/lang-json"
@@ -33,7 +34,9 @@ import { rust } from "@codemirror/legacy-modes/mode/rust"
 import { c, cpp, java, kotlin, objectiveC, csharp } from "@codemirror/legacy-modes/mode/clike"
 import { sql } from "@codemirror/legacy-modes/mode/sql"
 import { toml } from "@codemirror/legacy-modes/mode/toml"
-import { hcl } from "codemirror-lang-hcl"
+import { mathSyntax } from "./math.js"
+import { stexMath } from "@codemirror/legacy-modes/mode/stex"
+import { hclLanguage } from "codemirror-lang-hcl"
 
 // ---------------------------------------------------------------------------
 // Fenced-code languages
@@ -76,7 +79,10 @@ const legacy = (name, alias, parser) =>
     support: new LanguageSupport(StreamLanguage.define(parser)),
   })
 
+const texLanguage = StreamLanguage.define(stexMath)
+
 const codeLanguages = [
+  LanguageDescription.of({ name: "latex", alias: ["tex", "math"], support: new LanguageSupport(texLanguage) }),
   LanguageDescription.of({
     name: "javascript",
     alias: ["js", "jsx", "ts", "tsx", "typescript", "node"],
@@ -86,7 +92,16 @@ const codeLanguages = [
   LanguageDescription.of({ name: "json", alias: ["jsonc"], support: json() }),
   LanguageDescription.of({ name: "css", alias: ["scss"], support: css() }),
   LanguageDescription.of({ name: "html", alias: ["htm", "xml"], support: html() }),
-  LanguageDescription.of({ name: "hcl", alias: ["terraform", "tf"], support: hcl() }),
+  LanguageDescription.of({
+    name: "hcl",
+    alias: ["terraform", "tf"],
+    // codemirror-lang-hcl 0.2 tags block types as type names and labels as
+    // label names. Keep `resource "aws_instance" "web"` as keyword + strings,
+    // which matches the reader's highlight.js colours.
+    support: new LanguageSupport(hclLanguage.configure({
+      props: [styleTags({ "BlockType!": t.definitionKeyword, "BlockLabel!": t.string })],
+    })),
+  }),
   legacy("swift", [], swift),
   legacy("shell", ["sh", "bash", "zsh", "console"], shell),
   legacy("yaml", ["yml"], yaml),
@@ -182,6 +197,63 @@ class TextWidget extends WidgetType {
     return span
   }
   ignoreEvent() { return false }
+}
+
+// KaTeX loads on the first formula; an element replaced meanwhile is skipped.
+function renderMathWhenLoaded(element, tex, display, rendered) {
+  window.__mdLoadMath?.().then(() => {
+    if (!element.isConnected) return
+    window.__mdRenderMathElement(element, tex, display)
+    rendered?.()
+  }).catch(() => { /* Keep source visible if the bundled renderer is unavailable. */ })
+}
+
+// An empty fence has no source line to edit, and a caret on its closing
+// marker would break the fence. Open one source line and select it. Inside a
+// quote or list the new line needs the container's prefix, or the typed text
+// falls outside the fence: copy it from the closing marker's line, or from
+// the opening line with list markers blanked.
+function openEmptyFence(view, node) {
+  const { state } = view
+  const { sourceFrom, sourceTo, closed } = fencedCodeDetails(state, node)
+  if (sourceTo > sourceFrom) return false
+  const openingLine = state.doc.lineAt(node.from)
+  const blankedMarker = ({ prefix, indent }) => indent + " ".repeat(prefix.length - indent.length)
+  const prefix = closed ? state.sliceDoc(state.doc.lineAt(sourceTo).from, node.lastChild.from)
+    : blankedMarker(listPrefix(state.sliceDoc(openingLine.from, node.from)))
+  view.dispatch({
+    changes: { from: openingLine.to, insert: "\n" + prefix },
+    selection: { anchor: openingLine.to + 1 + prefix.length },
+    userEvent: "select.pointer",
+  })
+  return true
+}
+
+class MathWidget extends WidgetType {
+  constructor(source, display, sourceOffset, fenced = false) {
+    super(); this.source = source; this.display = display; this.sourceOffset = sourceOffset; this.fenced = fenced
+  }
+  eq(other) {
+    return this.source === other.source && this.display === other.display
+      && this.sourceOffset === other.sourceOffset && this.fenced === other.fenced
+  }
+  toDOM(view) {
+    const element = document.createElement(this.display ? "div" : "span")
+    element.className = this.display ? "math math-display" : "math math-inline"
+    element.textContent = this.source
+    element.setAttribute("aria-label", window.__mdMathEditLabel || "Math formula. Click to edit source.")
+    element.addEventListener("mousedown", event => {
+      event.preventDefault()
+      const from = view.posAtDOM(element)
+      view.focus()
+      const fence = this.fenced && fencedCodeNode(view.state, from, 1)
+      if (fence && openEmptyFence(view, fence)) return
+      view.dispatch({ selection: { anchor: from + this.sourceOffset }, userEvent: "select.pointer" })
+    })
+    renderMathWhenLoaded(element, this.source, this.display, () => view.requestMeasure())
+    return element
+  }
+  ignoreEvent() { return true }
 }
 
 class ImageWidget extends WidgetType {
@@ -607,7 +679,7 @@ let pendingTableContextAction = null
 
 // Inactive cells render inline formatting; focused cells expose their exact
 // Markdown. Build DOM nodes so authored HTML stays text and links stay editable.
-const tableInlineParser = markdownLanguage.parser.configure(obsidianHighlight)
+const tableInlineParser = markdownLanguage.parser.configure([obsidianHighlight, mathSyntax])
 const tableRenderedTextOffsets = new WeakMap()
 
 function renderTableCell(element, source) {
@@ -634,7 +706,17 @@ function renderTableCell(element, source) {
     appendText(parent, source.slice(offset, to), offset)
   }
   const appendNode = (parent, node) => {
-    if (node.name === 'InlineCode') {
+    if (node.name === 'InlineMath' || node.name === 'DisplayMath') {
+      const display = node.name === 'DisplayMath'
+      const size = display ? 2 : 1
+      const span = document.createElement('span')
+      const tex = source.slice(node.from + size, node.to - size)
+      appendText(span, source.slice(node.from, node.to), node.from)
+      // KaTeX replaces the mapped text node; clicks on its output use this.
+      span.dataset.mathSourceFrom = String(node.from + size)
+      parent.append(span)
+      renderMathWhenLoaded(span, tex, display)
+    } else if (node.name === 'InlineCode') {
       const code = document.createElement('code')
       code.className = 'cm-md-inline-code'
       let text = source.slice(node.firstChild.to, node.lastChild.from).replace(/\n/g, ' ')
@@ -705,9 +787,9 @@ function captureTableSelection(view) {
   const state = EditorState.create({
     doc: text,
     selection: EditorSelection.single(target.anchor, target.head),
-    extensions: [markdown({ extensions: obsidianHighlight })],
+    extensions: [markdown({ extensions: [obsidianHighlight, mathSyntax] })],
   })
-  tableFormattingCallbacks.get(view)?.(formattingState(state))
+  tableFormattingCallbacks.get(view)?.(selectionContext(state))
 }
 
 function prepareTableFormatting(view) {
@@ -909,7 +991,12 @@ class TableEditorWidget extends WidgetType {
       )
       window.getSelection()?.removeAllRanges()
       selectedPart = { kind, row: anchor.row, column: anchor.column, bounds }
-      tableFormattingTargets.delete(view)
+      // Selecting a whole row, column, or range drops the text selected in a
+      // cell, and nothing else tells the Inspector, so it manually notifies
+      // the change
+      if (tableFormattingTargets.delete(view)) {
+        tableFormattingCallbacks.get(view)?.({ ...selectionContext(view.state), selectedText: null })
+      }
       root.tabIndex = 0
       if (kind === "range") {
         const rowCount = bounds.bottom - bounds.top + 1
@@ -1096,8 +1183,13 @@ class TableEditorWidget extends WidgetType {
           && cell.textContent !== model.rows[row][column]) {
         const hit = document.caretRangeFromPoint?.(event.clientX, event.clientY)
         const from = hit && tableRenderedTextOffsets.get(hit.startContainer)
+        const math = hit && from == null ? (hit.startContainer.parentElement ?? hit.startContainer)
+          .closest?.("[data-math-source-from]") : null
         if (from != null && cell.contains(hit.startContainer)) {
           sourceAnchor = from + hit.startOffset
+          event.preventDefault()
+        } else if (math && cell.contains(math)) {
+          sourceAnchor = Number(math.dataset.mathSourceFrom)
           event.preventDefault()
         }
       }
@@ -1423,13 +1515,14 @@ const METRICS = {
   line: 22.8,
   blankGap: 4,    // final blank of a run (.md-source-blank-line)
   paragraph: 12,  // p / ul / ol / pre / .md-code-wrap
+  math: 18,       // .math-display (1.2em)
   quote: 18,      // blockquote
   alert: 24,      // .markdown-alert
-  table: 24,      // .md-table-scroll
+  table: 24,      // a table's wrapper
   hr: 12,         // hr (top only; the next block's margin supplies the bottom)
 }
 const SEPARATOR_BLOCKS = new Set([
-  "Paragraph", "FencedCode", "CodeBlock", "Blockquote",
+  "Paragraph", "MathBlock", "UnclosedMathBlock", "FencedCode", "CodeBlock", "Blockquote",
   "BulletList", "OrderedList", "Table", "HorizontalRule", "HTMLBlock",
 ])
 const separatorLineCache = new Map()
@@ -1577,21 +1670,32 @@ const frontmatterDelim = Decoration.mark({ class: "cm-md-frontmatter-delim" })
 
 const autoDirectionLine = Decoration.line({ attributes: { dir: "auto" } })
 
-function buildDirectionLines(state) {
-  const ranges = []
-  for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber++) {
-    ranges.push(autoDirectionLine.range(state.doc.line(lineNumber).from))
+// Line decorations for the lines in view only, from `lineDecoration(line,
+// state)`, which returns a decoration or null. A decoration for every line
+// of the document, built again on each change, made typing slow in a large
+// file.
+const visibleLineDecorations = (lineDecoration) => {
+  const build = (view) => {
+    const ranges = []
+    for (const { from, to } of view.visibleRanges) {
+      for (let pos = from; pos <= to;) {
+        const line = view.state.doc.lineAt(pos)
+        const decoration = lineDecoration(line, view.state)
+        if (decoration) ranges.push(decoration.range(line.from))
+        pos = line.to + 1
+      }
+    }
+    return Decoration.set(ranges)
   }
-  return Decoration.set(ranges)
+  return ViewPlugin.fromClass(class {
+    constructor(view) { this.decorations = build(view) }
+    update(update) {
+      if (update.docChanged || update.viewportChanged) this.decorations = build(update.view)
+    }
+  }, { decorations: (plugin) => plugin.decorations })
 }
 
-const directionLines = StateField.define({
-  create: buildDirectionLines,
-  update(value, transaction) {
-    return transaction.docChanged ? buildDirectionLines(transaction.state) : value
-  },
-  provide: (field) => EditorView.decorations.from(field),
-})
+const directionLines = visibleLineDecorations(() => autoDirectionLine)
 
 function fencedCodeDetails(state, node) {
   let info = ""
@@ -1631,25 +1735,36 @@ function fencedCodeDetails(state, node) {
     infoFrom,
     infoTo,
     sourceFrom,
+    sourceTo,
+    closed: codeMarks.length > 1,
     source,
   }
 }
 
-function fencedCodeAt(state, pos) {
+// The info string alone decides a rendered fence: language detection never
+// yields "mermaid" or "math", so this skips fencedCodeDetails' source work on
+// hot paths.
+function fenceInfoLanguage(state, node) {
+  const info = node.node.getChild("CodeInfo")
+  return info ? state.sliceDoc(info.from, info.to).trim().split(/\s+/, 1)[0].toLowerCase() : ""
+}
+
+function fencedCodeNode(state, pos, side) {
   // Stay in the outer Markdown tree—the innermost mounted language tree does
   // not retain FencedCode as one of its parents.
-  let node = syntaxTree(state).resolve(pos, -1)
-  while (node) {
-    if (node.name === "FencedCode") {
-      return {
-        from: node.from,
-        to: node.to,
-        closed: node.node.lastChild?.name === "CodeMark",
-      }
-    }
-    node = node.parent
+  for (let node = syntaxTree(state).resolve(pos, side); node; node = node.parent) {
+    if (node.name === "FencedCode") return node
   }
   return null
+}
+
+function fencedCodeAt(state, pos) {
+  const node = fencedCodeNode(state, pos, -1)
+  return node && {
+    from: node.from,
+    to: node.to,
+    closed: node.node.lastChild?.name === "CodeMark",
+  }
 }
 
 // Snapshot only the state that controls source visibility during a gesture.
@@ -1740,7 +1855,7 @@ const anchoredPointerSelection = EditorView.mouseSelectionStyle.of((view, event)
 
 // A cursor exists at offset zero as soon as CodeMirror is created. Do not let
 // that implicit cursor put a leading code block into source mode. A fenced
-// block becomes active only after a pointer selection lands inside it.
+// block becomes active only after an explicit selection lands inside it.
 const activeCodeBlock = StateField.define({
   create: () => null,
   update(value, tr) {
@@ -1756,6 +1871,13 @@ const activeCodeBlock = StateField.define({
 
     const head = selection.head
     if (tr.isUserEvent("select.pointer")) return fencedCodeAt(tr.state, head)
+    // The keyboard opens a maths fence's source (moveIntoMath steps into it),
+    // but a Mermaid diagram, or any other fence, opens only on a click, as
+    // before live maths: arrowing past a diagram must not unfold it.
+    if (tr.selection && tr.isUserEvent("select")) {
+      const node = fencedCodeNode(tr.state, head, -1)
+      return node && fenceInfoLanguage(tr.state, node) === "math" ? fencedCodeAt(tr.state, head) : null
+    }
     // A fence authored from plain text has no prior active range. Resolve it
     // after input so its source stays editable as soon as the opening marker
     // becomes valid, including while a Mermaid block is being typed.
@@ -1770,6 +1892,131 @@ const activeCodeBlock = StateField.define({
   },
 })
 
+const MATH_NODES = new Set(["InlineMath", "DisplayMath", "MathBlock", "UnclosedMathBlock"])
+// A $$…$$ that fills its whole paragraph is laid out as a display block.
+function isStandaloneDisplayMath(paragraph) {
+  const math = paragraph?.name === "Paragraph" ? paragraph.firstChild : null
+  return math?.name === "DisplayMath" && math.from === paragraph.from && math.to === paragraph.to
+}
+
+function collectMath(state) {
+  const items = []
+  const tree = ensureSyntaxTree(state, state.doc.length, 80) || syntaxTree(state)
+  tree.iterate({ enter(node) {
+    if (["Table", "FencedCode", "CodeBlock", "InlineCode", "Frontmatter"].includes(node.name)) return false
+    if (!MATH_NODES.has(node.name)) return
+    const display = node.name !== "InlineMath"
+    const size = display ? 2 : 1
+    const closed = node.name !== "UnclosedMathBlock"
+    const lines = node.node.getChildren("MathLine")
+    // A closed block's line may carry trailing spaces after its `$$`.
+    const contentTo = closed ? node.from + state.doc.sliceString(node.from, node.to).trimEnd().length - size : node.to
+    const source = state.doc.sliceString(node.from + size, contentTo)
+    items.push({ renderSource: lines.length ? lines.map(line => state.doc.sliceString(line.from, line.to)).join("\n") : source,
+      from: node.from, to: node.to, contentFrom: node.from + size, sourceFrom: lines[0]?.from ?? node.from + size,
+      display, closed, source })
+    return false
+  } })
+  return items
+}
+const setMathFocus = StateEffect.define()
+// As with fenced code, a range selection never opens a formula, but one that
+// still overlaps the open formula (a drag through its source) keeps it open
+// instead of rendering it under the user.
+function openMath(state, items, focused, previous) {
+  if (!focused) return null
+  const selection = state.field(pointerPreview)?.selection ?? state.selection.main
+  if (selection.empty) return items.find(item => selection.head >= item.from && selection.head <= item.to) ?? null
+  return previous && selection.from <= previous.to && selection.to >= previous.from
+    ? items.find(item => item.from === previous.from && item.to === previous.to) ?? null
+    : null
+}
+function decorateMath(state, items, focused, open) {
+  const ranges = []
+  for (const item of items) {
+    const active = item === open
+    if (item.closed && !active && !currentFindTouches(state, item.from, item.to)) {
+      ranges.push(Decoration.replace({ widget: new MathWidget(item.renderSource, item.display,
+        item.sourceFrom - item.from),
+        block: item.display && state.doc.lineAt(item.from).from === item.from
+          && state.doc.lineAt(item.to).to === item.to,
+      }).range(item.from, item.to))
+    } else {
+      if (!item.display) ranges.push(Decoration.mark({ class: "cm-md-inline-code" })
+        .range(item.from + 1, item.to - 1))
+      highlightTree(texLanguage.parser.parse(item.source), codeHighlight, (from, to, classes) => {
+        ranges.push(Decoration.mark({ class: classes }).range(item.contentFrom + from, item.contentFrom + to))
+      })
+    }
+  }
+  return { items, focused, active: open ? { from: open.from, to: open.to } : null,
+    decorations: Decoration.set(ranges, true) }
+}
+
+const mathPreviews = StateField.define({
+  create(state) {
+    let hasDollars = false
+    for (const chunks = state.doc.iter(); !hasDollars && !chunks.next().done;) hasDollars = chunks.value.includes('$')
+    return { ...decorateMath(state, hasDollars ? collectMath(state) : [], false, null), hasDollars }
+  },
+  update(value, tr) {
+    // Plain documents pay no tree walk per keystroke. A newly typed/pasted
+    // dollar enables math immediately without reloading the editor page.
+    let hasDollars = value.hasDollars
+    if (!hasDollars && tr.docChanged) {
+      tr.changes.iterChanges((_a, _b, _c, _d, inserted) => {
+        if (inserted.toString().includes('$')) hasDollars = true
+      })
+    }
+    const items = hasDollars && (tr.docChanged || syntaxTree(tr.startState) !== syntaxTree(tr.state))
+      ? collectMath(tr.state) : value.items
+    if (items === value.items && !tr.selection && !tr.effects.length) return value
+    const focused = tr.effects.find(effect => effect.is(setMathFocus))?.value ?? value.focused
+    const previous = value.active && tr.docChanged
+      ? { from: tr.changes.mapPos(value.active.from, 1), to: tr.changes.mapPos(value.active.to, -1) }
+      : value.active
+    const open = openMath(tr.state, items, focused, previous)
+    // A caret move that neither opens nor closes a formula keeps the set,
+    // so arrow keys do not rebuild widgets or reparse TeX.
+    if (items === value.items && !tr.docChanged && !tr.effects.length
+        && open?.from === value.active?.from && open?.to === value.active?.to) return value
+    return { ...decorateMath(tr.state, items, focused, open), hasDollars }
+  },
+  provide: field => EditorView.decorations.from(field, value => value.decorations),
+})
+
+// Vertical hit-testing can jump past a rendered equation. Enter its source
+// instead, preserving intervening blank lines and leaving wrapped text alone.
+function moveIntoMath(view, forward) {
+  const selection = view.state.selection.main
+  if (!selection.empty || view.state.selection.ranges.length !== 1 || view.compositionStarted) return false
+  const math = view.state.field(mathPreviews).decorations
+  const fences = view.state.field(mermaidPreviews)
+  if (!math.size && !fences.size) return false
+  const next = view.moveVertically(selection, forward)
+  let item = null
+  for (const decorations of [math, fences]) {
+    decorations.between(Math.min(selection.head, next.head), Math.max(selection.head, next.head), (from, to, value) => {
+      const widget = value.spec.widget
+      if (!(widget instanceof MathWidget) || !widget.display
+          || (forward ? from <= selection.head : to >= selection.head)) return
+      if (!item || (forward ? from < item.from : to > item.to)) item = { from, to, widget }
+    })
+  }
+  if (!item) return false
+  const current = view.state.doc.lineAt(selection.head)
+  const boundary = view.state.doc.lineAt(forward ? item.from : item.to)
+  const adjacent = current.number === boundary.number ? current
+    : view.state.doc.line(current.number + (forward ? 1 : -1))
+  const outside = forward ? adjacent.to < item.from : adjacent.from > item.to
+  const fence = !forward && fencedCodeAt(view.state, item.from + 1)
+  const anchor = outside ? Math.min(adjacent.to, adjacent.from + selection.head - current.from)
+    : forward ? item.from + item.widget.sourceOffset
+    : fence ? view.state.doc.lineAt(item.to).from - 1 : item.to
+  view.dispatch({ selection: { anchor }, scrollIntoView: true, userEvent: "select" })
+  return true
+}
+
 function buildMermaidPreviews(state) {
   const ranges = []
   const activeFence = state.field(activeCodeBlock)
@@ -1780,6 +2027,15 @@ function buildMermaidPreviews(state) {
       const details = fencedCodeDetails(state, node)
       const isActive = activeFence != null
         && node.from <= activeFence.from && node.to >= activeFence.to
+      if (details.language === "math" && node.node.lastChild?.name === "CodeMark"
+          && !isActive && !currentFindTouches(state, node.from, node.to)) {
+        ranges.push(Decoration.replace({
+          block: true,
+          widget: new MathWidget(details.source, true,
+            (node.node.getChild("CodeText")?.from ?? details.sourceFrom) - node.from, true),
+        }).range(node.from, node.to))
+        return false
+      }
       if (details.language === "mermaid" && !isActive && !currentFindTouches(state, node.from, node.to)) {
         ranges.push(Decoration.replace({
           block: true,
@@ -1792,7 +2048,7 @@ function buildMermaidPreviews(state) {
   return Decoration.set(ranges, true)
 }
 
-// Mermaid previews replace entire fenced ranges, so they must be provided
+// Rendered math and Mermaid fences replace entire ranges, so they must be provided
 // directly from editor state rather than from a view plugin.
 const mermaidPreviews = StateField.define({
   create: (state) => buildMermaidPreviews(state),
@@ -1814,7 +2070,7 @@ const mermaidPreviews = StateField.define({
         if (fenceSyntaxChanged) return
         const removed = tr.startState.doc.sliceString(fromA, toA)
         const changedSource = removed + inserted.toString()
-        fenceSyntaxChanged = /[`~]|mermaid/i.test(changedSource)
+        fenceSyntaxChanged = /[`~]|mermaid|math/i.test(changedSource)
       })
     }
 
@@ -1874,6 +2130,11 @@ function buildDecorations(view, detectedCodeCache) {
   const touchesLineOf = (pos) => {
     const line = state.doc.lineAt(pos)
     return touches(line.from, line.to)
+  }
+  const hideQuoteMark = (mark) => {
+    if (touchesLineOf(mark.from)) return
+    const after = state.doc.sliceString(mark.to, mark.to + 1)
+    ranges.push(hide.range(mark.from, mark.to + (after === " " ? 1 : 0)))
   }
   const isActiveFence = (node) => currentFindTouches(state, node.from, node.to)
     || (activeFence != null && node.from <= activeFence.from && node.to >= activeFence.to)
@@ -1986,12 +2247,14 @@ function buildDecorations(view, detectedCodeCache) {
         return /^ {0,3}>[ \t]*\[![A-Za-z][A-Za-z0-9_-]*\]/.test(firstLine.text)
           ? METRICS.alert : METRICS.quote
       }
+      case "MathBlock": return METRICS.math
+      case "Paragraph": return isStandaloneDisplayMath(node.node) ? METRICS.math : METRICS.paragraph
       case "Table": return METRICS.table
       case "HorizontalRule": return METRICS.hr
       case "FencedCode":
         // Mermaid fences render as .mermaid-figure (same margin as tables).
-        return fencedCodeDetails(state, node).language === "mermaid"
-          ? METRICS.table : METRICS.paragraph
+        return fencedCodeDetails(state, node).language === "mermaid" ? METRICS.table
+          : fenceInfoLanguage(state, node) === "math" ? METRICS.math : METRICS.paragraph
       default: return METRICS.paragraph
     }
   }
@@ -2051,6 +2314,65 @@ function buildDecorations(view, detectedCodeCache) {
             separatorBlankBefore(node)
             gapBeforeAdjacent(node)
           }
+        }
+
+        if (MATH_NODES.has(name)) {
+          // A $$…$$ that shares its paragraph with text still gets the card
+          // while it is open, as long as it fills its own lines.
+          const standalone = name === "MathBlock" || isStandaloneDisplayMath(node.node.parent)
+            || (name === "DisplayMath" && state.doc.lineAt(node.from).from === node.from
+              && state.doc.lineAt(node.to).to === node.to)
+          const open = state.field(mathPreviews).active
+          const editing = open != null && open.from === node.from && open.to === node.to
+          if (standalone && (editing || currentFindTouches(state, node.from, node.to))) {
+            const first = state.doc.lineAt(node.from)
+            const last = state.doc.lineAt(node.to)
+            const closing = last.from + last.text.lastIndexOf('$$')
+            // The card already says "formula", so the delimiters are hidden
+            // like a code block's fences. Delimiter lines of a multiline
+            // block collapse unless the caret is on them; an empty block
+            // keeps them, or it would have no line left to show.
+            const ownLines = name === "MathBlock" && last.number - first.number >= 2
+            // A list marker before the opening delimiter keeps its line, or
+            // the bullet would vanish with it: only the `$$` is hidden there.
+            const awayFromOpening = ownLines && !touchesLineOf(first.from)
+            const markerOnOpening = !/^[\s>]*$/.test(first.text.slice(0, node.from - first.from))
+            const hidesOpening = awayFromOpening && !markerOnOpening
+            const hidesClosing = ownLines && !touchesLineOf(last.from)
+            const cardFirst = hidesOpening ? first.number + 1 : first.number
+            const cardLast = hidesClosing ? last.number - 1 : last.number
+            const group = Decoration.line({ attributes: {
+              'data-code-scroll-group': String(first.from),
+              // Include quote/list indentation in the card's measured width.
+              style: 'box-sizing:border-box',
+            } })
+            for (let number = first.number; number <= last.number; number++) {
+              const line = state.doc.line(number)
+              if (number < cardFirst || number > cardLast) {
+                lineOnce(line.from, collapsedLine)
+                continue
+              }
+              if (number === cardFirst) lineOnce(line.from, codeLineFirst)
+              if (number === cardLast) lineOnce(line.from, codeLineLast)
+              if (number !== cardFirst && number !== cardLast) lineOnce(line.from, codeLine)
+              ranges.push(group.range(line.from))
+              if (line.length) ranges.push(codeScrollText.range(line.from, line.to))
+            }
+            if (name === "DisplayMath") {
+              ranges.push(hide.range(node.from, node.from + 2))
+              ranges.push(hide.range(closing, closing + 2))
+            } else {
+              if (awayFromOpening && markerOnOpening) ranges.push(hide.range(node.from, node.from + 2))
+              else if (!hidesOpening) ranges.push(fenceMark.range(node.from, node.from + 2))
+              if (!hidesClosing) ranges.push(fenceMark.range(closing, closing + 2))
+            }
+          }
+          // The subtree is declined below, so a $$ block's quote markers on
+          // its later lines are hidden here.
+          for (const mark of node.node.getChildren("QuoteMark")) hideQuoteMark(mark)
+          // Lezer skips leave() when enter() declines a subtree.
+          depth--
+          return false
         }
 
         // --- Frontmatter ----------------------------------------------
@@ -2143,10 +2465,7 @@ function buildDecorations(view, detectedCodeCache) {
           return
         }
         if (name === "QuoteMark") {
-          if (!touchesLineOf(node.from)) {
-            const after = state.doc.sliceString(node.to, node.to + 1)
-            ranges.push(hide.range(node.from, node.to + (after === " " ? 1 : 0)))
-          }
+          hideQuoteMark(node)
           return
         }
 
@@ -2420,16 +2739,18 @@ function buildDecorations(view, detectedCodeCache) {
         if (name === "FencedCode" || name === "CodeBlock") {
           const first = state.doc.lineAt(node.from)
           const last = state.doc.lineAt(node.to)
+          const details = name === "FencedCode" ? fencedCodeDetails(state, node) : null
           const closed = name === "FencedCode"
             && node.node.lastChild?.name === "CodeMark"
+          const mathFence = closed && details.language === 'math'
           const hasInterior = last.number - first.number >= (closed ? 2 : 1)
-          // Parsed fence lines stay out of the visual code card even while
-          // its content is active. The opening source is revealed only when
+          // Closed math fences use the language picker instead of raw markers.
+          // Other opening fences are revealed only when
           // the caret is actually on that line, so newly authored fences and
           // manual language edits remain possible without polluting the code.
           const hidesOpeningFence = name === "FencedCode"
-            && !touchesLineOf(first.from)
-          const hidesClosingFence = closed && !touchesLineOf(last.from)
+            && (mathFence || !touchesLineOf(first.from))
+          const hidesClosingFence = closed && (mathFence || !touchesLineOf(last.from))
           const codeFirst = hidesOpeningFence && hasInterior
             ? state.doc.line(first.number + 1) : first
           const widgetLine = hasInterior ? codeFirst : first
@@ -2439,7 +2760,6 @@ function buildDecorations(view, detectedCodeCache) {
               ? state.doc.line(last.number - 1)
               : last
           if (name === "FencedCode") {
-            const details = fencedCodeDetails(state, node)
             if (details.detectedLanguage) {
               for (const token of detectedCodeHighlights(details, detectedCodeCache)) {
                 ranges.push(token.mark.range(
@@ -2569,7 +2889,7 @@ function buildDecorations(view, detectedCodeCache) {
   return Decoration.set(ranges, true)
 }
 
-function formattingState(state) {
+function selectionContext(state) {
   const selection = state.selection.main
   const commands = new Set()
   let heading = 0
@@ -2583,7 +2903,11 @@ function formattingState(state) {
       FencedCode: 'fenced', CodeBlock: 'plain', Table: 'table' }[node.name]
     if (command) commands.add(command)
   }
-  return { heading, commands: [...commands].sort() }
+  return {
+    heading,
+    commands: [...commands].sort(),
+    selectedText: selection.empty ? null : state.sliceDoc(selection.from, selection.to),
+  }
 }
 
 const livePreview = ViewPlugin.fromClass(class {
@@ -2717,6 +3041,70 @@ const codeHighlight = HighlightStyle.define([
   { tag: [t.meta, t.processingInstruction], class: "hl-meta" },
   { tag: [t.punctuation, t.operator], class: "hl-plain" },
 ])
+
+// ---------------------------------------------------------------------------
+// Plain source mode: the same buffer with no live preview, every marker
+// visible, and Markdown itself colored (colors come from page CSS).
+// ---------------------------------------------------------------------------
+
+const sourceHighlight = HighlightStyle.define([
+  { tag: t.heading, class: "cm-src-heading" },
+  { tag: t.strong, class: "cm-src-strong" },
+  { tag: t.emphasis, class: "cm-src-emphasis" },
+  { tag: t.strikethrough, class: "cm-src-strikethrough" },
+  { tag: [t.link, t.url], class: "cm-src-link" },
+  { tag: t.string, class: "cm-src-title" },
+  { tag: t.labelName, class: "cm-src-label" },
+  { tag: t.quote, class: "cm-src-quote" },
+  { tag: [t.comment, t.blockComment], class: "cm-src-comment" },
+  { tag: [t.escape, t.character, t.atom], class: "cm-src-escape" },
+  { tag: [t.processingInstruction, t.contentSeparator, t.meta], class: "cm-src-mark" },
+])
+const isMarkdownNode = (type) => type.prop(languageDataProp) === markdownLanguage.data
+
+// Source mode wraps a long line under its own text: the rows after the first
+// start below the first character after the indent, list marker or quotation
+// mark, not at the pane's edge. The source font has one width for every
+// character, so the prefix is counted in columns and no text is measured.
+const hangingPrefix = /^[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+(?:\[[ xX]\][ \t]+)?|>[ \t]?)*/
+const hangingColumns = (text, tabSize) => {
+  const prefix = hangingPrefix.exec(text)[0]
+  if (prefix.length === text.length) return 0
+  let columns = 0
+  for (const ch of prefix) columns += ch === "\t" ? tabSize - (columns % tabSize) : 1
+  return columns
+}
+const hangingLines = new Map()
+const hangingLine = (columns) => {
+  let deco = hangingLines.get(columns)
+  if (!deco) {
+    deco = Decoration.line({
+      attributes: { style: `text-indent:-${columns}ch;padding-inline-start:calc(var(--src-line-start) + ${columns}ch)` },
+    })
+    hangingLines.set(columns, deco)
+  }
+  return deco
+}
+const hangingIndents = visibleLineDecorations((line, state) => {
+  const columns = hangingColumns(line.text, state.tabSize)
+  return columns > 0 ? hangingLine(columns) : null
+})
+
+// The line break a file uses most. The buffer holds every break as one
+// position, whatever its bytes, so the file's own break has to go back in
+// when the text leaves the editor: without this a CRLF file saves as LF and
+// every line of it shows as changed. A file that mixes breaks saves with
+// the one it uses most.
+const fileLineBreak = (text) => {
+  if (!text.includes("\r")) return "\n"
+  let lf = 0, crlf = 0, cr = 0
+  for (const match of text.matchAll(/\r\n|\r|\n/g)) {
+    if (match[0] === "\n") lf++
+    else if (match[0] === "\r\n") crlf++
+    else cr++
+  }
+  return crlf > lf && crlf >= cr ? "\r\n" : cr > lf ? "\r" : "\n"
+}
 
 // ---------------------------------------------------------------------------
 // Bold / italic toggles
@@ -2998,6 +3386,28 @@ const autoCloseFence = EditorState.transactionFilter.of((tr) => {
   const selection = tr.newSelection.main
   if (!selection.empty) return tr
 
+  // Pair dollar math on Enter, leaving single-line expressions uninterrupted.
+  const before = tr.startState.selection
+  const opening = tr.startState.doc.lineAt(before.main.head)
+  if (before.ranges.length === 1 && before.main.empty && before.main.head === opening.to
+      && opening.text === '$$' && !tr.isUserEvent('input.paste')) {
+    let newline = false
+    tr.changes.iterChanges((from, to, _fromB, _toB, inserted) => {
+      newline = from === opening.to && to === from && inserted.toString() === '\n'
+    })
+    if (newline) {
+      const tree = ensureSyntaxTree(tr.startState, opening.to, 80) || syntaxTree(tr.startState)
+      let node = tree.resolve(opening.to, -1)
+      while (node && !['MathBlock', 'UnclosedMathBlock', 'FencedCode', 'CodeBlock'].includes(node.name)) node = node.parent
+      if (node?.name === 'UnclosedMathBlock' && node.from === opening.from) return [tr, {
+        changes: { from: selection.head, insert: '\n$$' },
+        selection: { anchor: selection.head },
+        annotations: autoClosedFence.of(true),
+        sequential: true,
+      }]
+    }
+  }
+
   const line = tr.newDoc.lineAt(selection.head)
   const offset = selection.head - line.from
   if (line.text.slice(0, offset) !== "```" || line.text.slice(offset) !== "") {
@@ -3091,10 +3501,41 @@ function indentMarkdownListItems(view) {
 window.MDEditor = {
   create(parent, doc, callbacks) {
     const onDirty = callbacks && callbacks.onDirty
+    let lineBreak = fileLineBreak(String(doc || ""))
     const onPasteImage = callbacks && callbacks.onPasteImage
     // Live preview spacing tokens from the host stylesheet (MarkdownHTML
     // constants) — see METRICS for the headless defaults.
     Object.assign(METRICS, (callbacks && callbacks.spacing) || {})
+    // Everything that renders Markdown lives in one compartment, so plain
+    // source mode swaps it out and keeps the buffer, selection, and undo
+    // history. The formatted style's whole-document state fields (tables,
+    // math, diagrams) go with it: source mode costs nothing per document.
+    const editingStyle = new Compartment()
+    const formattedStyle = [
+      stablePointerPreview,
+      anchoredPointerSelection,
+      mermaidPreviews,
+      mathPreviews,
+      EditorView.focusChangeEffect.of((_state, focused) => setMathFocus.of(focused)),
+      tableEditors,
+      tableFormattingSelection,
+      Prec.lowest(livePreview),
+      alignInactiveHeadings,
+      keymap.of([
+        { key: "ArrowUp", run: view => moveIntoMath(view, false) },
+        { key: "ArrowDown", run: view => moveIntoMath(view, true) },
+      ]),
+    ]
+    const sourceStyle = [
+      EditorView.editorAttributes.of({ class: "cm-md-source" }),
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightActiveLine(),
+      hangingIndents,
+      EditorState.tabSize.of(4),
+      syntaxHighlighting({ style: sourceHighlight.style, scope: isMarkdownNode }),
+    ]
+    let sourceModeOn = !!(callbacks && callbacks.sourceMode)
     const view = new EditorView({
       parent,
       state: EditorState.create({
@@ -3119,25 +3560,20 @@ window.MDEditor = {
             content: markdown({
               base: markdownLanguage,
               codeLanguages,
-              extensions: obsidianHighlight,
+              extensions: [obsidianHighlight, mathSyntax],
             }),
           }),
+          // Selection bookkeeping that commands read in both editing styles.
           activeCodeBlock,
           wrappedCodeBlocks,
           pointerPreview,
-          stablePointerPreview,
-          anchoredPointerSelection,
-          mermaidPreviews,
-          tableEditors,
-          tableFormattingSelection,
           // Markdown punctuation also carries processingInstruction tags.
           // Keep code colors inside embedded languages, not Markdown markers.
           syntaxHighlighting({
             style: codeHighlight.style,
-            scope: (type) => type.prop(languageDataProp) !== markdownLanguage.data,
+            scope: (type) => !isMarkdownNode(type),
           }),
-          Prec.lowest(livePreview),
-          alignInactiveHeadings,
+          editingStyle.of(sourceModeOn ? sourceStyle : formattedStyle),
           autoCloseFence,
           closeBrackets(),
           // paragraphReflow deliberately omitted: the preview renders
@@ -3158,7 +3594,7 @@ window.MDEditor = {
             if (callbacks?.onFormattingChange && (update.selectionSet || update.docChanged
                 || update.focusChanged || syntaxTree(update.startState) !== syntaxTree(update.state))) {
               if (tableFormattingTargets.has(view)) captureTableSelection(view)
-              else callbacks.onFormattingChange(formattingState(update.state))
+              else callbacks.onFormattingChange(selectionContext(update.state))
             }
             if (update.docChanged && callbacks?.onSearchChange) {
               const search = update.state.field(documentFind)
@@ -3243,9 +3679,39 @@ window.MDEditor = {
     }
     if (callbacks?.onCopyCode) codeCopyHandlers.set(view, callbacks.onCopyCode)
     if (callbacks?.onFormattingChange) tableFormattingCallbacks.set(view, callbacks.onFormattingChange)
-    callbacks?.onFormattingChange?.(formattingState(view.state))
-    return {
-      getMarkdown: () => view.state.doc.toString(),
+    callbacks?.onFormattingChange?.(selectionContext(view.state))
+    const editor = {
+      getMarkdown: () => view.state.doc.sliceString(0, undefined, lineBreak),
+      isSourceMode: () => sourceModeOn,
+      // Swap the editing style in place. Line heights differ between the two,
+      // so carry the top source line across like a read/edit hand-off.
+      setSourceMode: (on) => {
+        on = !!on
+        if (on === sourceModeOn) return Promise.resolve(false)
+        const anchor = editor.getScrollAnchor()
+        sourceModeOn = on
+        // A selection inside a table cell lives outside the editor's own
+        // selection: commit the cell's pending typing and carry the
+        // selection into the source before the table widgets go.
+        const fromTableCell = tableFormattingTargets.has(view)
+        prepareTableFormatting(view)
+        tableFormattingTargets.delete(view)
+        view.dispatch({ effects: [
+          editingStyle.reconfigure(on ? sourceStyle : formattedStyle),
+          setPointerPreview.of(null),
+        ] })
+        // The cell had the focus and is gone.
+        if (fromTableCell) view.focus()
+        if (!on) {
+          // The formatted style's state starts over: its table plugin
+          // dropped the host callback when it left, and the math field
+          // learns of focus only when focus changes.
+          if (callbacks?.onFormattingChange) tableFormattingCallbacks.set(view, callbacks.onFormattingChange)
+          view.dispatch({ effects: setMathFocus.of(view.hasFocus) })
+        }
+        callbacks?.onFormattingChange?.(selectionContext(view.state))
+        return editor.setScrollPosition(0, anchor.position, anchor.gap)
+      },
       getBlockStyle: () => tableFormattingTargets.has(view) ? 'table' : stylingContext(view.state).style,
       setBlockStyle: (style, language) => {
         if (tableFormattingTargets.has(view)) {
@@ -3331,7 +3797,9 @@ window.MDEditor = {
       isSyntaxReady: () => syntaxTreeAvailable(view.state, view.state.doc.length),
       replaceMarkdown: (markdown) => {
         const text = String(markdown || "")
-        const length = text.length
+        lineBreak = fileLineBreak(text)
+        // In document positions: a line break is one, whatever its bytes.
+        const length = text.replace(/\r\n?/g, "\n").length
         const selection = view.state.selection.main
         const anchor = Math.min(selection.anchor, length)
         const head = Math.min(selection.head, length)
@@ -3470,5 +3938,6 @@ window.MDEditor = {
         view.destroy()
       },
     }
+    return editor
   },
 }

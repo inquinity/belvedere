@@ -313,6 +313,18 @@ Follow `tests/fixtures/export/docs/export-and-tables.md`; each section carries i
 | Section 3: Expand Table from the reader and from the editor | A separate window with its own page |
 | Section 4: printing from Finder shows the dialog | It used to quit the app |
 
+## 5i. Features from the third upstream round
+
+| Check | Why |
+|---|---|
+| *File → Export… → EPUB Book* on `tests/fixtures/export/docs/export-and-tables.md` with its folder opened; open the book in Books: headings in the table of contents, pictures present, the image outside the folder absent unless loaded first | The book's pictures are captured from the hidden export page, which must hold the reader's boundary |
+| Drag a table's header divider; then print, export and Expand Table: all at natural widths. In Expand Table, scroll a long table: the header row stays | Dragged widths are for reading only |
+| *Settings → General → Reading → Text alignment* → Justified: prose justifies at once in open windows; reopen a Quick Look preview: it follows | A new reader setting shared with Quick Look |
+| Edit Mode on `samples/editor-math.md`: formulas render; click one: its source opens; ⇧⌘E: plain text, nothing hidden; ⇧⌘E again and leave and re-enter Edit Mode: the style holds | Live math and source mode are new editor states |
+| Select text in the reader: the inspector shows word and character counts; *Edit → Copy as Plain Text*, paste into TextEdit (plain): no `**`, `#` or `|` | New copy path and host message |
+| In a folder opened with *Open Folder…*, *+ → New Empty File*: the file appears for renaming with no prompt. Then open a file on its own (*File → Open…*) from a folder you have not opened, *+ → New Empty File*: Belvedere asks to allow writing, the file appears for renaming; make a second file: no second prompt; quit and relaunch, make another: it asks again. In that prompt, choose a wider folder: nothing is written | Write access must last only until quit, and only for the project folder |
+| Open a file from an iCloud Drive folder that is not downloaded: a Loading panel, and a spinner on its navigator row, until it shows | Slow reads used to leave a blank window |
+
 ## 6. Release build
 
 For a `--release` build, verify the artifact rather than trusting the log:
