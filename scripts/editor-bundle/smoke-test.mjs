@@ -1637,4 +1637,25 @@ document.querySelector('script[src="math-test.js"]').dispatchEvent(new dom.windo
 await retryLoad
 check('math loader caches successful loads', window.__mdLoadMath() === retryLoad)
 
+// Arrowing past a diagram leaves it drawn: only a click, or the keyboard
+// stepping into a maths fence, opens a fence's source.
+for (const [label, source, opens] of [
+  ["Mermaid", "```mermaid\nflowchart LR\n  A --> B\n```\nAfter", false],
+  ["maths", "```math\nx^2\n```\nAfter", true],
+]) {
+  const host = document.createElement("div")
+  document.body.append(host)
+  const editor = window.MDEditor.create(host, source, {})
+  editor.focus()
+  editor.select(source.indexOf("After"))
+  host.querySelector(".cm-content").dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+    key: "ArrowLeft", code: "ArrowLeft", keyCode: 37, bubbles: true, cancelable: true,
+  }))
+  await new Promise(resolve => setTimeout(resolve, 20))
+  const drawn = label === "Mermaid" ? !!host.querySelector(".cm-md-mermaid-preview") : !!host.querySelector(".math")
+  check(`ArrowLeft into a ${label} fence ${opens ? "opens" : "keeps"} it`, drawn === !opens)
+  editor.destroy()
+  host.remove()
+}
+
 process.exit(failures ? 1 : 0)

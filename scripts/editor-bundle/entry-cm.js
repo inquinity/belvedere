@@ -1870,7 +1870,14 @@ const activeCodeBlock = StateField.define({
     if (!selection.empty) return null
 
     const head = selection.head
-    if (tr.selection && tr.isUserEvent("select")) return fencedCodeAt(tr.state, head)
+    if (tr.isUserEvent("select.pointer")) return fencedCodeAt(tr.state, head)
+    // The keyboard opens a maths fence's source (moveIntoMath steps into it),
+    // but a Mermaid diagram, or any other fence, opens only on a click, as
+    // before live maths: arrowing past a diagram must not unfold it.
+    if (tr.selection && tr.isUserEvent("select")) {
+      const node = fencedCodeNode(tr.state, head, -1)
+      return node && fenceInfoLanguage(tr.state, node) === "math" ? fencedCodeAt(tr.state, head) : null
+    }
     // A fence authored from plain text has no prior active range. Resolve it
     // after input so its source stays editable as soon as the opening marker
     // becomes valid, including while a Mermaid block is being typed.
