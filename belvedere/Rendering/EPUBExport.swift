@@ -81,7 +81,7 @@ nonisolated enum EPUBExport {
     document.head.append(style);
     // Preview controls would end up in the pictures, and a closed disclosure
     // hides what the book shows open.
-    article.querySelectorAll('.mermaid-hud, .markdown-alert-icon, .md-code-header, [data-md-app="table-actions"], button')
+    article.querySelectorAll('.mermaid-hud, .markdown-alert-icon, [data-md-app="code-header"], [data-md-app="table-actions"], button')
         .forEach(node => node.remove());
     article.querySelectorAll('details').forEach(details => { details.open = true; });
     // The marker below is the app's; a document's own copy of it would swap
@@ -212,8 +212,8 @@ nonisolated enum EPUBExport {
     // Preview controls, spacing helpers, and anything a book cannot carry.
     // Every picture is a captured image by now, so any SVG left was not drawn.
     all(`script, style, link, template, button, iframe, object, embed, video, audio, canvas, svg,
-         source, map, area, select, textarea, .md-source-blank-line, .md-code-header,
-         .md-code-action, [data-md-app="table-actions"], .md-search-burst, .mermaid-hud, .markdown-alert-icon`)
+         source, map, area, select, textarea, .md-source-blank-line, [data-md-app="code-header"],
+         [data-md-app="table-actions"], .md-search-burst, .mermaid-hud, .markdown-alert-icon`)
         .forEach(node => node.remove());
     // Form controls are dropped by some readers; a glyph always shows.
     all('input').forEach(input => {

@@ -158,6 +158,12 @@ watch report. Open pull requests were read the same day.
 - **Plain-text source mode (GH-651).** Stored as `belvedere.editorSourceMode`; upstream's
   pre-macOS 26 formatting bar and tint fallback are not taken.
 - Every pick: README, Chinese, Japanese, Persian, Polish and German strings not taken.
+- **Known limit.** Copying, counts, Expand Table and EPUB find the code header and table
+  controls by the `data-md-app` marker. The Mermaid zoom controls and the skipped
+  `.mermaid`, `.mermaid-figure` and footnote back-link classes come from rendered HTML,
+  which the sanitizer passes through, so a marker there would be stripped; a document
+  that borrows those classes can keep its own text out of a copy or a book. That is the
+  document hiding its own words, not reaching anything.
 
 ### Declined
 

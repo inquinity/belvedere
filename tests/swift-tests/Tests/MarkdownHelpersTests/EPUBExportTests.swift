@@ -252,6 +252,60 @@ final class EPUBExportTests: XCTestCase {
         XCTAssertTrue(navigation.contains(#"<a href="section-001.xhtml">File name</a>"#))
     }
 
+    /// A book must not reach for the network when it is opened: only a link
+    /// keeps a web address. And a document cannot change what the book holds
+    /// by borrowing the app's class names or its picture marker. The addresses are a
+    /// closed local port, which refuses at once and never leaves the machine.
+    func testBookKeepsNoRemoteReferencesAndNoBorrowedMarkers() async throws {
+        let markdown = """
+        I do <span class="md-code-header">not</span> agree.
+
+        <img src="https://127.0.0.1:9/pixel.png" alt="remote"> <img srcset="https://127.0.0.1:9/a.png 2x" alt="set">
+        <picture><source srcset="https://127.0.0.1:9/b.png"><img alt="pic"></picture>
+        <video poster="https://127.0.0.1:9/p.png"></video>
+        [ok](https://127.0.0.1:9/ok) <a href="#top" ping="https://127.0.0.1:9/ping">top</a>
+        <table background="https://127.0.0.1:9/t.png"><tr><td>cell</td></tr></table>
+
+        <div data-epub-picture="0">kept text</div>
+
+        ```swift
+        let x = 1
+        ```
+        """
+        let harness = makeHarness(markdown: markdown, appliesContentPolicy: true)
+        defer { harness.close() }
+        // The harness's layout() waits for every image to decode, and these
+        // never load; wait for the text instead.
+        var rendered = false
+        for _ in 0..<250 where !rendered {
+            rendered = (try? await harness.webView.evaluateJavaScript(
+                "document.querySelector('article')?.textContent.includes('agree.') === true") as? Bool) == true
+            if !rendered { try await Task.sleep(for: .milliseconds(20)) }
+        }
+        XCTAssertTrue(rendered, "the page rendered")
+        let contents = try await export(from: harness, markdown: markdown, name: "remote")
+        defer { try? FileManager.default.removeItem(at: contents.deletingLastPathComponent()) }
+
+        let folder = contents.appendingPathComponent("OEBPS")
+        let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        let book = try names.filter { $0.hasSuffix(".xhtml") || $0.hasSuffix(".opf") || $0.hasSuffix(".css") }
+            .map { try String(contentsOf: folder.appendingPathComponent($0), encoding: .utf8) }
+            .joined(separator: "\n")
+        // Only an attribute that fetches counts: the click-to-load label may
+        // name the blocked address as text, as it does in a printout.
+        let fetching = try NSRegularExpression(
+            pattern: #"\b(src|srcset|poster|background|ping|data|xlink:href|href)="[^"]*127\.0\.0\.1:9[^"]*""#)
+        let references = fetching.matches(in: book, range: NSRange(book.startIndex..., in: book))
+            .compactMap { Range($0.range, in: book).map { String(book[$0]) } }
+        XCTAssertEqual(references, [#"href="https://127.0.0.1:9/ok""#], book)
+        XCTAssertTrue(book.contains(#"href="https://127.0.0.1:9/ok""#), "the link keeps its address")
+
+        XCTAssertTrue(book.contains("not"), "a document's span with the code header's class is text")
+        XCTAssertTrue(book.contains("kept text"), "a document's picture marker does not swap its content")
+        XCTAssertTrue(book.contains("language-swift"), "the code is in the book")
+        XCTAssertFalse(book.contains(">swift<"), "the app's code header stays out of the book")
+    }
+
     func testLinksResolveAsInThePreview() async throws {
         let markdown = """
         # Guide
@@ -345,13 +399,17 @@ final class EPUBExportTests: XCTestCase {
     }
 
     private func makeHarness(markdown: String, folder: URL? = nil,
-                             assetHandler: WKURLSchemeHandler? = nil) -> WebViewLayoutHarness {
+                             assetHandler: WKURLSchemeHandler? = nil,
+                             appliesContentPolicy: Bool = false) -> WebViewLayoutHarness {
         _ = NSApplication.shared
         // A dark preview: the book must not inherit its page or diagram colours.
         let html = MarkdownHTML.render(markdown: markdown, allowsScroll: true,
                                        assetBaseHref: folder.map(MarkdownAssetResolution.baseHref(forFolder:)),
                                        vendorLoading: .inline, colorScheme: .dark).html
-        return WebViewLayoutHarness(html: appLikeMermaidStart(html), width: 900, isEditor: false, height: 600,
+        // The app loads its pages under PreviewContentPolicy, which keeps a
+        // document's remote references from loading at all.
+        let page = appliesContentPolicy ? PreviewContentPolicy.applying(to: html) : html
+        return WebViewLayoutHarness(html: appLikeMermaidStart(page), width: 900, isEditor: false, height: 600,
                                     schemeHandlers: assetHandler.map { [MarkdownAssetResolution.scheme: $0] } ?? [:])
     }
 

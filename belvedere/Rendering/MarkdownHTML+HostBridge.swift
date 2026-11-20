@@ -141,7 +141,7 @@ nonisolated extension MarkdownHTML {
 
         // Controls injected into the article. Copying and Inspector counts
         // both leave them out.
-        const MD_CHROME_SELECTOR = '.md-code-header, [data-md-app="table-actions"], .mermaid-hud';
+        const MD_CHROME_SELECTOR = '[data-md-app="code-header"], [data-md-app="table-actions"], .mermaid-hud';
         // A decorated table sits in its wrapper, or in the inner scroller
         // that column resize adds. Both carry the app's marker, which the
         // sanitizer removes from documents.
@@ -736,6 +736,10 @@ nonisolated extension MarkdownHTML {
 
                 const header = document.createElement('div');
                 header.className = 'md-code-header';
+                // The app's marker, which documents cannot carry: copying,
+                // counts, Expand Table and EPUB leave out only this header,
+                // not a document's own element with the same class.
+                header.dataset.mdApp = 'code-header';
                 const language = document.createElement('span');
                 language.className = 'md-code-language';
                 language.textContent = pre.dataset.codeLanguage || 'text';
@@ -808,7 +812,7 @@ nonisolated extension MarkdownHTML {
             if (!table) return;
             event.preventDefault();
             const clone = table.cloneNode(true);
-            clone.querySelectorAll('[data-md-app="table-actions"], .md-code-header').forEach(node => node.remove());
+            clone.querySelectorAll('[data-md-app="table-actions"], [data-md-app="code-header"]').forEach(node => node.remove());
             // The table window starts at natural widths, not the document's.
             clearColumnResize(clone);
             let title = '';
@@ -880,7 +884,6 @@ nonisolated extension MarkdownHTML {
                 // scrolled horizontally.
                 const scrollLeft = table.scrollLeft;
                 const scroller = document.createElement('div');
-                scroller.className = 'md-table-scroll';
                 scroller.dataset.mdApp = 'table-scroll';
                 table.before(scroller);
                 scroller.append(table);
