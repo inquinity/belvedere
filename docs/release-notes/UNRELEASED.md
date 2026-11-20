@@ -25,5 +25,5 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - The inspector counts the words and characters of the selected text.
 - **Copy as Plain Text** (*Edit* menu, ⌥⇧⌘C) copies the selection without Markdown.
 - The file navigator has a filter field, a recent-files toggle and a **+** menu for new files and folders. In a folder Belvedere can only read, it asks before writing, and the permission lasts until you quit.
-- Opening a file that is still downloading from a cloud folder shows a Loading panel instead of a blank window.
+- Opening a file that is still downloading from a cloud folder shows a spinner on its navigator row, and a Loading panel when it replaces the document you were reading, instead of a blank window.
 - Fixed: wrapped inline code no longer makes the page scroll sideways, and a sentence that follows a display formula stays on one line.

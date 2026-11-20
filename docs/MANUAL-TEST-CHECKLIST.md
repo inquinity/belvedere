@@ -323,7 +323,7 @@ Follow `tests/fixtures/export/docs/export-and-tables.md`; each section carries i
 | Edit Mode on `samples/editor-math.md`: formulas render; click one: its source opens; ⇧⌘E: plain text, nothing hidden; ⇧⌘E again and leave and re-enter Edit Mode: the style holds | Live math and source mode are new editor states |
 | Select text in the reader: the inspector shows word and character counts; *Edit → Copy as Plain Text*, paste into TextEdit (plain): no `**`, `#` or `|` | New copy path and host message |
 | In a folder opened with *Open Folder…*, *+ → New Empty File*: the file appears for renaming with no prompt. Then open a file on its own (*File → Open…*) from a folder you have not opened, *+ → New Empty File*: Belvedere asks to allow writing, the file appears for renaming; make a second file: no second prompt; quit and relaunch, make another: it asks again. In that prompt, choose a wider folder: nothing is written | Write access must last only until quit, and only for the project folder |
-| Open a file from an iCloud Drive folder that is not downloaded: a Loading panel, and a spinner on its navigator row, until it shows | Slow reads used to leave a blank window |
+| Open a folder, show a local file, then click a file in it that is not downloaded (iCloud Drive, *brctl evict* the file first): a Loading panel, and a spinner on its navigator row, until it shows. In a freshly opened folder window, with nothing shown yet, only the row spinner appears | Slow reads used to leave a blank window |
 
 ## 6. Release build
 
