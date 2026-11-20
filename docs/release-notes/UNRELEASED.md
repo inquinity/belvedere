@@ -24,6 +24,6 @@ and the heading above are dropped. See docs/RELEASE-AUTOMATION.md.
 - **Show Markdown Source** (*View* menu, ⇧⌘E, or the source button on the formatting bar) edits the plain Markdown text, with nothing hidden or rendered.
 - The inspector counts the words and characters of the selected text.
 - **Copy as Plain Text** (*Edit* menu, ⌥⇧⌘C) copies the selection without Markdown.
-- The file navigator has a filter field, a recent-files toggle and a **+** menu for new files and folders. Belvedere asks before writing to a folder, and the permission lasts until you quit.
+- The file navigator has a filter field, a recent-files toggle and a **+** menu for new files and folders. In a folder Belvedere can only read, it asks before writing, and the permission lasts until you quit.
 - Opening a file that is still downloading from a cloud folder shows a Loading panel instead of a blank window.
 - Fixed: wrapped inline code no longer makes the page scroll sideways, and a sentence that follows a display formula stays on one line.
