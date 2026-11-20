@@ -410,6 +410,11 @@ final class MarkdownWebView: NSView, WKNavigationDelegate {
 
     /// Empties the visible article without unloading the page, so the next
     /// `display()` still hits the fast-path.
+    /// Asks the page to report its selection again (see resyncSelectedText).
+    func resyncSelectedText() {
+        webView.evaluateJavaScript("window.MdPreview?.resyncSelectedText?.()", completionHandler: nil)
+    }
+
     func clearContent() {
         appliedDocument = nil
         pendingAppliedDocument = nil

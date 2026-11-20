@@ -563,6 +563,32 @@ final class MdPreviewUpdateTests: XCTestCase {
     /// `__mdSrc`, set the done flag, replace the children with a sentinel,
     /// and count runs so a destructive re-render (fresh node, count reset)
     /// is detectable.
+    /// Leaving Edit Mode clears the Inspector's selection, but a reader that
+    /// was not re-rendered keeps its highlight. The resync reports the same
+    /// selection again, which an ordinary selectionchange would not.
+    @MainActor
+    func testReaderSelectionResyncReportsAnUnchangedSelectionAgain() async throws {
+        let webView = try await loadHarness(articleAttributes: "", stubsWebKitMessageHandler: true)
+        let article = MarkdownHTML.render(markdown: "Kept paragraph.", vendorLoading: .lazy).articleHTML
+        _ = try await webView.evaluateJavaScript(
+            "window.MdPreview.update(\(MarkdownHTML.javaScriptStringLiteral(article))); true"
+        )
+        let reports = try await webView.evaluateJavaScript("""
+        (() => {
+            window.__hostMessages = [];
+            const range = document.createRange();
+            range.selectNodeContents(document.querySelector('article.markdown-body p'));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.dispatchEvent(new Event('selectionchange'));
+            document.dispatchEvent(new Event('selectionchange'));
+            window.MdPreview.resyncSelectedText();
+            return window.__hostMessages.filter(m => m.kind === 'selectedText').map(m => m.value);
+        })()
+        """) as? [String]
+        XCTAssertEqual(reports, ["Kept paragraph.", "Kept paragraph."])
+    }
+
     @MainActor
     func testReaderSelectionReportsOnlyArticleTextAndClearsWhenDeselected() async throws {
         let webView = try await loadHarness(articleAttributes: "", stubsWebKitMessageHandler: true)

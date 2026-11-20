@@ -413,6 +413,13 @@ nonisolated extension MarkdownHTML {
             post({ kind: 'selectedText', value: text });
         }
         document.addEventListener('selectionchange', pushSelectedText);
+        // Reports the selection again even when it has not changed: the
+        // Inspector forgets it while Edit Mode is open, and a reader that
+        // was not re-rendered keeps its highlight.
+        function resyncSelectedText() {
+            lastSelectedText = undefined;
+            pushSelectedText();
+        }
 
         function elementForEventTarget(target) {
             if (target instanceof Element) return target;
@@ -1470,6 +1477,7 @@ nonisolated extension MarkdownHTML {
         // second update without the flag once the real document arrives,
         // which clears the inline style and reveals the article.
         window.MdPreview.markdownForSelection = markdownForSelection;
+        window.MdPreview.resyncSelectedText = resyncSelectedText;
         window.MdPreview.plainTextForSelection = plainTextForSelection;
         window.MdPreview.clearColumnResize = clearColumnResize;
 

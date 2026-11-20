@@ -656,6 +656,9 @@ extension DocumentWindowController {
             if self.editBar == nil {
                 self.updateEditToolbarItem()
             }
+            // The Inspector dropped the reader's selection on entry; a reader
+            // that was not re-rendered still shows it.
+            split.resyncReaderSelection()
             completion()
         }
     }

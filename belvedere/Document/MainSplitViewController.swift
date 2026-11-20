@@ -102,6 +102,11 @@ final class MainSplitViewController: NSSplitViewController {
     }
 
     /// Update selected-range statistics without refreshing the preview or TOC.
+    /// After Edit Mode, the reader's selection, if it kept one, counts again.
+    func resyncReaderSelection() {
+        contentViewController?.resyncSelectedText()
+    }
+
     func updateInspectorSelection(_ text: String?) {
         inspectorViewController?.setSelectedText(text)
     }
