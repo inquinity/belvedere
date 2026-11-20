@@ -4,8 +4,9 @@
 //
 //  "Loading…" and a spinner on a glass panel, centered over the reader
 //  while a slow file read is in flight — typically a cloud file macOS is
-//  still downloading. Covers every way of opening a file, including links
-//  and Back/Forward to files the sidebar isn't showing.
+//  still downloading. Shown for reads that go through the window's file
+//  loader: the navigator, links, Back/Forward and reloads. A document opened
+//  from Finder or File > Open is read before its window exists.
 //
 
 import Cocoa
@@ -39,26 +40,11 @@ final class DocumentLoadingOverlayView: NSView {
         content.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
 
-        // Same surfaces as the Search for Document palette: Liquid Glass on
-        // macOS 26 and later, a frosted popover material before that.
-        let panel: NSView
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = 14
-            glass.contentView = content
-            panel = glass
-        } else {
-            let effect = NSVisualEffectView()
-            effect.material = .popover
-            effect.blendingMode = .withinWindow
-            effect.state = .active
-            effect.wantsLayer = true
-            effect.layer?.cornerRadius = 14
-            effect.layer?.masksToBounds = true
-            effect.addSubview(content)
-            panel = effect
-        }
+        // The same Liquid Glass surface as the Search for Document palette.
+        let panel = NSGlassEffectView()
+        panel.style = .regular
+        panel.cornerRadius = 14
+        panel.contentView = content
         panel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(panel)
 

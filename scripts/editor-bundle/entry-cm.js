@@ -1518,7 +1518,7 @@ const METRICS = {
   math: 18,       // .math-display (1.2em)
   quote: 18,      // blockquote
   alert: 24,      // .markdown-alert
-  table: 24,      // .md-table-scroll
+  table: 24,      // a table's wrapper
   hr: 12,         // hr (top only; the next block's margin supplies the bottom)
 }
 const SEPARATOR_BLOCKS = new Set([

@@ -112,26 +112,12 @@ final class ProjectNavigatorFilterBar: NSView, NSTextFieldDelegate {
         button.heightAnchor.constraint(equalToConstant: Self.height).isActive = true
     }
 
-    /// Wraps `content` in a fixed-height capsule: Liquid Glass on macOS 26,
-    /// a quiet filled pill before it.
+    /// Wraps `content` in a fixed-height Liquid Glass capsule.
     private static func capsule(around content: NSView) -> NSView {
-        let surface: NSView
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = height / 2
-            glass.contentView = content
-            surface = glass
-        } else {
-            let box = NSBox()
-            box.boxType = .custom
-            box.borderWidth = 0
-            box.cornerRadius = height / 2
-            box.fillColor = .quaternarySystemFill
-            box.contentViewMargins = .zero
-            box.contentView = content
-            surface = box
-        }
+        let surface = NSGlassEffectView()
+        surface.style = .regular
+        surface.cornerRadius = height / 2
+        surface.contentView = content
         surface.translatesAutoresizingMaskIntoConstraints = false
         content.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

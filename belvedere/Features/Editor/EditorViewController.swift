@@ -305,7 +305,6 @@ final class EditorViewController: NSViewController, WKNavigationDelegate {
     /// Tells the page how much of its top the toolbar covers, so the source
     /// mode's room past the end is measured from the visible part of the pane.
     private func updatePageTopInset() {
-        guard #available(macOS 26.0, *) else { return }
         webView.evaluateJavaScript("document.documentElement.style.setProperty('--mdp-top-inset', '\(webView.obscuredContentInsets.top)px')", completionHandler: nil)
     }
 
